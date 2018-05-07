@@ -5,10 +5,10 @@
 
 File name: Core_Model.py
 
-Idealized energy system models
+Simple Energy Model Ver 1
 
-Spatial scope: U.S.
-Data: Matt Shaner's paper with reanalysis data and U.S. demand_series.
+This is the heart of the Simple Energy Model. It reads in the case dictionary
+that was created in Preprocess_Input.py, and then executes all of the cases.
 
 Technology:
     Generation: natural gas, wind, solar, nuclear
@@ -42,68 +42,53 @@ import numpy as np
 
 # -----------------------------------------------------------------------------
 
-def core_model_loop (
-        time_series,
-        assumption_list,
-        verbose
-        ):
-    num_cases = len(assumption_list)
+def core_model_loop (case_dic):
+    num_cases = case_dic['NUM_CASES']
     result_list = [dict() for x in range(num_cases)]
     for case_index in range(num_cases):
+        verbose = case_dic['VERBOSE'][case_index]
         if verbose:
             today = datetime.datetime.now()
+            print case_index
             print today
-            print assumption_list[case_index]
         result_list[case_index] = core_model (
-            time_series, 
-            assumption_list[case_index],
-            verbose
+            case_dic,
+            case_index
             )                                            
     return result_list
 
 # -----------------------------------------------------------------------------
 
-def core_model (
-        time_series, 
-        assumptions,
-        verbose
-        ):
-        
-    demand_series = time_series['demand_series'].copy() # Assumed to be normalized to 1 kW mean
-    solar_series = time_series['solar_series'] # Assumed to be normalized per kW capacity
-    wind_series = time_series['wind_series'] # Assumed to be normalized per kW capacity
-    demand_flag = assumptions['demand_flag'] # if < 0, use demand series, else set to value
+def core_model (case_dic, case_index):
+    verbose = case_dic['VERBOSE'][case_index]
+    
+    demand_series = time_series['DEMAND_SERIES'][case_index] # Assumed to be normalized to 1 kW mean
+    solar_series = time_series['SOLAR_SERIES'][case_index] # Assumed to be normalized per kW capacity
+    wind_series = time_series['WIND_SERIES'][case_index] # Assumed to be normalized per kW capacity
     if demand_flag >= 0:
         demand_series.fill(demand_flag)
     
     # Fixed costs are assumed to be per time period (1 hour)
-    fix_cost_natgas = assumptions['fix_cost_natgas']
-    fix_cost_solar = assumptions['fix_cost_solar']
-    fix_cost_wind = assumptions['fix_cost_wind']
-    fix_cost_nuclear = assumptions['fix_cost_nuclear']
-    fix_cost_storage = assumptions['fix_cost_storage']
+    fix_cost_natgas = case_dic['FIX_COST_NATGAS'][case_index]
+    fix_cost_solar = case_dic['FIX_COST_SOLAR'][case_index]
+    fix_cost_wind = case_dic['FIX_COST_WIND'][case_index]
+    fix_cost_nuclear = case_dic['FIX_COST_NUCLEAR'][case_index]
+    fix_cost_storage = case_dic['FIX_COST_STORAGE'][case_index]
 
     # Variable costs are assumed to be kWh
-    var_cost_natgas = assumptions['var_cost_natgas']
-    var_cost_solar = assumptions['var_cost_solar']
-    var_cost_wind = assumptions['var_cost_wind']
-    var_cost_nuclear = assumptions['var_cost_nuclear']
-    var_cost_unmet_demand = assumptions['var_cost_unmet_demand']
-    var_cost_dispatch_from_storage = assumptions['var_cost_dispatch_from_storage']
-    var_cost_dispatch_to_storage = assumptions['var_cost_dispatch_to_storage']
-    var_cost_storage = assumptions['var_cost_storage'] # variable cost of using storage capacity
+    var_cost_natgas = case_dic['VAR_COST_NATGAS'][case_index]
+    var_cost_solar = case_dic['VAR_COST_SOLAR'][case_index]
+    var_cost_wind = case_dic['VAR_COST_WIND'][case_index]
+    var_cost_nuclear = case_dic['VAR_COST_NUCLEAR'][case_index]
+    var_cost_unmet_demand = case_dic['VAR_COST_UNMET_DEMAND'][case_index]
+    var_cost_dispatch_from_storage = case_dic['VAR_COST_DISPATCH_FROM_STORAGE'][case_index]
+    var_cost_dispatch_to_storage = case_dic['VAR_COST_DISPATCH_TO_STORAGE'][case_index]
+    var_cost_storage = case_dic['VAR_COST_STORAGE'][case_index] # variable cost of using storage capacity
     
-    storage_charging_efficiency = assumptions['storage_charging_efficiency']
+    storage_charging_efficiency = case_dic['STORAGE_CHARGING_EFFICIENCY'][case_index]
     
-    system_components = assumptions['system_components']
+    system_components = case_dic['SYSTEM_COMPONENTS'][case_index]
     
-    capacity_natgas_in = assumptions['capacity_natgas']  # set to numbers if goal is to set netgas capacity rather than optimize for it
-    capacity_nuclear_in = assumptions['capacity_nuclear']  # set to numbers if goal is to set netgas capacity rather than optimize for it
-    capacity_solar_in = assumptions['capacity_solar']  # set to numbers if goal is to set netgas capacity rather than optimize for it
-    capacity_wind_in = assumptions['capacity_wind']  # set to numbers if goal is to set netgas capacity rather than optimize for it
-    capacity_storage_in = assumptions['capacity_storage']  # set to numbers if goal is to set netgas capacity rather than optimize for it
-    demand_flag = assumptions['demand_flag'] # whether to use time series or constant
-
     
     num_time_periods = demand_series.size
     start = time.time()
