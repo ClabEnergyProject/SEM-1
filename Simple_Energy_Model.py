@@ -24,7 +24,7 @@ import subprocess
 #root_directory = "/Users/kcaldeira/Google Drive/simple energy system model/Kens version/"
 whoami = subprocess.check_output('whoami')
 if whoami == 'kcaldeira-carbo\\kcaldeira\r\n':
-    case_input_path_filename = "/Users/kcaldeira/Google Drive/SEM-1/case_input.csv"
+    case_input_path_filename = "/Users/kcaldeira/Google Drive/git/SEM-1/case_input.csv"
 
 # -----------------------------------------------------------------------------
 # =============================================================================

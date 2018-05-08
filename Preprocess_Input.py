@@ -37,9 +37,7 @@ Each dictionary in <assumption_list> OPTIONALLY contains:
 import csv
 import sys
 import numpy as np
-import itertools,functools,operator
 
-import datetime
 
 
 
@@ -84,6 +82,14 @@ def read_csv_dated_data_file(start_year,start_month,start_day,start_hour,
                              end_year,end_month,end_day,end_hour,
                              data_path, data_filename):
     
+    # turn dates into yyyymmddhh format for comparison.
+    # Assumes all datasets are on the same time step and are not missing any data.
+    start_hour = start_hour + 100 * (start_day + 100 * (start_month + 100* start_year)) 
+    end_hour = end_hour + 100 * (end_day + 100 * (end_month + 100* end_year)) 
+    
+    print data_path
+    print data_filename
+    
     if data_path.endswith('/'):
         path_filename = data_path + data_filename
     else:
@@ -93,15 +99,29 @@ def read_csv_dated_data_file(start_year,start_month,start_day,start_hour,
     print data_filename
     data = []
     with open(path_filename) as fin:
+        # read to keyword "BEGIN_DATA" and then one more line (header line)
         data_reader = csv.reader(fin)
-        for row in data_reader:
-            data.append(row)
-
-    start_hour = start_hour + 100 * (start_day + 100 * (start_month + 100* start_year)) 
-    end_hour = end_hour + 100 * (end_day + 100 * (end_month + 100* end_year)) 
-
-    data_array = np.array(data[1:]) # throw away first header row 
+        
+        #Throw away all lines up to and include the line that has "BEGIN_GLOBAL_DATA" in the first cell of the line
+        while True:
+            line = data_reader.next()
+            if line[0] == "BEGIN_DATA":
+                break
+        # Now take the header row
+        line = data_reader.next()
+        
+        # Now take all non-blank lines
+        data = []
+        while True:
+            line = data_reader.next()
+            if any(field.strip() for field in line):
+                data.append(line[:5])
+                # the above if clause was from: https://stackoverflow.com/questions/4521426/delete-blank-rows-from-csv
+            
+    data_array = np.array(data) # make into a numpy object
+    
     hour_num = data_array[:,3] + 100 * (data_array[:,2] + 100 * (data_array[:,1] + 100* data_array[:,0]))   
+    
 
     series = [item[1] for item in zip(hour_num,data_array[:,4]) if item[0]>= start_hour and item[0] <= end_hour]
     
@@ -208,6 +228,9 @@ def preprocess_input(case_input_path_filename):
     list_of_component_lists = []
     
     have_keys = case_dic.keys()
+    print have_keys
+    print case_dic['DEMAND_FILE']
+    
     for case_index in range(num_cases):
         
         # first read in demand series (which must exist)

@@ -37,7 +37,7 @@ data_path,/users/kcaldeira/Google Drive/SEM-1/Input_Data,,,,,,,,,,,,,,,,,,,,
 output_path,/users/kcaldeira/Google Drive/SEM-1/Output_data,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,,
 BEGIN_CASE_DATA,"""BEGIN_CASE_DATA"" is a keyword that must be in the first column of the file. The next row must contain keywords",,,,,,,,,,,,,,,,,,,,
-start_year,start_month,start_day,start_hour,end_year,end_month_end,end_day,end_hour,fix_cost_wind,var_cost_wind,wind_capacity_file,fix_cost_solar,var_cost_solar,solar_capacity_file,fix_cost_natgas,var_cost_natgas,var_cost_storage,var_cost_dispatch_to_storage,var_cost_dispatch_from_storage,var_cost_storage,storage_charging_efficiency,demand_file
+start_year,start_month,start_day,start_hour,end_year,end_month,end_day,end_hour,fix_cost_wind,var_cost_wind,wind_capacity_file,fix_cost_solar,var_cost_solar,solar_capacity_file,fix_cost_natgas,var_cost_natgas,var_cost_storage,var_cost_dispatch_to_storage,var_cost_dispatch_from_storage,var_cost_storage,storage_charging_efficiency,demand_file
 1990,1,1,1,1992,12,31,24,-1,-1,wind_series_Shaner_normalized_to_1_mean.csv,0.03,0.001,solar_series_Shaner_normalized_to_1_mean.csv,0.03,0.02,0.01,0,0,1.00E-08,1,demand_series_Shaner_normalized_to_1_mean.csv
 1990,1,1,1,1992,12,31,24,0.03,0.001,wind_series_Shaner_normalized_to_1_mean.csv,-1,-1,solar_series_Shaner_normalized_to_1_mean.csv,0.03,0.02,0.01,0,0,1.00E-08,1,demand_series_Shaner_normalized_to_1_mean.csv
 ,,,,,,,,,,,,,,,,,,,,,
