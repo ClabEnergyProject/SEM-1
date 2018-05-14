@@ -17,6 +17,7 @@ from Postprocess_Results import post_process
 #from Postprocess_Results_kc180214 import postprocess_key_scalar_results,merge_two_dicts
 from Save_Basic_Results import save_basic_results
 import subprocess
+import pickle
 
 #%%
 
@@ -29,11 +30,20 @@ if whoami == 'kcaldeira-carbo\\kcaldeira\r\n':
 # -----------------------------------------------------------------------------
 # =============================================================================
 
-case_dic = preprocess_input(case_input_path_filename)
+print 'Simple_Energy_Model: Pre-processing input'
+global_dic,case_dic_list = preprocess_input(case_input_path_filename)
 
-result_list = core_model_loop (case_dic)
+pickle.dump( [global_dic, case_dic_list], open( "test0.pickle", "wb" ) )
 
-scalar_names,scalar_table = save_basic_results(case_dic, result_list)
+print 'Simple_Energy_Model: Executing core model loop'
+result_list = core_model_loop (global_dic, case_dic_list)
 
-if switch_postprocess == True:
-    post_process(case_dic, result_list)
+print 'Simple_Energy_Model: Saving basic results'
+scalar_names,scalar_table = save_basic_results(global_dic, case_dic_list, result_list)
+
+pickle.dump( [global_dic, case_dic_list, result_list], open( "test.pickle", "wb" ) )
+
+
+if global_dic['POSTPROCESS']:
+    print 'Simple_Energy_Model: Post-processing results'
+    post_process(global_dic, case_dic_list, result_list)

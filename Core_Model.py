@@ -42,57 +42,57 @@ import numpy as np
 
 # -----------------------------------------------------------------------------
 
-def core_model_loop (case_dic):
-    num_cases = case_dic['NUM_CASES']
+def core_model_loop (global_dic, case_dic_list):
+    verbose = global_dic['VERBOSE']
+    if verbose:
+        print "Core_Model.py: Entering core model loop"
+    num_cases = len(case_dic_list)
+    
     result_list = [dict() for x in range(num_cases)]
     for case_index in range(num_cases):
-        verbose = case_dic['VERBOSE'][case_index]
+
         if verbose:
             today = datetime.datetime.now()
             print case_index
             print today
-        result_list[case_index] = core_model (
-            case_dic,
-            case_index
-            )                                            
+        result_list[case_index] = core_model (global_dic, case_dic_list[case_index])                                            
     return result_list
 
 # -----------------------------------------------------------------------------
 
-def core_model (case_dic, case_index):
-    verbose = case_dic['VERBOSE'][case_index]
-    
-    demand_series = time_series['DEMAND_SERIES'][case_index] # Assumed to be normalized to 1 kW mean
-    solar_series = time_series['SOLAR_SERIES'][case_index] # Assumed to be normalized per kW capacity
-    wind_series = time_series['WIND_SERIES'][case_index] # Assumed to be normalized per kW capacity
-    if demand_flag >= 0:
-        demand_series.fill(demand_flag)
+def core_model (global_dic, case_dic):
+    verbose = global_dic['VERBOSE']
+    if verbose:
+        print "Core_Model.py: processing case ",case_dic['CASE_NAME']
+    demand_series = case_dic['DEMAND_SERIES'] # Assumed to be normalized to 1 kW mean
+    solar_series = case_dic['SOLAR_SERIES'] # Assumed to be normalized per kW capacity
+    wind_series = case_dic['WIND_SERIES'] # Assumed to be normalized per kW capacity
+
     
     # Fixed costs are assumed to be per time period (1 hour)
-    fix_cost_natgas = case_dic['FIX_COST_NATGAS'][case_index]
-    fix_cost_solar = case_dic['FIX_COST_SOLAR'][case_index]
-    fix_cost_wind = case_dic['FIX_COST_WIND'][case_index]
-    fix_cost_nuclear = case_dic['FIX_COST_NUCLEAR'][case_index]
-    fix_cost_storage = case_dic['FIX_COST_STORAGE'][case_index]
+    fix_cost_natgas = case_dic['FIX_COST_NATGAS']
+    fix_cost_solar = case_dic['FIX_COST_SOLAR']
+    fix_cost_wind = case_dic['FIX_COST_WIND']
+    fix_cost_nuclear = case_dic['FIX_COST_NUCLEAR']
+    fix_cost_storage = case_dic['FIX_COST_STORAGE']
 
     # Variable costs are assumed to be kWh
-    var_cost_natgas = case_dic['VAR_COST_NATGAS'][case_index]
-    var_cost_solar = case_dic['VAR_COST_SOLAR'][case_index]
-    var_cost_wind = case_dic['VAR_COST_WIND'][case_index]
-    var_cost_nuclear = case_dic['VAR_COST_NUCLEAR'][case_index]
-    var_cost_unmet_demand = case_dic['VAR_COST_UNMET_DEMAND'][case_index]
-    var_cost_dispatch_from_storage = case_dic['VAR_COST_DISPATCH_FROM_STORAGE'][case_index]
-    var_cost_dispatch_to_storage = case_dic['VAR_COST_DISPATCH_TO_STORAGE'][case_index]
-    var_cost_storage = case_dic['VAR_COST_STORAGE'][case_index] # variable cost of using storage capacity
+    var_cost_natgas = case_dic['VAR_COST_NATGAS']
+    var_cost_solar = case_dic['VAR_COST_SOLAR']
+    var_cost_wind = case_dic['VAR_COST_WIND']
+    var_cost_nuclear = case_dic['VAR_COST_NUCLEAR']
+    var_cost_unmet_demand = case_dic['VAR_COST_UNMET_DEMAND']
+    var_cost_dispatch_from_storage = case_dic['VAR_COST_DISPATCH_FROM_STORAGE']
+    var_cost_dispatch_to_storage = case_dic['VAR_COST_DISPATCH_TO_STORAGE']
+    var_cost_storage = case_dic['VAR_COST_STORAGE'] # variable cost of using storage capacity
     
-    storage_charging_efficiency = case_dic['STORAGE_CHARGING_EFFICIENCY'][case_index]
+    storage_charging_efficiency = case_dic['STORAGE_CHARGING_EFFICIENCY']
     
-    system_components = case_dic['SYSTEM_COMPONENTS'][case_index]
-    
-    
-    num_time_periods = demand_series.size
-    start = time.time()
-        
+    system_components = case_dic['SYSTEM_COMPONENTS']
+    print system_components
+      
+    num_time_periods = len(demand_series)
+
     # -------------------------------------------------------------------------
         
     #%% Construct the Problem
@@ -121,7 +121,7 @@ def core_model (case_dic, case_index):
     constraints = []
 
 #---------------------- natural gas ------------------------------------------    
-    if 'natural_gas' in system_components:
+    if 'NATGAS' in system_components:
         capacity_natgas = cvx.Variable(1)
         dispatch_natgas = cvx.Variable(num_time_periods)
         constraints += [
@@ -129,15 +129,13 @@ def core_model (case_dic, case_index):
                 dispatch_natgas >= 0,
                 dispatch_natgas <= capacity_natgas
                 ]
-        if capacity_natgas_in >= 0:
-            constraints += [ capacity_natgas == capacity_natgas_in ]
         fcn2min += capacity_natgas * fix_cost_natgas + cvx.sum_entries(dispatch_natgas * var_cost_natgas)/num_time_periods
     else:
         capacity_natgas = 0
         dispatch_natgas = np.zeros(num_time_periods)
         
 #---------------------- solar ------------------------------------------    
-    if 'solar' in system_components:
+    if 'SOLAR' in system_components:
         capacity_solar = cvx.Variable(1)
         dispatch_solar = cvx.Variable(num_time_periods)
         constraints += [
@@ -145,15 +143,13 @@ def core_model (case_dic, case_index):
                 dispatch_solar >= 0, 
                 dispatch_solar <= capacity_solar * solar_series 
                 ]
-        if capacity_solar_in >= 0:
-            constraints += [ capacity_solar == capacity_solar_in ]
         fcn2min += capacity_solar * fix_cost_solar + cvx.sum_entries(dispatch_solar * var_cost_solar)/num_time_periods
     else:
         capacity_solar = 0
         dispatch_solar = np.zeros(num_time_periods)
         
 #---------------------- wind ------------------------------------------    
-    if 'wind' in system_components:
+    if 'WIND' in system_components:
         capacity_wind = cvx.Variable(1)
         dispatch_wind = cvx.Variable(num_time_periods)
         constraints += [
@@ -161,15 +157,13 @@ def core_model (case_dic, case_index):
                 dispatch_wind >= 0, 
                 dispatch_wind <= capacity_wind * wind_series 
                 ]
-        if capacity_wind_in >= 0:
-            constraints += [ capacity_wind == capacity_wind_in ]
         fcn2min += capacity_wind * fix_cost_wind + cvx.sum_entries(dispatch_wind * var_cost_wind)/num_time_periods
     else:
         capacity_wind = 0
         dispatch_wind = np.zeros(num_time_periods)
         
 #---------------------- nuclear ------------------------------------------    
-    if 'nuclear' in system_components:
+    if 'NUCLEAR' in system_components:
         capacity_nuclear = cvx.Variable(1)
         dispatch_nuclear = cvx.Variable(num_time_periods)
         constraints += [
@@ -177,15 +171,13 @@ def core_model (case_dic, case_index):
                 dispatch_nuclear >= 0, 
                 dispatch_nuclear <= capacity_nuclear 
                 ]
-        if capacity_nuclear_in >= 0:
-            constraints += [ capacity_nuclear == capacity_nuclear_in ]
         fcn2min += capacity_nuclear * fix_cost_nuclear + cvx.sum_entries(dispatch_nuclear * var_cost_nuclear)/num_time_periods
     else:
         capacity_nuclear = 0
         dispatch_nuclear = np.zeros(num_time_periods)
         
 #---------------------- storage ------------------------------------------    
-    if 'storage' in system_components:
+    if 'STORAGE' in system_components:
         capacity_storage = cvx.Variable(1)
         dispatch_to_storage = cvx.Variable(num_time_periods)
         dispatch_from_storage = cvx.Variable(num_time_periods)
@@ -197,8 +189,6 @@ def core_model (case_dic, case_index):
                 energy_storage >= 0,
                 energy_storage <= capacity_storage
                 ]
-        if capacity_storage_in >= 0:
-            constraints += [ capacity_storage == capacity_storage_in ]
 #        fcn2min += capacity_storage * fix_cost_storage +  \
 #            cvx.sum_entries(energy_storage * var_cost_storage)/num_time_periods + \
 #            cvx.sum_entries(((dispatch_from_storage**2)**0.5)* var_cost_dispatch_from_storage**0.5)/num_time_periods
@@ -222,7 +212,7 @@ def core_model (case_dic, case_index):
         energy_storage = np.zeros(num_time_periods)
        
 #---------------------- unmet demand ------------------------------------------    
-    if 'unmet_demand' in system_components:
+    if 'UNMET_DEMAND' in system_components:
         dispatch_unmet_demand = cvx.Variable(num_time_periods)
         constraints += [
                 dispatch_unmet_demand >= 0
@@ -232,7 +222,7 @@ def core_model (case_dic, case_index):
         dispatch_unmet_demand = np.zeros(num_time_periods)
         
   
-#---------------------- natural gas ------------------------------------------    
+#---------------------- dispatch constraint ------------------------------------------    
     constraints += [
             dispatch_natgas + dispatch_solar + dispatch_wind + dispatch_nuclear + dispatch_from_storage +  dispatch_unmet_demand  == 
                 demand_series + dispatch_to_storage
@@ -242,7 +232,8 @@ def core_model (case_dic, case_index):
     obj = cvx.Minimize(fcn2min)
     
     # -----------------------------------------------------------------------------
-    
+    print fcn2min
+    print constraints
     # Problem solving
     
     # print cvx.installed_solvers()
@@ -256,7 +247,6 @@ def core_model (case_dic, case_index):
 #    prob.solve(solver = 'GUROBI',BarConvTol = 1e-10, feasibilityTol = 1e-8)
 #    prob.solve(solver = 'GUROBI',BarConvTol = 1e-8, FeasibilityTol = 1e-6)
     
-    end = time.time()
     if verbose:
         print 'system cost ',prob.value
         
@@ -275,54 +265,54 @@ def core_model (case_dic, case_index):
     # -----------------------------------------------------------------------------
     
     result={
-            'system_cost':prob.value,
-            'problem_status':prob.status,
-            'dispatch_curtailment':dispatch_curtailment
+            'SYSTEM_COST':prob.value,
+            'PROBLEM_STATUS':prob.status,
+            'DISPATCH_CURTAILMENT':dispatch_curtailment
             }
     
-    if 'natural_gas' in system_components:
-        result['capacity_natgas'] = np.asscalar(capacity_natgas.value)
-        result['dispatch_natgas'] = np.array(dispatch_natgas.value).flatten()
+    if 'NATGAS' in system_components:
+        result['CAPACITY_NATGAS'] = np.asscalar(capacity_natgas.value)
+        result['DISPATCH_NATGAS'] = np.array(dispatch_natgas.value).flatten()
     else:
-        result['capacity_natgas'] = capacity_natgas
-        result['dispatch_natgas'] = dispatch_natgas
+        result['CAPACITY_NATGAS'] = capacity_natgas
+        result['DISPATCH_NATGAS'] = dispatch_natgas
 
-    if 'solar' in system_components:
-        result['capacity_solar'] = np.asscalar(capacity_solar.value)
-        result['dispatch_solar'] = np.array(dispatch_solar.value).flatten()
+    if 'SOLAR' in system_components:
+        result['CAPACITY_SOLAR'] = np.asscalar(capacity_solar.value)
+        result['DISPATCH_SOLAR'] = np.array(dispatch_solar.value).flatten()
     else:
-        result['capacity_solar'] = capacity_solar
-        result['dispatch_solar'] = dispatch_solar
+        result['CAPACITY_SOLAR'] = capacity_solar
+        result['DISPATCH_SOLAR'] = dispatch_solar
 
-    if 'wind' in system_components:
-        result['capacity_wind'] = np.asscalar(capacity_wind.value)
-        result['dispatch_wind'] = np.array(dispatch_wind.value).flatten()
+    if 'WIND' in system_components:
+        result['CAPACITY_WIND'] = np.asscalar(capacity_wind.value)
+        result['DISPATCH_WIND'] = np.array(dispatch_wind.value).flatten()
     else:
-        result['capacity_wind'] = capacity_wind
-        result['dispatch_wind'] = dispatch_wind
+        result['CAPACITY_WIND'] = capacity_wind
+        result['DISPATCH_WIND'] = dispatch_wind
 
-    if 'nuclear' in system_components:
-        result['capacity_nuclear'] = np.asscalar(capacity_nuclear.value)
-        result['dispatch_nuclear'] = np.array(dispatch_nuclear.value).flatten()
+    if 'NUCLEAR' in system_components:
+        result['CAPACITY_NUCLEAR'] = np.asscalar(capacity_nuclear.value)
+        result['DISPATCH_NUCLEAR'] = np.array(dispatch_nuclear.value).flatten()
     else:
-        result['capacity_nuclear'] = capacity_nuclear
-        result['dispatch_nuclear'] = dispatch_nuclear
+        result['CAPACITY_NUCLEAR'] = capacity_nuclear
+        result['DISPATCH_NUCLEAR'] = dispatch_nuclear
 
-    if 'storage' in system_components:
-        result['capacity_storage'] = np.asscalar(capacity_storage.value)
-        result['dispatch_to_storage'] = np.array(dispatch_to_storage.value).flatten()
-        result['dispatch_from_storage'] = np.array(dispatch_from_storage.value).flatten()
-        result['energy_storage'] = np.array(energy_storage.value).flatten()
+    if 'STORAGE' in system_components:
+        result['CAPACITY_STORAGE'] = np.asscalar(capacity_storage.value)
+        result['DISPATCH_TO_STORAGE'] = np.array(dispatch_to_storage.value).flatten()
+        result['DISPATCH_FROM_STORAGE'] = np.array(dispatch_from_storage.value).flatten()
+        result['ENERGY_STORAGE'] = np.array(energy_storage.value).flatten()
     else:
-        result['capacity_storage'] = capacity_storage
-        result['dispatch_to_storage'] = dispatch_to_storage
-        result['dispatch_from_storage'] = dispatch_from_storage
-        result['energy_storage'] = energy_storage
+        result['CAPACITY_STORAGE'] = capacity_storage
+        result['DISPATCH_TO_STORAGE'] = dispatch_to_storage
+        result['DISPATCH_FROM_STORAGE'] = dispatch_from_storage
+        result['ENERGY_STORAGE'] = energy_storage
         
-    if 'unmet_demand' in system_components:
-        result['dispatch_unmet_demand'] = np.array(dispatch_unmet_demand.value).flatten()
+    if 'UNMET_DEMAND' in system_components:
+        result['DISPATCH_UNMET_DEMAND'] = np.array(dispatch_unmet_demand.value).flatten()
     else:
-        result['dispatch_unmet_demand'] = dispatch_unmet_demand
+        result['DISPATCH_UNMET_DEMAND'] = dispatch_unmet_demand
         
 
     return result

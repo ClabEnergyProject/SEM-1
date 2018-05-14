@@ -37,6 +37,7 @@ Each dictionary in <assumption_list> OPTIONALLY contains:
 import csv
 import sys
 import numpy as np
+import pickle
 
 
 
@@ -58,14 +59,25 @@ def import_case_input(case_input_path_filename):
         if line[0] == "BEGIN_GLOBAL_DATA":
             break
     
-    # Now take all non-blank lines until "BEGIN_CASE_DATA"
+    # Now take all non-blank lines until "BEGIN_ALL_CASES_DATA" or "BEGIN_CASE_DATA"
     global_data = []
     while True:
         line = rdr.next()
-        if line[0] == "BEGIN_CASE_DATA":
+        if line[0] == "BEGIN_ALL_CASES_DATA" or line[0] == 'BEGIN_CASE_DATA':
             break
         if line[0] != "":
             global_data.append(line[0:2])
+            
+    # Now take all non-blank lines until "BEGIN_CASE_DATA"
+    all_cases_data = []
+    print 'line = ', line
+    if line[0] == 'BEGIN_ALL_CASES_DATA':
+        while True:
+            line = rdr.next()
+            if line[0] == "BEGIN_CASE_DATA":
+                break
+            if line[0] != "":
+                all_cases_data.append(line[0:2])
             
     # Now take all non-blank lines until "END_DATA"
     case_data = []
@@ -76,7 +88,7 @@ def import_case_input(case_input_path_filename):
         if line[0] != "":
             case_data.append(line)
             
-    return global_data,case_data
+    return global_data,all_cases_data,case_data
 
 def read_csv_dated_data_file(start_year,start_month,start_day,start_hour,
                              end_year,end_month,end_day,end_hour,
@@ -86,17 +98,9 @@ def read_csv_dated_data_file(start_year,start_month,start_day,start_hour,
     # Assumes all datasets are on the same time step and are not missing any data.
     start_hour = start_hour + 100 * (start_day + 100 * (start_month + 100* start_year)) 
     end_hour = end_hour + 100 * (end_day + 100 * (end_month + 100* end_year)) 
+      
+    path_filename = data_path + '/' + data_filename
     
-    print data_path
-    print data_filename
-    
-    if data_path.endswith('/'):
-        path_filename = data_path + data_filename
-    else:
-        path_filename = data_path + '/' + data_filename
-    print path_filename
-    print data_path
-    print data_filename
     data = []
     with open(path_filename) as fin:
         # read to keyword "BEGIN_DATA" and then one more line (header line)
@@ -113,10 +117,13 @@ def read_csv_dated_data_file(start_year,start_month,start_day,start_hour,
         # Now take all non-blank lines
         data = []
         while True:
-            line = data_reader.next()
-            if any(field.strip() for field in line):
-                data.append(line[:5])
-                # the above if clause was from: https://stackoverflow.com/questions/4521426/delete-blank-rows-from-csv
+            try:
+                line = data_reader.next()
+                if any(field.strip() for field in line):
+                    data.append([int(line[0]),int(line[1]),int(line[2]),int(line[3]),float(line[4])])
+                    # the above if clause was from: https://stackoverflow.com/questions/4521426/delete-blank-rows-from-csv
+            except:
+                break
             
     data_array = np.array(data) # make into a numpy object
     
@@ -135,12 +142,13 @@ def preprocess_input(case_input_path_filename):
     # Recognized keywords in case_input.csv file
     
     keywords_logical = map(str.upper,
-            ["verbose"]
+            ["verbose","postprocess"]
             )
 
     keywords_str = map(str.upper,
             ["data_path","demand_file",
-             "solar_capacity_file","wind_capacity_file","output_path"]
+             "solar_capacity_file","wind_capacity_file","output_path",
+             "case_name","global_name"]
             )
     
     keywords_real = map(str.upper,
@@ -151,165 +159,224 @@ def preprocess_input(case_input_path_filename):
             "start_year","storage_charging_efficiency",
             "var_cost_dispatch_from_storage","var_cost_dispatch_to_storage",
             "var_cost_natgas","var_cost_solar","var_cost_storage",
-            "var_cost_wind","var_cost_nuclear"]
+            "var_cost_wind","var_cost_nuclear","var_cost_unmet_demand"]
             )
     
     # -----------------------------------------------------------------------------
     # Read in case data file
     
-    global_data, case_data = import_case_input(case_input_path_filename)
+    global_data, all_cases_data, case_data = import_case_input(case_input_path_filename)
 
     # -----------------------------------------------------------------------------
     # the basic logic here is that if a keyword appears in the "global"
     # section, then it is used for all cases if it is used in the "case" section
     # then it applies to that particular case.
-    
-    
+        
     # Parse global data
     global_dic = {}
     for list_item in global_data:
         test_key = str.upper(list_item[0])
         test_value = list_item[1]
-        print list_item
         if test_key in keywords_str:
             global_dic[test_key] = test_value
-            print test_key
-            print test_value
         elif test_key in keywords_real:
             global_dic[test_key] = float(test_value)
         elif test_key in keywords_logical:
             global_dic[test_key] = bool(test_value)
-            
+    
+    verbose = global_dic['VERBOSE']
+#    print global_dic
+    if verbose:
+        print "Preprocess_Input.py: Preparing case input"
+        
+    # Parse all_cases_dic data
+    all_cases_dic = {}
+    for list_item in all_cases_data:
+        test_key = str.upper(list_item[0])
+        test_value = list_item[1]
+        if test_key in keywords_str:
+            all_cases_dic[test_key] = test_value
+        elif test_key in keywords_real:
+            all_cases_dic[test_key] = float(test_value)
+        elif test_key in keywords_logical:
+            all_cases_dic[test_key] = bool(test_value)
+    
+#    print all_cases_data
+#    print all_cases_dic        
     case_transpose = map(list,zip(*case_data)) # transpose list of lists.
     # Note that the above line could cause problems if not all numbers are
     # entered uniformly in the case input file.
-    
+        
     # Now each element of case_transpose is the potential keyword followed by data
-    case_dic = {}
+    case_list_dic = {}
     for list_item in case_transpose:
         test_key = str.upper(list_item[0])
         test_values = list_item[1:]
         if test_key in keywords_str:
-            print test_key
-            print test_values
-            global_dic[test_key] = test_values
+            case_list_dic[test_key] = test_values
         elif test_key in keywords_real:
-            global_dic[test_key] = map(float,test_values)
+            case_list_dic[test_key] = map(float,test_values)
         elif test_key in keywords_logical:
-            global_dic[test_key] = map(bool,test_values)
+            case_list_dic[test_key] = map(bool,test_values)
+ 
+#    print case_data
+#    print 'before adding ', case_list_dic
     
-    if not set(global_dic.keys()).isdisjoint(case_dic.keys()):
-        sys.exit( "Warning:  global keywords overlap with case keywords")
+    if not set(all_cases_dic.keys()).isdisjoint(case_list_dic.keys()):
+        sys.exit( "Warning: all cases keywords overlap with case keywords")
     
     # Number of cases to run is number of rows in case input file.
+    # Num cases and verbose are the only non-case specific inputs in case_list_dic.
     num_cases = len(case_data) - 1 # the 1 is for the keyword row
-    case_dic['NUM_CASES'] = num_cases
+    global_dic['NUM_CASES'] = num_cases
     
-    # now add global variables to case_dic
-    for keyword in global_dic.keys():
-        case_dic[keyword] = [global_dic[keyword] for i in range(num_cases)] # replicate lists
+    # now add global variables to case_list_dic
+    for keyword in all_cases_dic.keys():
+        case_list_dic[keyword] = [all_cases_dic[keyword] for i in range(num_cases)] # replicate lists
 
-    print case_dic['DATA_PATH']
+    print 'after adding ',case_list_dic
     
     # define all keywords in dictionary, but set to -1 if not present    
     dummy = [-1 for i in range(num_cases)]
-    for keyword in list(set(keywords_real).difference(case_dic.keys())):
-        case_dic[keyword] = dummy
+    for keyword in list(set(keywords_real).difference(case_list_dic.keys())):
+        case_list_dic[keyword] = dummy
     
-    # ok, now we have everything from the case_input file in case_dic.
+    # ok, now we have everything from the case_input file in case_list_dic.
     # Let's add the other things we need. First, we will see what system components
     # are used in each case.
     
     # for wind, solar, and demand, we also need to get the relevant demand files
     
+
+    
+    have_keys = case_list_dic.keys()
+
+    pFile = open('test.pickle','wb')
+    pickle.dump(case_list_dic,pFile)
+    pFile.close()
+    
     solar_series_list = []
     wind_series_list = []
     demand_series_list = []
-    list_of_component_lists = []
-    
-    have_keys = case_dic.keys()
-    print have_keys
-    print case_dic['DEMAND_FILE']
-    
+
     for case_index in range(num_cases):
-        
+        if verbose:
+            print 'Preprocess_Input.py: time series for ',case_list_dic['CASE_NAME'][case_index]
+                
         # first read in demand series (which must exist)
         demand_series_list.append(
             read_csv_dated_data_file(
-                    case_dic['START_YEAR'][case_index],
-                    case_dic['START_MONTH'][case_index],
-                    case_dic['START_DAY'][case_index],
-                    case_dic['START_HOUR'][case_index],
-                    case_dic['END_YEAR'][case_index],
-                    case_dic['END_MONTH'][case_index],
-                    case_dic['END_DAY'][case_index],
-                    case_dic['END_HOUR'][case_index],
-                    case_dic['DATA_PATH'][case_index],
-                    case_dic['DEMAND_FILE'][case_index]
+                    case_list_dic['START_YEAR'][case_index],
+                    case_list_dic['START_MONTH'][case_index],
+                    case_list_dic['START_DAY'][case_index],
+                    case_list_dic['START_HOUR'][case_index],
+                    case_list_dic['END_YEAR'][case_index],
+                    case_list_dic['END_MONTH'][case_index],
+                    case_list_dic['END_DAY'][case_index],
+                    case_list_dic['END_HOUR'][case_index],
+                    global_dic['DATA_PATH'],
+                    case_list_dic['DEMAND_FILE'][case_index]
                     )
             )
             
         # check on each technology one by one
-        component_list = []
+
         if 'FIX_COST_SOLAR' in have_keys:
-            if case_dic['FIX_COST_SOLAR'][case_index] >= 0:
-                component_list.append('SOLAR')
+            if case_list_dic['FIX_COST_SOLAR'][case_index] >= 0:
                 solar_series_list.append(
                         read_csv_dated_data_file(
-                                case_dic['START_YEAR'][case_index],
-                                case_dic['START_MONTH'][case_index],
-                                case_dic['START_DAY'][case_index],
-                                case_dic['START_HOUR'][case_index],
-                                case_dic['END_YEAR'][case_index],
-                                case_dic['END_MONTH'][case_index],
-                                case_dic['END_DAY'][case_index],
-                                case_dic['END_HOUR'][case_index],
-                                case_dic['DATA_PATH'][case_index],
-                                case_dic['SOLAR_CAPACITY_FILE'][case_index]
+                                case_list_dic['START_YEAR'][case_index],
+                                case_list_dic['START_MONTH'][case_index],
+                                case_list_dic['START_DAY'][case_index],
+                                case_list_dic['START_HOUR'][case_index],
+                                case_list_dic['END_YEAR'][case_index],
+                                case_list_dic['END_MONTH'][case_index],
+                                case_list_dic['END_DAY'][case_index],
+                                case_list_dic['END_HOUR'][case_index],
+                                global_dic['DATA_PATH'],
+                                case_list_dic['SOLAR_CAPACITY_FILE'][case_index]
                                 )
                         )
+            else:
+                solar_series_list.append([])
         else:
             solar_series_list.append([])
                         
         if 'FIX_COST_WIND' in have_keys:
-            if case_dic['FIX_COST_WIND'][case_index] >= 0:
-                component_list.append('WIND')
-                solar_series_list.append(
+            if case_list_dic['FIX_COST_WIND'][case_index] >= 0:
+                wind_series_list.append(
                         read_csv_dated_data_file(
-                                case_dic['START_YEAR'][case_index],
-                                case_dic['START_MONTH'][case_index],
-                                case_dic['START_DAY'][case_index],
-                                case_dic['START_HOUR'][case_index],
-                                case_dic['END_YEAR'][case_index],
-                                case_dic['END_MONTH'][case_index],
-                                case_dic['END_DAY'][case_index],
-                                case_dic['END_HOUR'][case_index],
-                                case_dic['DATA_PATH'][case_index],
-                                case_dic['WIND_CAPACITY_FILE'][case_index]
+                                case_list_dic['START_YEAR'][case_index],
+                                case_list_dic['START_MONTH'][case_index],
+                                case_list_dic['START_DAY'][case_index],
+                                case_list_dic['START_HOUR'][case_index],
+                                case_list_dic['END_YEAR'][case_index],
+                                case_list_dic['END_MONTH'][case_index],
+                                case_list_dic['END_DAY'][case_index],
+                                case_list_dic['END_HOUR'][case_index],
+                                global_dic['DATA_PATH'],
+                                case_list_dic['WIND_CAPACITY_FILE'][case_index]
                                 )
                         )
+            else:
+                wind_series_list.append([])
         else:
             wind_series_list.append([])
+        
+    case_list_dic['DEMAND_SERIES'] = demand_series_list
+    case_list_dic['WIND_SERIES'] = wind_series_list
+    case_list_dic['SOLAR_SERIES'] = solar_series_list
                                                 
+    # Now develop list of component lists
+    list_of_component_lists = []
+    for case_index in range(num_cases):
+        if verbose:
+            print 'Preprocess_Input.py:Components for ',case_list_dic['CASE_NAME'][case_index]
+        component_list = []
         if 'FIX_COST_NUCLEAR' in have_keys:
-            if case_dic['FIX_COST_NUCLEAR'][case_index] >= 0:
+            if case_list_dic['FIX_COST_NUCLEAR'][case_index] >= 0:
                 component_list.append('NUCLEAR')
                                                 
         if 'FIX_COST_NATGAS' in have_keys:
-            if case_dic['FIX_COST_NATGAS'][case_index] >= 0:
+            if case_list_dic['FIX_COST_NATGAS'][case_index] >= 0:
                 component_list.append('NATGAS')
                                                 
+        if 'FIX_COST_WIND' in have_keys:
+            if case_list_dic['FIX_COST_WIND'][case_index] >= 0:
+                component_list.append('WIND')
+                                                
+        if 'FIX_COST_NATGAS' in have_keys:
+            if case_list_dic['FIX_COST_SOLAR'][case_index] >= 0:
+                component_list.append('SOLAR')
+                                                
         if 'FIX_COST_STORAGE' in have_keys:
-            if case_dic['FIX_COST_STORAGE'][case_index] >= 0:
+            if case_list_dic['FIX_COST_STORAGE'][case_index] >= 0:
                 component_list.append('STORAGE')
                 
+        if 'VAR_COST_UNMET_DEMAND' in have_keys:
+            if case_list_dic['VAR_COST_UNMET_DEMAND'][case_index] >= 0:
+                component_list.append('UNMET_DEMAND')
+                
         list_of_component_lists.append(component_list)
-        
-    case_dic['DEMAND_SERIES'] = demand_series_list
-    case_dic['WIND_SERIES'] = wind_series_list
-    case_dic['SOLAR_SERIES'] = solar_series_list
-    case_dic['COMPONENTS'] = component_list
-                               
-    return case_dic
+    case_list_dic['SYSTEM_COMPONENTS'] = list_of_component_lists
+    
+    #Now case_dic is a dictionary of lists. We want to turn it into a list
+    # of dictionaries.  The method for doing this is taken from:
+    # https://stackoverflow.com/questions/5558418/list-of-dicts-to-from-dict-of-lists
+    
+    # case_dic_list = [dict(zip(case_list_dic,t)) for t in zip(*case_list_dic.values())]
+    
+    # The fancy thing didn't work for me so I will brute force it.
+    #
+    keywords = case_list_dic.keys()
+    case_dic_list = [ {} for  case in range(num_cases)]
+    for i in range(num_cases):
+        dic = case_dic_list[i]
+        for keyword in keywords:
+            dic[keyword] = case_list_dic[keyword][i]
+        case_dic_list[i] = dic
+    
+    pickle.dump( [case_list_dic, case_dic_list], open( "test2.pickle", "wb" ) )                           
+    return global_dic,case_dic_list
 
              

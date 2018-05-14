@@ -3,27 +3,9 @@
 
 """
 
-File name: Core_Model.py
+Save_Basic_Results.py
 
-Idealized energy system models
-
-Spatial scope: U.S.
-Data: Matt Shaner's paper with reanalysis data and U.S. demand.
-
-Technology:
-    Generation: natural gas, wind, solar, nuclear
-    Energy storage: one generic (a pre-determined round-trip efficiency)
-    Curtailment: Yes (free)
-    Unmet demand: No
-    
-Optimization:
-    Linear programming (LP)
-    Energy balance constraints for the grid and the energy storage facility.
-
-@author: Fan
-Time
-    Dec 1, 4-8, 11, 19, 22
-    Jan 2-4, 24-27
+save basic results for the simple energy model
     
 """
 
@@ -41,7 +23,7 @@ import pickle
 #   Linear programming
 #   Output postprocessing
 
-#    file_info = { 
+#    case_dic = { 
 #            'input_folder':input_folder, 
 #            'output_folder':output_folder, 
 #            'output_file_name':base_case_switch + "_" + case_switch+".csv",
@@ -54,154 +36,110 @@ def merge_two_dicts(x, y):
     z.update(y)    # modifies z with y's keys and values & returns None
     return z
 
-def save_basic_results(
-        file_info,
-        time_series,
-        assumption_list,
-        result_list,
-        verbose
-        ):
+def save_basic_results(global_dic, case_dic_list, result_list ):
     
+    verbose = global_dic['VERBOSE']
+    if verbose:
+        print 'Save_Basic_Results.py: Pickling raw results'
     # put raw results in file for later analysis
-    pickle_raw_results(
-        file_info,
-        time_series,
-        assumption_list,
-        result_list,
-        verbose
-        )
+    pickle_raw_results(global_dic, case_dic_list, result_list )
     
+    if verbose:
+        print 'Save_Basic_Results.py: saving vector results'
     # Do the most basic scalar analysis
-    save_vector_results_as_csv(
-        file_info,
-        time_series,
-        result_list,
-        verbose
-        )
+    save_vector_results_as_csv(global_dic, case_dic_list, result_list )
     
+    if verbose:
+        print 'Save_Basic_Results.py: saving key scalar results'
     # Do the most basic scalar analysis
-    scalar_names,scalar_table = postprocess_key_scalar_results(
-        file_info,
-        time_series,
-        assumption_list,
-        result_list,
-        verbose
-        )
+    scalar_names,scalar_table = postprocess_key_scalar_results(global_dic, case_dic_list, result_list )
     
     return scalar_names,scalar_table
 
-def pickle_raw_results(
-        file_info,
-        time_series,
-        assumption_list,
-        result_list,
-        verbose
-        ):
-    output_folder = file_info['output_folder']
-    output_file_name = file_info['case_switch']+'.pickle'
+def pickle_raw_results( global_dic, case_dic_list, result_list ):
+    
+    output_path = global_dic['OUTPUT_PATH']
+    global_name = global_dic['GLOBAL_NAME']
+    output_folder = output_path + '/' + global_name
+    output_file_name = global_name + '.pickle'
     
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
         
     with open(output_folder + "/" + output_file_name, 'wb') as db:
-        pickle.dump([file_info,time_series,assumption_list,result_list], db, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump([global_dic,case_dic_list,result_list], db, protocol=pickle.HIGHEST_PROTOCOL)
 
+def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
     
-    if verbose:
-        print 'data pickled to '+output_folder + "/" + output_file_name
+    output_path = global_dic['OUTPUT_PATH']
+    global_name = global_dic['GLOBAL_NAME']
+    output_folder = output_path + '/' + global_name
 
-#def unpickle_raw_results(
-#        file_path_name,
-#        verbose
-#        ):
-#    
-#    with open(file_path_name, 'rb') as db:
-#       file_info, time_series, assumption_list, result_list = pickle.load (db)
-#    
-#    if verbose:
-#        print 'data unpickled from '+file_path_name
-#    
-#    return file_info, time_series, assumption_list, result_list
-
-def save_vector_results_as_csv(
-        file_info,
-        time_series,
-        result_list,
-        verbose
-        ):
-    
-    output_folder = file_info['output_folder']
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     
-    num_time_periods = result_list[0]['dispatch_natgas'].size
-    outarray = np.zeros((1+num_time_periods,8))
-
     for idx in range(len(result_list)):
-        output_file_name = file_info['output_file_name']+'_series_'+  str(idx).zfill(3)
         
+        case_dic = case_dic_list[idx]
+        if len(case_dic['WIND_SERIES']) == 0:
+            case_dic['WIND_SERIES'] = ( 0.*np.array(case_dic['DEMAND_SERIES'])).tolist()
+        if len(case_dic['SOLAR_SERIES']) == 0:
+            case_dic['WIND_SERIES'] = ( 0.*np.array(case_dic['DEMAND_SERIES'])).tolist()
+            
         result = result_list[idx]
         
         header_list = []
         series_list = []
         
         header_list += ['demand (kW)']
-        series_list.append( time_series['demand_series'] )
+        series_list.append( case_dic['DEMAND_SERIES'] )
         
         header_list += ['wind (kW)']
-        series_list.append( time_series['wind_series'] )
+        series_list.append( case_dic['WIND_SERIES'] )
         
         header_list += ['solar (kW)']
-        series_list.append( time_series['solar_series'] )
+        series_list.append( case_dic['SOLAR_SERIES'] )
         
         header_list += ['dispatch_natgas (kW)']
-        series_list.append( result['dispatch_natgas'].flatten() )
+        series_list.append( result['DISPATCH_NATGAS'].flatten() )
         
         header_list += ['dispatch_solar (kW)']
-        series_list.append( result['dispatch_solar'].flatten() )
+        series_list.append( result['DISPATCH_SOLAR'].flatten() )
         
         header_list += ['dispatch wind (kW)']
-        series_list.append( result['dispatch_wind'].flatten() )
+        series_list.append( result['DISPATCH_WIND'].flatten() )
         
         header_list += ['dispatch_nuclear (kW)']
-        series_list.append( result['dispatch_nuclear'].flatten() )
+        series_list.append( result['DISPATCH_NUCLEAR'].flatten() )
         
         header_list += ['dispatch_to_storage (kW)']
-        series_list.append( result['dispatch_to_storage'].flatten() )
+        series_list.append( result['DISPATCH_TO_STORAGE'].flatten() )
         
         header_list += ['dispatch_from_storage (kW)']
-        series_list.append( result['dispatch_from_storage'].flatten() )
+        series_list.append( result['DISPATCH_FROM_STORAGE'].flatten() )
 
         header_list += ['energy storage (kWh)']
-        series_list.append( result['energy_storage'].flatten() )
+        series_list.append( result['ENERGY_STORAGE'].flatten() )
         
         header_list += ['dispatch_curtailment (kW)']
-        series_list.append( result['dispatch_curtailment'].flatten() )
+        series_list.append( result['DISPATCH_CURTAILMENT'].flatten() )
         
         header_list += ['dispatch_unmet_demand (kW)']
-        series_list.append( result['dispatch_unmet_demand'].flatten() )
-
-        out_array = np.array(series_list)
-        
+        series_list.append( result['DISPATCH_UNMET_DEMAND'].flatten() )
+       
+        output_file_name = case_dic['CASE_NAME']
+    
         with contextlib.closing(open(output_folder + "/" + output_file_name + '.csv', 'wb')) as output_file:
             writer = csv.writer(output_file)
             writer.writerow(header_list)
             writer.writerows((np.asarray(series_list)).transpose())
             output_file.close()
-        
-        if verbose: 
-            print 'file written: ' + output_file_name +'.csv'
-
    
-def postprocess_key_scalar_results(
-        file_info,
-        time_series,
-        assumption_list,
-        result_list,
-        verbose
-        ):
+def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
     
-    combined_dic = map(merge_two_dicts,assumption_list,result_list)
+    verbose = global_dic['VERBOSE']
+    
+    combined_dic = map(merge_two_dicts,case_dic_list,result_list)
     
     scalar_names = [
             'fix_cost_natgas ($/kW/h)',
@@ -221,7 +159,6 @@ def postprocess_key_scalar_results(
             
             'storage_charging_efficiency',
             
-            'demand flag',
             'demand (kW)',
             'wind capacity (kW)',
             'solar capacity (kW)',
@@ -247,64 +184,63 @@ def postprocess_key_scalar_results(
             
             ]
 
-    num_time_periods = combined_dic[0]['dispatch_natgas'].size
-    
     scalar_table = [
             [
                     # assumptions
                     
-                    d['fix_cost_natgas'],
-                    d['fix_cost_solar'],
-                    d['fix_cost_wind'],
-                    d['fix_cost_nuclear'],
-                    d['fix_cost_storage'],
+                    d['FIX_COST_NATGAS'],
+                    d['FIX_COST_SOLAR'],
+                    d['FIX_COST_WIND'],
+                    d['FIX_COST_NUCLEAR'],
+                    d['FIX_COST_STORAGE'],
                     
-                    d['var_cost_natgas'],
-                    d['var_cost_solar'],
-                    d['var_cost_wind'],
-                    d['var_cost_nuclear'],
-                    d['var_cost_storage'],
-                    d['var_cost_dispatch_to_storage'],
-                    d['var_cost_dispatch_from_storage'],
-                    d['var_cost_unmet_demand'],
+                    d['VAR_COST_NATGAS'],
+                    d['VAR_COST_SOLAR'],
+                    d['VAR_COST_WIND'],
+                    d['VAR_COST_NUCLEAR'],
+                    d['VAR_COST_STORAGE'],
+                    d['VAR_COST_DISPATCH_TO_STORAGE'],
+                    d['VAR_COST_DISPATCH_FROM_STORAGE'],
+                    d['VAR_COST_UNMET_DEMAND'],
                     
-                    d['storage_charging_efficiency'],
+                    d['STORAGE_CHARGING_EFFICIENCY'],
                     
                     # mean of time series assumptions
-                    d['demand_flag'],
-                    np.sum(time_series['demand_series'])/num_time_periods,
-                    np.sum(time_series['solar_series'])/num_time_periods,
-                    np.sum(time_series['wind_series'])/num_time_periods,
+                    np.average(d['DEMAND_SERIES']),
+                    np.average(d['SOLAR_SERIES']),
+                    np.average(d['WIND_SERIES']),
                     
                     # scalar results
                     
-                    d['capacity_natgas'],
-                    d['capacity_solar'],
-                    d['capacity_wind'],
-                    d['capacity_nuclear'],
-                    d['capacity_storage'],
-                    d['system_cost'],
-                    d['problem_status'],
+                    d['CAPACITY_NATGAS'],
+                    d['CAPACITY_SOLAR'],
+                    d['CAPACITY_WIND'],
+                    d['CAPACITY_NUCLEAR'],
+                    d['CAPACITY_STORAGE'],
+                    d['SYSTEM_COST'],
+                    d['PROBLEM_STATUS'],
                     
                     # mean of time series results                
                                 
-                    np.sum(d['dispatch_natgas'])/num_time_periods,
-                    np.sum(d['dispatch_solar'])/num_time_periods,
-                    np.sum(d['dispatch_wind'])/num_time_periods,
-                    np.sum(d['dispatch_nuclear'])/num_time_periods,
-                    np.sum(d['dispatch_to_storage'])/num_time_periods,
-                    np.sum(d['dispatch_from_storage'])/num_time_periods,
-                    np.sum(d['energy_storage'])/num_time_periods,
-                    np.sum(d['dispatch_curtailment'])/num_time_periods,
-                    np.sum(d['dispatch_unmet_demand'])/num_time_periods
+                    np.average(d['DISPATCH_NATGAS']),
+                    np.average(d['DISPATCH_SOLAR']),
+                    np.average(d['DISPATCH_WIND']),
+                    np.average(d['DISPATCH_NUCLEAR']),
+                    np.average(d['DISPATCH_TO_STORAGE']),
+                    np.average(d['DISPATCH_FROM_STORAGE']),
+                    np.average(d['ENERGY_STORAGE']),
+                    np.average(d['DISPATCH_CURTAILMENT']),
+                    np.average(d['DISPATCH_UNMET_DEMAND'])
                     
                     
              ]
             for d in combined_dic
             ]
             
-    output_folder = file_info['output_folder']
-    output_file_name = file_info['output_file_name']
+    output_path = global_dic['OUTPUT_PATH']
+    global_name = global_dic['GLOBAL_NAME']
+    output_folder = output_path + "/" + global_name
+    output_file_name = global_name
     
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
@@ -316,7 +252,7 @@ def postprocess_key_scalar_results(
         output_file.close()
         
     if verbose: 
-        print 'file written: ' + file_info['output_file_name']+'.csv'
+        print 'file written: ' + output_file_name + '.csv'
     
     return scalar_names,scalar_table
     
@@ -331,7 +267,7 @@ def out_csv(output_folder,output_file_name,names,table,verbose):
         output_file.close()
         
     if verbose: 
-        print 'file written: ' + output_folder + "/" + output_file_name +'.csv'
+        print 'file written: ' + output_file_name + '.csv'
     
 
 
