@@ -142,20 +142,21 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
     combined_dic = map(merge_two_dicts,case_dic_list,result_list)
     
     scalar_names = [
-            'fix_cost_natgas ($/kW/h)',
-            'fix_cost_solar ($/kW/h)',
-            'fix_cost_wind ($/kW/h)',
-            'fix_cost_nuclear ($/kW/h)',
-            'fix_cost_storage ($/kW/h)',
+            'case name',
+            'capacity_cost_natgas ($/kW/h)',
+            'capacity_cost_solar ($/kW/h)',
+            'capacity_cost_wind ($/kW/h)',
+            'capacity_cost_nuclear ($/kW/h)',
+            'capacity_cost_storage ($/kW/h)',
             
-            'var_cost_natgas ($/kWh)',
-            'var_cost_solar ($/kWh)',
-            'var_cost_wind ($/kWh)',
-            'var_cost_nuclear ($/kWh)',
-            'var_cost_storage ($/kWh/h)',
-            'var_cost_dispatch_to_storage ($/kWh)',
-            'var_cost_dispatch_from_storage ($/kWh)',
-            'var_cost_unmet_demand ($/kWh)',
+            'dispatch_cost_natgas ($/kWh)',
+            'dispatch_cost_solar ($/kWh)',
+            'dispatch_cost_wind ($/kWh)',
+            'dispatch_cost_nuclear ($/kWh)',
+            'dispatch_cost_storage ($/kWh/h)',
+            'dispatch_cost_dispatch_to_storage ($/kWh)',
+            'dispatch_cost_dispatch_from_storage ($/kWh)',
+            'dispatch_cost_unmet_demand ($/kWh)',
             
             'storage_charging_efficiency',
             
@@ -185,23 +186,24 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
             ]
 
     scalar_table = [
-            [
+            [       d['CASE_NAME'],
+             
                     # assumptions
                     
-                    d['FIX_COST_NATGAS'],
-                    d['FIX_COST_SOLAR'],
-                    d['FIX_COST_WIND'],
-                    d['FIX_COST_NUCLEAR'],
-                    d['FIX_COST_STORAGE'],
+                    d['CAPACITY_COST_NATGAS'],
+                    d['CAPACITY_COST_SOLAR'],
+                    d['CAPACITY_COST_WIND'],
+                    d['CAPACITY_COST_NUCLEAR'],
+                    d['CAPACITY_COST_STORAGE'],
                     
-                    d['VAR_COST_NATGAS'],
-                    d['VAR_COST_SOLAR'],
-                    d['VAR_COST_WIND'],
-                    d['VAR_COST_NUCLEAR'],
-                    d['VAR_COST_STORAGE'],
-                    d['VAR_COST_DISPATCH_TO_STORAGE'],
-                    d['VAR_COST_DISPATCH_FROM_STORAGE'],
-                    d['VAR_COST_UNMET_DEMAND'],
+                    d['DISPATCH_COST_NATGAS'],
+                    d['DISPATCH_COST_SOLAR'],
+                    d['DISPATCH_COST_WIND'],
+                    d['DISPATCH_COST_NUCLEAR'],
+                    d['DISPATCH_COST_STORAGE'],
+                    d['DISPATCH_COST_DISPATCH_TO_STORAGE'],
+                    d['DISPATCH_COST_DISPATCH_FROM_STORAGE'],
+                    d['DISPATCH_COST_UNMET_DEMAND'],
                     
                     d['STORAGE_CHARGING_EFFICIENCY'],
                     

@@ -53,7 +53,7 @@ def core_model_loop (global_dic, case_dic_list):
 
         if verbose:
             today = datetime.datetime.now()
-            print case_index
+            print 'solving ',case_dic_list[case_index]['CASE_NAME']
             print today
         result_list[case_index] = core_model (global_dic, case_dic_list[case_index])                                            
     return result_list
@@ -70,26 +70,25 @@ def core_model (global_dic, case_dic):
 
     
     # Fixed costs are assumed to be per time period (1 hour)
-    fix_cost_natgas = case_dic['FIX_COST_NATGAS']
-    fix_cost_solar = case_dic['FIX_COST_SOLAR']
-    fix_cost_wind = case_dic['FIX_COST_WIND']
-    fix_cost_nuclear = case_dic['FIX_COST_NUCLEAR']
-    fix_cost_storage = case_dic['FIX_COST_STORAGE']
+    capacity_cost_natgas = case_dic['CAPACITY_COST_NATGAS']
+    capacity_cost_solar = case_dic['CAPACITY_COST_SOLAR']
+    capacity_cost_wind = case_dic['CAPACITY_COST_WIND']
+    capacity_cost_nuclear = case_dic['CAPACITY_COST_NUCLEAR']
+    capacity_cost_storage = case_dic['CAPACITY_COST_STORAGE']
 
     # Variable costs are assumed to be kWh
-    var_cost_natgas = case_dic['VAR_COST_NATGAS']
-    var_cost_solar = case_dic['VAR_COST_SOLAR']
-    var_cost_wind = case_dic['VAR_COST_WIND']
-    var_cost_nuclear = case_dic['VAR_COST_NUCLEAR']
-    var_cost_unmet_demand = case_dic['VAR_COST_UNMET_DEMAND']
-    var_cost_dispatch_from_storage = case_dic['VAR_COST_DISPATCH_FROM_STORAGE']
-    var_cost_dispatch_to_storage = case_dic['VAR_COST_DISPATCH_TO_STORAGE']
-    var_cost_storage = case_dic['VAR_COST_STORAGE'] # variable cost of using storage capacity
+    dispatch_cost_natgas = case_dic['DISPATCH_COST_NATGAS']
+    dispatch_cost_solar = case_dic['DISPATCH_COST_SOLAR']
+    dispatch_cost_wind = case_dic['DISPATCH_COST_WIND']
+    dispatch_cost_nuclear = case_dic['DISPATCH_COST_NUCLEAR']
+    dispatch_cost_unmet_demand = case_dic['DISPATCH_COST_UNMET_DEMAND']
+    dispatch_cost_dispatch_from_storage = case_dic['DISPATCH_COST_DISPATCH_FROM_STORAGE']
+    dispatch_cost_dispatch_to_storage = case_dic['DISPATCH_COST_DISPATCH_TO_STORAGE']
+    dispatch_cost_storage = case_dic['DISPATCH_COST_STORAGE'] # variable cost of using storage capacity
     
     storage_charging_efficiency = case_dic['STORAGE_CHARGING_EFFICIENCY']
     
     system_components = case_dic['SYSTEM_COMPONENTS']
-    print system_components
       
     num_time_periods = len(demand_series)
 
@@ -100,7 +99,7 @@ def core_model (global_dic, case_dic):
     # -----------------------------------------------------------------------------
     ## Define Variables
     
-    # Number of generation technologies = Fix_Cost_Power.size
+    # Number of generation technologies = capacity_cost_Power.size
     # Number of time steps/units in a given time duration = num_time_periods
     #       num_time_periods returns an integer value
     
@@ -129,7 +128,7 @@ def core_model (global_dic, case_dic):
                 dispatch_natgas >= 0,
                 dispatch_natgas <= capacity_natgas
                 ]
-        fcn2min += capacity_natgas * fix_cost_natgas + cvx.sum_entries(dispatch_natgas * var_cost_natgas)/num_time_periods
+        fcn2min += capacity_natgas * capacity_cost_natgas + cvx.sum_entries(dispatch_natgas * dispatch_cost_natgas)/num_time_periods
     else:
         capacity_natgas = 0
         dispatch_natgas = np.zeros(num_time_periods)
@@ -143,7 +142,7 @@ def core_model (global_dic, case_dic):
                 dispatch_solar >= 0, 
                 dispatch_solar <= capacity_solar * solar_series 
                 ]
-        fcn2min += capacity_solar * fix_cost_solar + cvx.sum_entries(dispatch_solar * var_cost_solar)/num_time_periods
+        fcn2min += capacity_solar * capacity_cost_solar + cvx.sum_entries(dispatch_solar * dispatch_cost_solar)/num_time_periods
     else:
         capacity_solar = 0
         dispatch_solar = np.zeros(num_time_periods)
@@ -157,7 +156,7 @@ def core_model (global_dic, case_dic):
                 dispatch_wind >= 0, 
                 dispatch_wind <= capacity_wind * wind_series 
                 ]
-        fcn2min += capacity_wind * fix_cost_wind + cvx.sum_entries(dispatch_wind * var_cost_wind)/num_time_periods
+        fcn2min += capacity_wind * capacity_cost_wind + cvx.sum_entries(dispatch_wind * dispatch_cost_wind)/num_time_periods
     else:
         capacity_wind = 0
         dispatch_wind = np.zeros(num_time_periods)
@@ -171,7 +170,7 @@ def core_model (global_dic, case_dic):
                 dispatch_nuclear >= 0, 
                 dispatch_nuclear <= capacity_nuclear 
                 ]
-        fcn2min += capacity_nuclear * fix_cost_nuclear + cvx.sum_entries(dispatch_nuclear * var_cost_nuclear)/num_time_periods
+        fcn2min += capacity_nuclear * capacity_cost_nuclear + cvx.sum_entries(dispatch_nuclear * dispatch_cost_nuclear)/num_time_periods
     else:
         capacity_nuclear = 0
         dispatch_nuclear = np.zeros(num_time_periods)
@@ -189,13 +188,13 @@ def core_model (global_dic, case_dic):
                 energy_storage >= 0,
                 energy_storage <= capacity_storage
                 ]
-#        fcn2min += capacity_storage * fix_cost_storage +  \
-#            cvx.sum_entries(energy_storage * var_cost_storage)/num_time_periods + \
-#            cvx.sum_entries(((dispatch_from_storage**2)**0.5)* var_cost_dispatch_from_storage**0.5)/num_time_periods
-        fcn2min += capacity_storage * fix_cost_storage +  \
-            cvx.sum_entries(energy_storage * var_cost_storage)/num_time_periods  + \
-            cvx.sum_entries(dispatch_to_storage * var_cost_dispatch_to_storage)/num_time_periods + \
-            cvx.sum_entries(dispatch_from_storage * var_cost_dispatch_from_storage)/num_time_periods 
+#        fcn2min += capacity_storage * capacity_cost_storage +  \
+#            cvx.sum_entries(energy_storage * dispatch_cost_storage)/num_time_periods + \
+#            cvx.sum_entries(((dispatch_from_storage**2)**0.5)* dispatch_cost_dispatch_from_storage**0.5)/num_time_periods
+        fcn2min += capacity_storage * capacity_cost_storage +  \
+            cvx.sum_entries(energy_storage * dispatch_cost_storage)/num_time_periods  + \
+            cvx.sum_entries(dispatch_to_storage * dispatch_cost_dispatch_to_storage)/num_time_periods + \
+            cvx.sum_entries(dispatch_from_storage * dispatch_cost_dispatch_from_storage)/num_time_periods 
  
         for i in xrange(num_time_periods):
 #            constraints += [
@@ -217,7 +216,7 @@ def core_model (global_dic, case_dic):
         constraints += [
                 dispatch_unmet_demand >= 0
                 ]
-        fcn2min += cvx.sum_entries(dispatch_unmet_demand * var_cost_unmet_demand)/num_time_periods
+        fcn2min += cvx.sum_entries(dispatch_unmet_demand * dispatch_cost_unmet_demand)/num_time_periods
     else:
         dispatch_unmet_demand = np.zeros(num_time_periods)
         
@@ -232,8 +231,6 @@ def core_model (global_dic, case_dic):
     obj = cvx.Minimize(fcn2min)
     
     # -----------------------------------------------------------------------------
-    print fcn2min
-    print constraints
     # Problem solving
     
     # print cvx.installed_solvers()
