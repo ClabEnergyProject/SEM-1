@@ -161,6 +161,14 @@ def preprocess_input(case_input_path_filename):
             "DISPATCH_COST_WIND","DISPATCH_COST_NUCLEAR","DISPATCH_COST_UNMET_DEMAND"]
             )
     
+    #Capacity cost -- Cost per hour of capacity that must be incurred whether or 
+    #  not a facility is actually generating electricity. 
+    #  For generation technologies, units are $/h per kW capacity
+    
+    #Dispatch cost -- Incremental cost per kWh of electricity generation from 
+    #  a technology that represents the difference in cost between dispatching 
+    #  and curtailing generation. For generation, units are in $ per kWh
+    
     # -----------------------------------------------------------------------------
     # Read in case data file
     

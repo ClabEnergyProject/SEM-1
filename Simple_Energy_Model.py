@@ -27,8 +27,6 @@ from Save_Basic_Results import save_basic_results
 case_input_path_filename = "./case_input.csv"
 
 # -----------------------------------------------------------------------------
-
-
 # =============================================================================
 
 print 'Simple_Energy_Model: Pre-processing input'
@@ -42,8 +40,4 @@ scalar_names,scalar_table = save_basic_results(global_dic, case_dic_list, result
 
 if global_dic['POSTPROCESS']:
     print 'Simple_Energy_Model: Post-processing results'
-    # Note just so it can be done later, post_process rereads the data from a
-    # file that can be determined from the contents of global_dic
     post_process(global_dic)
-    #  global_dic is "VERBOSE","POSTPROCESS","DATA_PATH","OUTPUT_PATH","GLOBAL_NAME"
-    # input pickle file name is: global_dic["OUTPUT_PATH"]+"/"+global_dic["GLOBAL_NAME"]+"/"+global_dic["GLOBAL_NAME"]+".pickle"

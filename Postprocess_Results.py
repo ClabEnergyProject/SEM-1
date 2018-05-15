@@ -892,7 +892,7 @@ def post_process(global_dic):
         if scenario_name == 'all' or case_name == scenario_name:
             print 'deal with case:', case_name
         
-            [global_dic,case_dic_list,result_list] = unpickle_raw_results(global_dic)
+            global_dic,case_dic_list,result_list = unpickle_raw_results(global_dic)
 
             res = prepare_scalar_variables (global_dic, case_dic_list, result_list )
             
