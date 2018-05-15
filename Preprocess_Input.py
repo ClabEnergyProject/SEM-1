@@ -15,19 +15,19 @@ Each dictionary in <assumption_list> ALWAYS contains:
     
 Each dictionary in <assumption_list> OPTIONALLY contains:
     
-            'fix_cost_natgas' -- scalar
-            'fix_cost_nuclear' -- scalar
-            'fix_cost_wind' -- scalar
-            'fix_cost_solar' -- scalar
-            'fix_cost_storage' -- scalar
-            'var_cost_natgas' -- scalar
-            'var_cost_nuclear' -- scalar
-            'var_cost_wind' -- scalar
-            'var_cost_solar' -- scalar
-            'var_cost_storage' -- scalar
-            'var_cost_dispatch_to_storage' -- scalar
-            'var_cost_dispatch_from_storage' -- scalar
-            'var_cost_unmet_demand' -- scalar
+            'CAPACITY_COST_natgas' -- scalar
+            'CAPACITY_COST_nuclear' -- scalar
+            'CAPACITY_COST_wind' -- scalar
+            'CAPACITY_COST_solar' -- scalar
+            'CAPACITY_COST_storage' -- scalar
+            'DISPATCH_COST_natgas' -- scalar
+            'DISPATCH_COST_nuclear' -- scalar
+            'DISPATCH_COST_wind' -- scalar
+            'DISPATCH_COST_solar' -- scalar
+            'DISPATCH_COST_storage' -- scalar
+            'DISPATCH_COST_dispatch_to_storage' -- scalar
+            'DISPATCH_COST_dispatch_from_storage' -- scalar
+            'DISPATCH_COST_unmet_demand' -- scalar
             'storage_charging_efficiency' -- scalar
             'wind_series' -- time series of wind capacity data
             'solar_series' -- time series of solar capacity data
@@ -70,7 +70,6 @@ def import_case_input(case_input_path_filename):
             
     # Now take all non-blank lines until "BEGIN_CASE_DATA"
     all_cases_data = []
-    print 'line = ', line
     if line[0] == 'BEGIN_ALL_CASES_DATA':
         while True:
             line = rdr.next()
@@ -142,24 +141,24 @@ def preprocess_input(case_input_path_filename):
     # Recognized keywords in case_input.csv file
     
     keywords_logical = map(str.upper,
-            ["verbose","postprocess"]
+            ["VERBOSE","POSTPROCESS"]
             )
 
     keywords_str = map(str.upper,
-            ["data_path","demand_file",
-             "solar_capacity_file","wind_capacity_file","output_path",
-             "case_name","global_name"]
+            ["DATA_PATH","DEMAND_FILE",
+             "SOLAR_CAPACITY_FILE","WIND_CAPACITY_FILE","OUTPUT_PATH",
+             "CASE_NAME","GLOBAL_NAME"]
             )
     
     keywords_real = map(str.upper,
-            ["end_day","end_hour","end_month",
-            "end_year","fix_cost_natgas","fix_cost_solar","fix_cost_wind",
-            "fix_cost_nuclear","fix_cost_storage",
-            "start_day","start_hour","start_month",
-            "start_year","storage_charging_efficiency",
-            "var_cost_dispatch_from_storage","var_cost_dispatch_to_storage",
-            "var_cost_natgas","var_cost_solar","var_cost_storage",
-            "var_cost_wind","var_cost_nuclear","var_cost_unmet_demand"]
+            ["END_DAY","END_HOUR","END_MONTH",
+            "END_YEAR","CAPACITY_COST_NATGAS","CAPACITY_COST_SOLAR","CAPACITY_COST_WIND",
+            "CAPACITY_COST_NUCLEAR","CAPACITY_COST_STORAGE",
+            "START_DAY","START_HOUR","START_MONTH",
+            "START_YEAR","STORAGE_CHARGING_EFFICIENCY",
+            "DISPATCH_COST_DISPATCH_FROM_STORAGE","DISPATCH_COST_DISPATCH_TO_STORAGE",
+            "DISPATCH_COST_NATGAS","DISPATCH_COST_SOLAR","DISPATCH_COST_STORAGE",
+            "DISPATCH_COST_WIND","DISPATCH_COST_NUCLEAR","DISPATCH_COST_UNMET_DEMAND"]
             )
     
     # -----------------------------------------------------------------------------
@@ -234,8 +233,6 @@ def preprocess_input(case_input_path_filename):
     for keyword in all_cases_dic.keys():
         case_list_dic[keyword] = [all_cases_dic[keyword] for i in range(num_cases)] # replicate lists
 
-    print 'after adding ',case_list_dic
-    
     # define all keywords in dictionary, but set to -1 if not present    
     dummy = [-1 for i in range(num_cases)]
     for keyword in list(set(keywords_real).difference(case_list_dic.keys())):
@@ -281,8 +278,8 @@ def preprocess_input(case_input_path_filename):
             
         # check on each technology one by one
 
-        if 'FIX_COST_SOLAR' in have_keys:
-            if case_list_dic['FIX_COST_SOLAR'][case_index] >= 0:
+        if 'CAPACITY_COST_SOLAR' in have_keys:
+            if case_list_dic['CAPACITY_COST_SOLAR'][case_index] >= 0:
                 solar_series_list.append(
                         read_csv_dated_data_file(
                                 case_list_dic['START_YEAR'][case_index],
@@ -302,8 +299,8 @@ def preprocess_input(case_input_path_filename):
         else:
             solar_series_list.append([])
                         
-        if 'FIX_COST_WIND' in have_keys:
-            if case_list_dic['FIX_COST_WIND'][case_index] >= 0:
+        if 'CAPACITY_COST_WIND' in have_keys:
+            if case_list_dic['CAPACITY_COST_WIND'][case_index] >= 0:
                 wind_series_list.append(
                         read_csv_dated_data_file(
                                 case_list_dic['START_YEAR'][case_index],
@@ -333,28 +330,28 @@ def preprocess_input(case_input_path_filename):
         if verbose:
             print 'Preprocess_Input.py:Components for ',case_list_dic['CASE_NAME'][case_index]
         component_list = []
-        if 'FIX_COST_NUCLEAR' in have_keys:
-            if case_list_dic['FIX_COST_NUCLEAR'][case_index] >= 0:
+        if 'CAPACITY_COST_NUCLEAR' in have_keys:
+            if case_list_dic['CAPACITY_COST_NUCLEAR'][case_index] >= 0:
                 component_list.append('NUCLEAR')
                                                 
-        if 'FIX_COST_NATGAS' in have_keys:
-            if case_list_dic['FIX_COST_NATGAS'][case_index] >= 0:
+        if 'CAPACITY_COST_NATGAS' in have_keys:
+            if case_list_dic['CAPACITY_COST_NATGAS'][case_index] >= 0:
                 component_list.append('NATGAS')
                                                 
-        if 'FIX_COST_WIND' in have_keys:
-            if case_list_dic['FIX_COST_WIND'][case_index] >= 0:
+        if 'CAPACITY_COST_WIND' in have_keys:
+            if case_list_dic['CAPACITY_COST_WIND'][case_index] >= 0:
                 component_list.append('WIND')
                                                 
-        if 'FIX_COST_NATGAS' in have_keys:
-            if case_list_dic['FIX_COST_SOLAR'][case_index] >= 0:
+        if 'CAPACITY_COST_NATGAS' in have_keys:
+            if case_list_dic['CAPACITY_COST_SOLAR'][case_index] >= 0:
                 component_list.append('SOLAR')
                                                 
-        if 'FIX_COST_STORAGE' in have_keys:
-            if case_list_dic['FIX_COST_STORAGE'][case_index] >= 0:
+        if 'CAPACITY_COST_STORAGE' in have_keys:
+            if case_list_dic['CAPACITY_COST_STORAGE'][case_index] >= 0:
                 component_list.append('STORAGE')
                 
-        if 'VAR_COST_UNMET_DEMAND' in have_keys:
-            if case_list_dic['VAR_COST_UNMET_DEMAND'][case_index] >= 0:
+        if 'DISPATCH_COST_UNMET_DEMAND' in have_keys:
+            if case_list_dic['DISPATCH_COST_UNMET_DEMAND'][case_index] >= 0:
                 component_list.append('UNMET_DEMAND')
                 
         list_of_component_lists.append(component_list)
