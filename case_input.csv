@@ -45,10 +45,10 @@ STORAGE_CHARGING_EFFICIENCY,1,,,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,,,,
 BEGIN_CASE_DATA,"""BEGIN_CASE_DATA"" is a keyword that must be in the first column of the file. The next row must contain keywords",,,,,,,,,,,,,,,,,,,,,,
 CASE_NAME,start_year,start_month,start_day,start_hour,end_year,end_month,end_day,end_hour,capacity_cost_wind,dispatch_cost_wind,wind_capacity_file,capacity_cost_solar,dispatch_cost_solar,solar_capacity_file,capacity_cost_natgas,dispatch_cost_natgas,capacity_cost_storage,dispatch_cost_dispatch_to_storage,dispatch_cost_dispatch_from_storage,dispatch_cost_storage,dispatch_cost_unmet_demand,capacity_cost_nuclear,dispatch_cost_nuclear
-full-nuclear,1990,1,1,1,1990,12,31,24,0.021,0.000001,wind_series_Shaner_normalized_to_0.38_mean.csv,0.023,0.000002,solar_series_Shaner_normalized_to_0.2_mean.csv,-1,-1,0.27,0,0,1.00E-08,10,0.065,0.014
-half-nuclear,1990,1,1,1,1990,12,31,24,0.021,0.000001,wind_series_Shaner_normalized_to_0.38_mean.csv,0.023,0.000002,solar_series_Shaner_normalized_to_0.2_mean.csv,-1,-1,0.27,0,0,1.00E-08,10,0.0325,0.014
-quarter-nuclear,1990,1,1,1,1990,12,31,24,0.021,0.000001,wind_series_Shaner_normalized_to_0.38_mean.csv,0.023,0.000002,solar_series_Shaner_normalized_to_0.2_mean.csv,-1,-1,0.27,0,0,1.00E-08,10,0.01625,0.014
-eigth-nuclear,1990,1,1,1,1990,12,31,24,0.021,0.000001,wind_series_Shaner_normalized_to_0.38_mean.csv,0.023,0.000002,solar_series_Shaner_normalized_to_0.2_mean.csv,-1,-1,0.27,0,0,1.00E-08,10,0.008125,0.014
+full-nuclear,1990,1,1,1,1990,1,31,24,0.021,0.000001,wind_series_Shaner_normalized_to_0.38_mean.csv,0.023,0.000002,solar_series_Shaner_normalized_to_0.2_mean.csv,-1,-1,0.27,0,0,1.00E-08,10,0.065,0.014
+half-nuclear,1990,1,1,1,1990,1,31,24,0.021,0.000001,wind_series_Shaner_normalized_to_0.38_mean.csv,0.023,0.000002,solar_series_Shaner_normalized_to_0.2_mean.csv,-1,-1,0.27,0,0,1.00E-08,10,0.0325,0.014
+quarter-nuclear,1990,1,1,1,1990,1,31,24,0.021,0.000001,wind_series_Shaner_normalized_to_0.38_mean.csv,0.023,0.000002,solar_series_Shaner_normalized_to_0.2_mean.csv,-1,-1,0.27,0,0,1.00E-08,10,0.01625,0.014
+eigth-nuclear,1990,1,1,1,1990,1,31,24,0.021,0.000001,wind_series_Shaner_normalized_to_0.38_mean.csv,0.023,0.000002,solar_series_Shaner_normalized_to_0.2_mean.csv,-1,-1,0.27,0,0,1.00E-08,10,0.008125,0.014
 END_DATA,,,,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,,,,
 This area can be used for notes or text.,,,,,,,,,,,,,,,,,,,,,,,
