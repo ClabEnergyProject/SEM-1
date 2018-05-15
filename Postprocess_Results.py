@@ -881,10 +881,9 @@ def post_process(global_dic):
     file_path = global_dic['OUTPUT_PATH']+'/'
     scenario_name = global_dic["GLOBAL_NAME"]
     
-    
-    verbose = global_dic['VERBOSE']
+
     multipanel = True
-    pp = PdfPages(file_path + scenario_name[:-7]+'_BOOK.pdf')
+    pp = PdfPages(global_dic['OUTPUT_PATH']+ '/'+ global_dic['GLOBAL_NAME']+ '/' + global_dic['GLOBAL_NAME'] + '_BOOK.pdf')
     file_list = os.listdir(file_path)
     
     for file in file_list:
