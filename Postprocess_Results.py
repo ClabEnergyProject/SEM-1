@@ -881,10 +881,9 @@ def post_process(global_dic):
     file_path = global_dic['OUTPUT_PATH']+'/'
     scenario_name = global_dic["GLOBAL_NAME"]
     
-    
-    verbose = global_dic['VERBOSE']
+
     multipanel = True
-    pp = PdfPages(file_path + scenario_name[:-7]+'_BOOK.pdf')
+    pp = PdfPages(global_dic['OUTPUT_PATH']+ '/'+ global_dic['GLOBAL_NAME']+ '/' + global_dic['GLOBAL_NAME'] + '_BOOK.pdf')
     file_list = os.listdir(file_path)
     
     for file in file_list:
@@ -892,7 +891,7 @@ def post_process(global_dic):
         if scenario_name == 'all' or case_name == scenario_name:
             print 'deal with case:', case_name
         
-            [global_dic,case_dic_list,result_list] = unpickle_raw_results(global_dic)
+            global_dic,case_dic_list,result_list = unpickle_raw_results(global_dic)
 
             res = prepare_scalar_variables (global_dic, case_dic_list, result_list )
             
