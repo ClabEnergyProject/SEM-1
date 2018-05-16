@@ -28,6 +28,7 @@ Each dictionary in <assumption_list> OPTIONALLY contains:
             'DISPATCH_COST_dispatch_to_storage' -- scalar
             'DISPATCH_COST_dispatch_from_storage' -- scalar
             'DISPATCH_COST_unmet_demand' -- scalar
+            'STORAGE_CHARGING_TIME' -- scalar
             'storage_charging_efficiency' -- scalar
             'wind_series' -- time series of wind capacity data
             'solar_series' -- time series of solar capacity data
@@ -158,7 +159,8 @@ def preprocess_input(case_input_path_filename):
             "START_YEAR","STORAGE_CHARGING_EFFICIENCY",
             "DISPATCH_COST_DISPATCH_FROM_STORAGE","DISPATCH_COST_DISPATCH_TO_STORAGE",
             "DISPATCH_COST_NATGAS","DISPATCH_COST_SOLAR","DISPATCH_COST_STORAGE",
-            "DISPATCH_COST_WIND","DISPATCH_COST_NUCLEAR","DISPATCH_COST_UNMET_DEMAND"]
+            "DISPATCH_COST_WIND","DISPATCH_COST_NUCLEAR","DISPATCH_COST_UNMET_DEMAND",
+            "STORAGE_CHARGING_TIME"]
             )
     
     #Capacity cost -- Cost per hour of capacity that must be incurred whether or 
@@ -172,6 +174,8 @@ def preprocess_input(case_input_path_filename):
     # -----------------------------------------------------------------------------
     # Read in case data file
     
+    # <import_case_input> reads in the file from the csv file, but does not parse
+    # this data.
     global_data, all_cases_data, case_data = import_case_input(case_input_path_filename)
 
     # -----------------------------------------------------------------------------

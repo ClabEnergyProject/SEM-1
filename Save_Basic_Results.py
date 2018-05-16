@@ -159,6 +159,7 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
             'dispatch_cost_unmet_demand ($/kWh)',
             
             'storage_charging_efficiency',
+            'storage_charging_time',
             
             'demand (kW)',
             'wind capacity (kW)',
@@ -168,7 +169,7 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
             'capacity_solar (kW)',
             'capacity_wind (kW)',
             'capacity_nuclear (kW)',
-            'capacity_storage (kW)',
+            'capacity_storage (kWh)',
             'system_cost ($/kW/h)', # assuming demand normalized to 1 kW
             'problem_status',
             
@@ -206,6 +207,7 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
                     d['DISPATCH_COST_UNMET_DEMAND'],
                     
                     d['STORAGE_CHARGING_EFFICIENCY'],
+                    d['STORAGE_CHARGING_TIME'],
                     
                     # mean of time series assumptions
                     np.average(d['DEMAND_SERIES']),

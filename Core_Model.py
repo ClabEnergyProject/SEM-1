@@ -87,6 +87,7 @@ def core_model (global_dic, case_dic):
     dispatch_cost_storage = case_dic['DISPATCH_COST_STORAGE'] # variable cost of using storage capacity
     
     storage_charging_efficiency = case_dic['STORAGE_CHARGING_EFFICIENCY']
+    storage_charging_time       = case_dic['STORAGE_CHARGING_TIME']
     
     system_components = case_dic['SYSTEM_COMPONENTS']
       
@@ -184,7 +185,9 @@ def core_model (global_dic, case_dic):
         constraints += [
                 capacity_storage >= 0,
                 dispatch_to_storage >= 0, 
+                dispatch_to_storage <= capacity_storage / storage_charging_time,
                 dispatch_from_storage >= 0, # dispatch_to_storage is negative value
+                dispatch_from_storage <= capacity_storage / storage_charging_time,
                 energy_storage >= 0,
                 energy_storage <= capacity_storage
                 ]
