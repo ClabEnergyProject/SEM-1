@@ -49,6 +49,8 @@ def get_dimension_info(case_dic_list):
     DISPATCH_COST_NUCLEAR = []
     DISPATCH_COST_STORAGE = []
     
+    STORAGE_CHARGING_TIME = []
+    
     num_scenarios = len(case_dic_list)
     for idx in range(num_scenarios):
         CAPACITY_COST_NATGAS  = np.r_[CAPACITY_COST_NATGAS,  case_dic_list[idx]['CAPACITY_COST_NATGAS']]
@@ -63,6 +65,8 @@ def get_dimension_info(case_dic_list):
         DISPATCH_COST_NUCLEAR = np.r_[DISPATCH_COST_NUCLEAR, case_dic_list[idx]['DISPATCH_COST_NUCLEAR']]
         DISPATCH_COST_STORAGE = np.r_[DISPATCH_COST_STORAGE, case_dic_list[idx]['DISPATCH_COST_STORAGE']]
         
+        STORAGE_CHARGING_TIME = np.r_[STORAGE_CHARGING_TIME, case_dic_list[idx]['STORAGE_CHARGING_TIME']]
+        
     CAPACITY_COST_NATGAS_list  = np.unique(CAPACITY_COST_NATGAS)
     CAPACITY_COST_SOLAR_list   = np.unique(CAPACITY_COST_SOLAR)
     CAPACITY_COST_WIND_list    = np.unique(CAPACITY_COST_WIND)
@@ -75,6 +79,8 @@ def get_dimension_info(case_dic_list):
     DISPATCH_COST_NUCLEAR_list = np.unique(DISPATCH_COST_NUCLEAR)
     DISPATCH_COST_STORAGE_list = np.unique(DISPATCH_COST_STORAGE)
     
+    STORAGE_CHARGING_TIME_list = np.unique(STORAGE_CHARGING_TIME)
+    
     cost_list = {'CAPACITY_COST_NATGAS':CAPACITY_COST_NATGAS_list,
                  'CAPACITY_COST_SOLAR':CAPACITY_COST_SOLAR_list,
                  'CAPACITY_COST_WIND':CAPACITY_COST_WIND_list,
@@ -84,7 +90,8 @@ def get_dimension_info(case_dic_list):
                  'DISPATCH_COST_SOLAR':DISPATCH_COST_SOLAR_list,
                  'DISPATCH_COST_WIND':DISPATCH_COST_WIND_list,
                  'DISPATCH_COST_NUCLEAR':DISPATCH_COST_NUCLEAR_list,
-                 'DISPATCH_COST_STORAGE':DISPATCH_COST_STORAGE_list}
+                 'DISPATCH_COST_STORAGE':DISPATCH_COST_STORAGE_list,
+                 'STORAGE_CHARGING_TIME':STORAGE_CHARGING_TIME_list}
     var_list = ['CAPACITY_COST_NATGAS',
                 'CAPACITY_COST_SOLAR',
                 'CAPACITY_COST_WIND',
@@ -94,7 +101,8 @@ def get_dimension_info(case_dic_list):
                 'DISPATCH_COST_SOLAR',
                 'DISPATCH_COST_WIND',
                 'DISPATCH_COST_NUCLEAR',
-                'DISPATCH_COST_STORAGE',]
+                'DISPATCH_COST_STORAGE',
+                'STORAGE_CHARGING_TIME']
     
     return cost_list, var_list
 
@@ -141,6 +149,7 @@ def prepare_scalar_variables (global_dic, case_dic_list, result_list ):
         tmp['ENERGY_STORAGE']         = np.array(np.squeeze(result_list[idx]['ENERGY_STORAGE']))        #/ num_time_periods
         tmp['SYSTEM_COST']    = np.array(np.squeeze(result_list[idx]['SYSTEM_COST']))  
         tmp['STORAGE_CHARGING_EFFICIENCY']    = np.array(np.squeeze(case_dic_list[idx]['STORAGE_CHARGING_EFFICIENCY']))
+        tmp['STORAGE_CHARGING_TIME']    = np.array(np.squeeze(case_dic_list[idx]['STORAGE_CHARGING_TIME']))
 
         res[idx] = tmp
     return res
@@ -308,7 +317,7 @@ def stack_plot1(
                                    CAPACITY_SOLAR[order_list], 
                                    CAPACITY_WIND[order_list],
                                    CAPACITY_NUCLEAR[order_list],
-                                   CAPACITY_STORAGE[order_list]])
+                                   ]) #CAPACITY_STORAGE[order_list]
     labels_capacity = ["natgas", "solar", "wind", "nuclear", "storage"]
     colors_capacity = [color_natgas[1], color_solar[1], color_wind[1], color_nuclear[1], color_storage[1]]
     info_capacity = {
@@ -367,7 +376,7 @@ def stack_plot1(
     labels_cost1 = ["natgas", "solar", "wind", "nuclear", "storage"]
     colors_cost1 = [color_natgas[1], color_solar[1], color_wind[1], color_nuclear[1], color_storage[1]]
     info_cost1 = {
-            "title": "System cost\n($/kW/h)",
+            "title": "System cost\n($/h/kW)",
             "xlabel": var_dimension_list[0],
             "ylabel": "System cost ($/kW/h)",
             "fig_name": "System_cost_total"} 
@@ -396,7 +405,7 @@ def stack_plot1(
                     color_storage[1], color_storage[0]
                     ]
     info_cost2 = {
-            "title": "System cost\n($/kW/h)",
+            "title": "System cost\n($/h/kW)",
             "xlabel": var_dimension_list[0],
             "ylabel": "System cost ($/kW/h)",
             "fig_name": "System_cost_seperate"} 
@@ -707,6 +716,9 @@ def battery_TP(xaxis, mean_residence_time, max_residence_time, max_headroom, bat
     plt.setp(ax1v.get_yticklabels(), size=7, color='red')
     
     array_to_draw = y1
+    for i in range(len(array_to_draw)):
+        if array_to_draw[i] == 0.:
+            y1[i] = -1
     ax2 = plt.subplot2grid((3,1),(2,0),rowspan=1, colspan=1)
     weights = np.ones_like(array_to_draw)/float(len(array_to_draw))
     ax2.hist(array_to_draw, 50, weights=weights, label = 'Frequency distribution of\nmean residence time')
@@ -913,6 +925,10 @@ def post_process(global_dic):
             res = prepare_scalar_variables (global_dic, case_dic_list, result_list )            
             cost_list, var_list = get_dimension_info(case_dic_list)
             
+            print cost_list
+            print var_list
+
+            
             num_case = len(res)
             num_var_list = len(var_list) 
             
@@ -993,13 +1009,13 @@ def post_process(global_dic):
                 print "not support larger than 2 dimensions yet"
                 sys.exit()
     pp.close()
-
+ 
 #===============================================================================
 #================================================== EXECUTION SECTION ==========
 #===============================================================================
     
 
-#file_info = {'output_folder':'/Users/leiduan/Desktop/File/phd/phd_7/CIS_work/Energy_optimize_model/WORK/Results/idealized_nuclear_solar_wind_bat 20180412_104058',
+#file_info = {'output_folder':'/Users/leiduan/Desktop/File/phd/phd_7/CIS_work/Energy_optimize_model/WORK/Results/',
 #             'base_case_switch':'idealized',
 #             'case_switch':'nuclear_solar_wind_bat'}
 
