@@ -25,7 +25,7 @@ color_storage = {0:"m",      1:"orchid"}
 #================================================= DEFINITION SECTION ==========
 #===============================================================================
 
-def unpickle_raw_results(global_dic ):
+def unpickle_raw_results(global_dic):
     
     verbose = global_dic["VERBOSE"]
     file_path_name = global_dic["OUTPUT_PATH"] + "/" + global_dic["GLOBAL_NAME"] + "/" + global_dic["GLOBAL_NAME"] + ".pickle"
@@ -101,7 +101,7 @@ def get_dimension_info(case_dic_list):
 #------------------------------------------------------------------------
 def prepare_scalar_variables (global_dic, case_dic_list, result_list ):
     
-    verbose = global_dic['VERBOSE']
+    #verbose = global_dic['VERBOSE']
     num_scenarios    = len(case_dic_list)
     res = {}
 
@@ -155,6 +155,8 @@ def get_multicases_results(res, num_case, var, *avg_option):
         tmp_var = res[idx][var]
         x.append(np.array(tmp_var))
     if avg_option:
+        if num_case ==1:
+            x = x[0]
         y = avg_series(x, 
                        num_case,
                        avg_option[0], 
@@ -203,6 +205,7 @@ def cal_cost(fix_cost, capacity,
         
     cost_tot = cost_fix + cost_var
     return cost_fix, cost_var, cost_tot
+
 
 # --------- stack plot1
 def plot_multi_panels1(ax,case):
@@ -410,6 +413,9 @@ def stack_plot1(
 
     return plotx
 
+
+
+
 # --------- stack plot2
 def plot_multi_panels2(ax,case):
     ax.grid(True, color='k', linestyle='--', alpha=0.2)
@@ -505,29 +511,29 @@ def stack_plot2(
     CAPACITY_WIND     = get_multicases_results(res, num_case , 'CAPACITY_WIND')[case_idx]
     CAPACITY_NUCLEAR  = get_multicases_results(res, num_case , 'CAPACITY_NUCLEAR')[case_idx]
     demand_yr = get_multicases_results(res, num_case , 'DEMAND'   ,1,num_time_periods,24,1)[case_idx]
-    demand_day1 = get_multicases_results(res, num_case , 'DEMAND'   ,3601,4320,24,2)[case_idx]
-    demand_day2 = get_multicases_results(res, num_case , 'DEMAND'   ,7921,8640,24,2)[case_idx]    
+    demand_day1 = get_multicases_results(res, num_case , 'DEMAND'   ,1,48,24,2)[case_idx]
+    demand_day2 = get_multicases_results(res, num_case , 'DEMAND'   ,241,288,24,2)[case_idx]    
     solar_series_yr = get_multicases_results(res, num_case , 'SOLAR_CAPACITY'   ,1,num_time_periods,24,1)[case_idx]
-    solar_series_day1 = get_multicases_results(res, num_case , 'SOLAR_CAPACITY' ,3601,4320,24,2)[case_idx]
-    solar_series_day2 = get_multicases_results(res, num_case , 'SOLAR_CAPACITY' ,7921,8640,24,2)[case_idx]
+    solar_series_day1 = get_multicases_results(res, num_case , 'SOLAR_CAPACITY' ,1,48,24,2)[case_idx]
+    solar_series_day2 = get_multicases_results(res, num_case , 'SOLAR_CAPACITY' ,241,288,24,2)[case_idx]
     wind_series_yr  = get_multicases_results(res, num_case , 'WIND_CAPACITY'   ,1,num_time_periods,24,1)[case_idx]
-    wind_series_day1  = get_multicases_results(res, num_case , 'WIND_CAPACITY' ,3601,4320,24,2)[case_idx]
-    wind_series_day2  = get_multicases_results(res, num_case , 'WIND_CAPACITY' ,7921,8640,24,2)[case_idx]
+    wind_series_day1  = get_multicases_results(res, num_case , 'WIND_CAPACITY' ,1,48,24,2)[case_idx]
+    wind_series_day2  = get_multicases_results(res, num_case , 'WIND_CAPACITY' ,241,288,24,2)[case_idx]
     DISPATCH_NATGAS_yr  = get_multicases_results(res, num_case,      'DISPATCH_NATGAS',      1,num_time_periods,24,1)[case_idx]
     DISPATCH_SOLAR_yr   = get_multicases_results(res, num_case,      'DISPATCH_SOLAR',       1,num_time_periods,24,1)[case_idx]     
     DISPATCH_WIND_yr    = get_multicases_results(res, num_case,      'DISPATCH_WIND',        1,num_time_periods,24,1)[case_idx]          
     DISPATCH_NUCLEAR_yr = get_multicases_results(res, num_case,      'DISPATCH_NUCLEAR',     1,num_time_periods,24,1)[case_idx]  
     DISPATCH_FROM_STORAGE_yr = get_multicases_results(res, num_case, 'DISPATCH_FROM_STORAGE',1,num_time_periods,24,1)[case_idx]
-    DISPATCH_NATGAS_day1  = get_multicases_results(res, num_case,      'DISPATCH_NATGAS',      3601,4320,24,2)[case_idx]     
-    DISPATCH_SOLAR_day1   = get_multicases_results(res, num_case,      'DISPATCH_SOLAR',       3601,4320,24,2)[case_idx]     
-    DISPATCH_WIND_day1    = get_multicases_results(res, num_case,      'DISPATCH_WIND',        3601,4320,24,2)[case_idx]          
-    DISPATCH_NUCLEAR_day1 = get_multicases_results(res, num_case,      'DISPATCH_NUCLEAR',     3601,4320,24,2)[case_idx]  
-    DISPATCH_FROM_STORAGE_day1 = get_multicases_results(res, num_case, 'DISPATCH_FROM_STORAGE',3601,4320,24,2)[case_idx]    
-    DISPATCH_NATGAS_day2  = get_multicases_results(res, num_case,      'DISPATCH_NATGAS',      7921,8640,24,2)[case_idx]     
-    DISPATCH_SOLAR_day2   = get_multicases_results(res, num_case,      'DISPATCH_SOLAR',       7921,8640,24,2)[case_idx]     
-    DISPATCH_WIND_day2    = get_multicases_results(res, num_case,      'DISPATCH_WIND',        7921,8640,24,2)[case_idx]          
-    DISPATCH_NUCLEAR_day2 = get_multicases_results(res, num_case,      'DISPATCH_NUCLEAR',     7921,8640,24,2)[case_idx]  
-    DISPATCH_FROM_STORAGE_day2 = get_multicases_results(res, num_case, 'DISPATCH_FROM_STORAGE',7921,8640,24,2)[case_idx] 
+    DISPATCH_NATGAS_day1  = get_multicases_results(res, num_case,      'DISPATCH_NATGAS',      1,48,24,2)[case_idx]     
+    DISPATCH_SOLAR_day1   = get_multicases_results(res, num_case,      'DISPATCH_SOLAR',       1,48,24,2)[case_idx]     
+    DISPATCH_WIND_day1    = get_multicases_results(res, num_case,      'DISPATCH_WIND',        1,48,24,2)[case_idx]          
+    DISPATCH_NUCLEAR_day1 = get_multicases_results(res, num_case,      'DISPATCH_NUCLEAR',     1,48,24,2)[case_idx]  
+    DISPATCH_FROM_STORAGE_day1 = get_multicases_results(res, num_case, 'DISPATCH_FROM_STORAGE',1,48,24,2)[case_idx]    
+    DISPATCH_NATGAS_day2  = get_multicases_results(res, num_case,      'DISPATCH_NATGAS',      241,288,24,2)[case_idx]     
+    DISPATCH_SOLAR_day2   = get_multicases_results(res, num_case,      'DISPATCH_SOLAR',       241,288,24,2)[case_idx]     
+    DISPATCH_WIND_day2    = get_multicases_results(res, num_case,      'DISPATCH_WIND',        241,288,24,2)[case_idx]          
+    DISPATCH_NUCLEAR_day2 = get_multicases_results(res, num_case,      'DISPATCH_NUCLEAR',     241,288,24,2)[case_idx]  
+    DISPATCH_FROM_STORAGE_day2 = get_multicases_results(res, num_case, 'DISPATCH_FROM_STORAGE',241,288,24,2)[case_idx] 
     curtail_natgas_yr  = CAPACITY_NATGAS                    - DISPATCH_NATGAS_yr
     curtail_solar_yr   = CAPACITY_SOLAR   * solar_series_yr - DISPATCH_SOLAR_yr
     curtail_wind_yr    = CAPACITY_WIND    * wind_series_yr  - DISPATCH_WIND_yr
@@ -540,8 +546,9 @@ def stack_plot2(
     curtail_solar_day2   = CAPACITY_SOLAR   * solar_series_day2 - DISPATCH_SOLAR_day2
     curtail_wind_day2    = CAPACITY_WIND    * wind_series_day2  - DISPATCH_WIND_day2
     curtail_nuclear_day2 = CAPACITY_NUCLEAR                     - DISPATCH_NUCLEAR_day2
+
     # Now plot
-    xaxis_yr = np.arange(360)+1
+    xaxis_yr = np.arange(num_time_periods/24)+1
     yaxis_yr_ne = np.vstack([curtail_natgas_yr*(-1),
                              curtail_solar_yr*(-1),
                              curtail_wind_yr*(-1),
@@ -554,9 +561,13 @@ def stack_plot2(
                              DISPATCH_NUCLEAR_yr,
                              DISPATCH_FROM_STORAGE_yr
                              ]) 
-        
-    opccinfo1 = select_case[0][0]+'='+str(select_case[1][0])
-    opccinfo2 = select_case[0][1]+'='+str(select_case[1][1])
+    
+    if num_case == 1:
+        opccinfo1 = ''
+        opccinfo2 = case_name
+    else:
+        opccinfo1 = select_case[0][0]+'='+str(select_case[1][0])
+        opccinfo2 = select_case[0][1]+'='+str(select_case[1][1])
     
     labels = ["natgas", "solar", "wind", "nuclear","dispatch"]
     colors = [color_natgas[1], color_solar[1], color_wind[1], color_nuclear[1], color_storage[1]]    
@@ -580,7 +591,7 @@ def stack_plot2(
                                DISPATCH_FROM_STORAGE_day1
                                ]) 
     info_day1 = {
-            "title": "Hourly-average per hour dispatch (kWh)\n(June)",
+            "title": "Hourly-average per hour dispatch (kWh)\n(Day1-2)",
             "xlabel": "time step (hour)",
             "ylabel": "",
             "fig_name": "dispatch_case"}   
@@ -598,7 +609,7 @@ def stack_plot2(
                                DISPATCH_FROM_STORAGE_day2
                                ]) 
     info_day2 = {
-            "title": "Hourly-average per hour dispatch (kWh)\n(December)",
+            "title": "Hourly-average per hour dispatch (kWh)\n(Day11-12)",
             "xlabel": "time step (hour)",
             "ylabel": "",
             "fig_name": "dispatch_case"}  
@@ -663,12 +674,16 @@ def contour_plot(res,num_case,case_name,var_dimension):
     plotz  = plot_contour(x,y,z,levels,var_dimension)
     return plotz
 
+
+
 # --------- battery plot
     
 def battery_TP(xaxis, mean_residence_time, max_residence_time, max_headroom, battery_output):
-    y1 = np.squeeze(avg_series(mean_residence_time, 1, 1,8640,24,1))
-    y2 = np.squeeze(avg_series(max_residence_time,  1, 1,8640,24,1))
-    y3 = np.squeeze(avg_series(max_headroom,        1, 1,8640,24,1))
+    num_time_periods = len(xaxis) * 24
+    
+    y1 = np.squeeze(avg_series(mean_residence_time, 1, 1,num_time_periods,24,1))
+    y2 = np.squeeze(avg_series(max_residence_time,  1, 1,num_time_periods,24,1))
+    y3 = np.squeeze(avg_series(max_headroom,        1, 1,num_time_periods,24,1))
     
     fig = plt.figure()
     fig.subplots_adjust(top=1, left=0.0, right=1, hspace=1.0, wspace=0.35)
@@ -867,34 +882,35 @@ def battery_plot(res,
                                                                                 STORAGE_CHARGING_EFFICIENCY)
     aa = DISPATCH_FROM_STORAGE
     bb = DISPATCH_TO_STORAGE
-    aaa = np.squeeze(avg_series(aa, 1, 1,8640,24,1))
-    bbb = np.squeeze(avg_series(bb, 1, 1,8640,24,1))
+    aaa = np.squeeze(avg_series(aa, 1, 1,num_time_periods,24,1))
+    bbb = np.squeeze(avg_series(bb, 1, 1,num_time_periods,24,1))
     ccc = STORAGE_CHARGING_EFFICIENCY
     battery_output = [aaa, bbb, ccc]
     
-    xaxis = np.arange(360)+1
+    xaxis = np.arange(num_time_periods/24)+1
     plotk = battery_TP(xaxis,mean_residence_time,max_residence_time,max_headroom,battery_output)
     
     return plotk
 
+
+
 def post_process(global_dic):
+    print '--- post process begin ---'
+    
     file_path = global_dic['OUTPUT_PATH']+'/'
     scenario_name = global_dic["GLOBAL_NAME"]
     
-
     multipanel = True
-    pp = PdfPages(global_dic['OUTPUT_PATH']+ '/'+ global_dic['GLOBAL_NAME']+ '/' + global_dic['GLOBAL_NAME'] + '_BOOK.pdf')
+    pp = PdfPages(global_dic['OUTPUT_PATH']+ '/'+ global_dic['GLOBAL_NAME']+ '/' + global_dic['GLOBAL_NAME'] + '_pdfBOOK.pdf')
     file_list = os.listdir(file_path)
     
     for file in file_list:
         case_name = file
         if scenario_name == 'all' or case_name == scenario_name:
-            print 'deal with case:', case_name
+            print 'deal with case:', scenario_name
         
             global_dic,case_dic_list,result_list = unpickle_raw_results(global_dic)
-
-            res = prepare_scalar_variables (global_dic, case_dic_list, result_list )
-            
+            res = prepare_scalar_variables (global_dic, case_dic_list, result_list )            
             cost_list, var_list = get_dimension_info(case_dic_list)
             
             num_case = len(res)
@@ -907,12 +923,17 @@ def post_process(global_dic):
                     dimension = dimension+1
                     var_dimension.append( var_list[idx] )
             if dimension == 0:
-                print "set at least one dimension change"
-                sys.exit()
+                print 'only one case included'
+                ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension)
+                plotk = battery_plot(res,num_case,case_name, multipanel)
+                pp.savefig(ploty,dpi=200,bbox_inches='tight',transparent=True)
+                pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
+                #print "set at least one dimension change"
+                #sys.exit()
             elif dimension == 1 or dimension ==2:
                 if dimension ==1:
                     print "variation list:", var_dimension[0]
-                    plotx = stack_plot1(res, num_case, case_name,multipanel, var_dimension)
+                    plotx = stack_plot1(res, num_case, case_name, multipanel, var_dimension)
                     pp.savefig(plotx,dpi=200,bbox_inches='tight',transparent=True)
                     for idx in range( len(cost_list[var_dimension[0]]) ):
                         select_case1 = [var_dimension[0], var_dimension[0]]
