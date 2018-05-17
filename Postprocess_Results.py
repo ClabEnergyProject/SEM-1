@@ -495,16 +495,16 @@ def stack_plot2(
     if select_case:
         var1 = get_multicases_results(res, num_case , select_case[0][0])
         var2 = get_multicases_results(res, num_case , select_case[0][1])
+        print num_case
         for idx in range(num_case):
             if var1[idx] == select_case[1][0] and var2[idx] == select_case[1][1]:
                 find_case_idx = True
                 case_idx = idx
                 break
-                
         if find_case_idx: 
             print 'Find case index:', case_idx
         else:
-            print 'Error: no such case'
+            print 'Error: no such case, exit'
             sys.exit(0)
         
     if find_case_idx == False:
@@ -656,7 +656,8 @@ def plot_contour(x,y,z,levels,var_dimension):
 
 def create_contour_axes(x,y,z):
     
-    def find_z(x_need, y_need):
+    def find_zz(x_need, y_need):
+        find_z = 0.
         tot_idx = len(x)
         for idx in range(tot_idx):
             if x[idx] == x_need and y[idx] == y_need:
@@ -670,7 +671,7 @@ def create_contour_axes(x,y,z):
         for idx_y in range( len(y_uni) ):
             x_need = x_uni[idx_x]
             y_need = y_uni[idx_y]
-            z2[idx_x, idx_y] = find_z(x_need,y_need)
+            z2[idx_x, idx_y] = find_zz(x_need,y_need)
     z3 = np.ma.masked_values(z2, -9999)
     return x_uni, y_uni, z3
 
@@ -878,7 +879,7 @@ def battery_plot(res,
         if find_case_idx: 
             print 'Find case index:', case_idx
         else:
-            print 'Error: no such case'
+            print 'Error: no such case, exit'
             sys.exit(0)
     if find_case_idx == False:
         case_idx = 0
@@ -927,7 +928,6 @@ def post_process(global_dic):
             
             print cost_list
             print var_list
-
             
             num_case = len(res)
             num_var_list = len(var_list) 
@@ -970,15 +970,16 @@ def post_process(global_dic):
                             if res[idx_2][var_dimension[0]] == cost_list[var_dimension[0]][idx_1]:
                                 subset_res[num_idx] = res[idx_2]
                                 num_idx = num_idx + 1
-                        plotx = stack_plot1(subset_res, num_idx, case_name, multipanel, [var_dimension[1]])
-                        pp.savefig(plotx,dpi=200,bbox_inches='tight',transparent=True)
-                        for idx_3 in range( len(cost_list[var_dimension[1]]) ):
-                            select_case1 = [var_dimension[0], var_dimension[1]]
-                            select_case2 = [cost_list[var_dimension[0]][idx_1], cost_list[var_dimension[1]][idx_3]]
-                            ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension, select_case1, select_case2)
-                            plotk = battery_plot(res,num_case,case_name, multipanel, select_case1, select_case2)
-                            pp.savefig(ploty,dpi=200,bbox_inches='tight',transparent=True)
-                            pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
+                        if len(subset_res) > 1:
+                            plotx = stack_plot1(subset_res, num_idx, case_name, multipanel, [var_dimension[1]])
+                            pp.savefig(plotx,dpi=200,bbox_inches='tight',transparent=True)
+                            for idx_3 in range( len(cost_list[var_dimension[1]]) ):
+                                select_case1 = [var_dimension[0], var_dimension[1]]
+                                select_case2 = [cost_list[var_dimension[0]][idx_1], cost_list[var_dimension[1]][idx_3]]
+                                ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension, select_case1, select_case2)
+                                plotk = battery_plot(res,num_case,case_name, multipanel, select_case1, select_case2)
+                                pp.savefig(ploty,dpi=200,bbox_inches='tight',transparent=True)
+                                pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
                     for idx_1 in range( len(cost_list[var_dimension[1]])):
                         subset_res = {}
                         num_idx = 0
@@ -986,25 +987,16 @@ def post_process(global_dic):
                             if res[idx_2][var_dimension[1]] == cost_list[var_dimension[1]][idx_1]:
                                 subset_res[num_idx] = res[idx_2]
                                 num_idx = num_idx + 1
-                        plotx = stack_plot1(subset_res, num_idx, case_name, multipanel, [var_dimension[0]])
-                        pp.savefig(plotx,dpi=200,bbox_inches='tight',transparent=True)
-                        for idx_3 in range( len(cost_list[var_dimension[0]]) ):
-                            select_case1 = [var_dimension[0], var_dimension[1]]
-                            select_case2 = [cost_list[var_dimension[0]][idx_3], cost_list[var_dimension[1]][idx_1]]
-                            ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension, select_case1, select_case2)
-                            plotk = battery_plot(res,num_case,case_name, multipanel, select_case1, select_case2)
-                            pp.savefig(ploty,dpi=200,bbox_inches='tight',transparent=True)
-                            pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
-                        """    
-                    for idx_1 in range( len(cost_list[var_dimension[0]]) ):
-                        for idx_2 in range( len(cost_list[var_dimension[1]]) ):
-                            select_case1 = [var_dimension[0], var_dimension[1]]
-                            select_case2 = [cost_list[var_dimension[0]][idx_1], cost_list[var_dimension[1]][idx_2]]
-                            ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension, select_case1, select_case2)
-                            plotk = battery_plot(res,num_case,case_name, multipanel, select_case1, select_case2)
-                            pp.savefig(ploty,dpi=200,bbox_inches='tight',transparent=True)
-                            pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
-                        """
+                        if len(subset_res) > 1:
+                            plotx = stack_plot1(subset_res, num_idx, case_name, multipanel, [var_dimension[0]])
+                            pp.savefig(plotx,dpi=200,bbox_inches='tight',transparent=True)
+                            for idx_3 in range( len(cost_list[var_dimension[0]]) ):
+                                select_case1 = [var_dimension[0], var_dimension[1]]
+                                select_case2 = [cost_list[var_dimension[0]][idx_3], cost_list[var_dimension[1]][idx_1]]
+                                ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension, select_case1, select_case2)
+                                plotk = battery_plot(res,num_case,case_name, multipanel, select_case1, select_case2)
+                                pp.savefig(ploty,dpi=200,bbox_inches='tight',transparent=True)
+                                pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
             else:
                 print "not support larger than 2 dimensions yet"
                 sys.exit()
@@ -1013,13 +1005,90 @@ def post_process(global_dic):
 #===============================================================================
 #================================================== EXECUTION SECTION ==========
 #===============================================================================
+
+### this part is for individually use of post-process script
+file_path = '/Users/leiduan/Desktop/File/GitHub_Desptop/SEM-1/SEM_1_output/test/'
+case_name = 'test.pickle'
+multipanel = True
+pp = PdfPages(file_path + 'postprocess_pdfBOOK.pdf')
+
+with open(file_path+case_name, 'rb') as db:
+    global_dic, case_dic_list, result_list = pickle.load (db)
     
-
-#file_info = {'output_folder':'/Users/leiduan/Desktop/File/phd/phd_7/CIS_work/Energy_optimize_model/WORK/Results/',
-#             'base_case_switch':'idealized',
-#             'case_switch':'nuclear_solar_wind_bat'}
-
-#file_info = {'output_folder':'/Users/leiduan/Desktop/File/phd/phd_7/CIS_work/Energy_optimize_model/WORK/Results/Mengyao_data/one_year_simulations',
-#             'base_case_switch':'idealized',
-#             'case_switch':'ng_flex_nuc'}
-#post_process(file_info)
+run = True
+if run:    
+            res = prepare_scalar_variables (global_dic, case_dic_list, result_list )            
+            cost_list, var_list = get_dimension_info(case_dic_list)
+            
+            num_case = len(res)
+            num_var_list = len(var_list) 
+            
+            dimension = 0
+            var_dimension = []    
+            for idx in range(num_var_list):
+                if cost_list[var_list[idx]].size > 1:
+                    dimension = dimension+1
+                    var_dimension.append( var_list[idx] )
+            if dimension == 0:
+                print 'only one case included'
+                ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension)
+                plotk = battery_plot(res,num_case,case_name, multipanel)
+                pp.savefig(ploty,dpi=200,bbox_inches='tight',transparent=True)
+                pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
+                #print "set at least one dimension change"
+                #sys.exit()
+            elif dimension == 1 or dimension ==2:
+                if dimension ==1:
+                    print "variation list:", var_dimension[0]
+                    plotx = stack_plot1(res, num_case, case_name, multipanel, var_dimension)
+                    pp.savefig(plotx,dpi=200,bbox_inches='tight',transparent=True)
+                    for idx in range( len(cost_list[var_dimension[0]]) ):
+                        select_case1 = [var_dimension[0], var_dimension[0]]
+                        select_case2 = [cost_list[var_dimension[0]][idx], cost_list[var_dimension[0]][idx]]
+                        ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension, select_case1, select_case2)
+                        plotk = battery_plot(res,num_case,case_name, multipanel, select_case1, select_case2)
+                        pp.savefig(ploty,dpi=200,bbox_inches='tight',transparent=True)
+                        pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
+                else:
+                    print "variation list 1:", var_dimension[0]
+                    print "variation list 2:", var_dimension[1]
+                    plotz = contour_plot(res,num_case, case_name, var_dimension)
+                    pp.savefig(plotz,dpi=200,bbox_inches='tight',transparent=True)
+                    for idx_1 in range( len(cost_list[var_dimension[0]])):
+                        subset_res = {}
+                        num_idx = 0
+                        for idx_2 in range(num_case):
+                            if res[idx_2][var_dimension[0]] == cost_list[var_dimension[0]][idx_1]:
+                                subset_res[num_idx] = res[idx_2]
+                                num_idx = num_idx + 1
+                        if len(subset_res) > 1:
+                            plotx = stack_plot1(subset_res, num_idx, case_name, multipanel, [var_dimension[1]])
+                            pp.savefig(plotx,dpi=200,bbox_inches='tight',transparent=True)
+                            for idx_3 in range( len(cost_list[var_dimension[1]]) ):
+                                select_case1 = [var_dimension[0], var_dimension[1]]
+                                select_case2 = [cost_list[var_dimension[0]][idx_1], cost_list[var_dimension[1]][idx_3]]
+                                ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension, select_case1, select_case2)
+                                plotk = battery_plot(res,num_case,case_name, multipanel, select_case1, select_case2)
+                                pp.savefig(ploty,dpi=200,bbox_inches='tight',transparent=True)
+                                pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
+                    for idx_1 in range( len(cost_list[var_dimension[1]])):
+                        subset_res = {}
+                        num_idx = 0
+                        for idx_2 in range(num_case):
+                            if res[idx_2][var_dimension[1]] == cost_list[var_dimension[1]][idx_1]:
+                                subset_res[num_idx] = res[idx_2]
+                                num_idx = num_idx + 1
+                        if len(subset_res) > 1:
+                            plotx = stack_plot1(subset_res, num_idx, case_name, multipanel, [var_dimension[0]])
+                            pp.savefig(plotx,dpi=200,bbox_inches='tight',transparent=True)
+                            for idx_3 in range( len(cost_list[var_dimension[0]]) ):
+                                select_case1 = [var_dimension[0], var_dimension[1]]
+                                select_case2 = [cost_list[var_dimension[0]][idx_3], cost_list[var_dimension[1]][idx_1]]
+                                ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension, select_case1, select_case2)
+                                plotk = battery_plot(res,num_case,case_name, multipanel, select_case1, select_case2)
+                                pp.savefig(ploty,dpi=200,bbox_inches='tight',transparent=True)
+                                pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
+            else:
+                print "not support larger than 2 dimensions yet"
+                sys.exit()
+pp.close()
