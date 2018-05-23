@@ -158,7 +158,7 @@ def preprocess_input(case_input_path_filename):
             "START_DAY","START_HOUR","START_MONTH",
             "START_YEAR","STORAGE_CHARGING_EFFICIENCY",
             "DISPATCH_COST_DISPATCH_FROM_STORAGE","DISPATCH_COST_DISPATCH_TO_STORAGE",
-            "DISPATCH_COST_NATGAS","DISPATCH_COST_SOLAR","DISPATCH_COST_STORAGE",
+            "DISPATCH_COST_NATGAS","DISPATCH_COST_SOLAR","STORAGE_DECAY_RATE",
             "DISPATCH_COST_WIND","DISPATCH_COST_NUCLEAR","DISPATCH_COST_UNMET_DEMAND",
             "STORAGE_CHARGING_TIME"]
             )
@@ -260,10 +260,6 @@ def preprocess_input(case_input_path_filename):
     
     have_keys = case_list_dic.keys()
 
-    pFile = open('test.pickle','wb')
-    pickle.dump(case_list_dic,pFile)
-    pFile.close()
-    
     solar_series_list = []
     wind_series_list = []
     demand_series_list = []
@@ -385,7 +381,6 @@ def preprocess_input(case_input_path_filename):
             dic[keyword] = case_list_dic[keyword][i]
         case_dic_list[i] = dic
     
-    pickle.dump( [case_list_dic, case_dic_list], open( "test2.pickle", "wb" ) )                           
     return global_dic,case_dic_list
 
              

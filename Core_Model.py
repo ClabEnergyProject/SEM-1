@@ -53,9 +53,11 @@ def core_model_loop (global_dic, case_dic_list):
 
         if verbose:
             today = datetime.datetime.now()
-            print 'solving ',case_dic_list[case_index]['CASE_NAME']
-            print today
+            print 'solving ',case_dic_list[case_index]['CASE_NAME'],' time = ',today
         result_list[case_index] = core_model (global_dic, case_dic_list[case_index])                                            
+        if verbose:
+            today = datetime.datetime.now()
+            print 'solved  ',case_dic_list[case_index]['CASE_NAME'],' time = ',today
     return result_list
 
 # -----------------------------------------------------------------------------
@@ -84,10 +86,11 @@ def core_model (global_dic, case_dic):
     dispatch_cost_unmet_demand = case_dic['DISPATCH_COST_UNMET_DEMAND']
     dispatch_cost_dispatch_from_storage = case_dic['DISPATCH_COST_DISPATCH_FROM_STORAGE']
     dispatch_cost_dispatch_to_storage = case_dic['DISPATCH_COST_DISPATCH_TO_STORAGE']
-    dispatch_cost_storage = case_dic['DISPATCH_COST_STORAGE'] # variable cost of using storage capacity
+
     
     storage_charging_efficiency = case_dic['STORAGE_CHARGING_EFFICIENCY']
     storage_charging_time       = case_dic['STORAGE_CHARGING_TIME']
+    storage_decay_rate          = case_dic['STORAGE_DECAY_RATE'] # fraction of stored electricity lost each hour
     
     system_components = case_dic['SYSTEM_COMPONENTS']
       
@@ -188,25 +191,22 @@ def core_model (global_dic, case_dic):
                 dispatch_to_storage <= capacity_storage / storage_charging_time,
                 dispatch_from_storage >= 0, # dispatch_to_storage is negative value
                 dispatch_from_storage <= capacity_storage / storage_charging_time,
+                dispatch_from_storage <= energy_storage * (1 - storage_decay_rate), # you can't dispatch more from storage in a time step than is in the battery
+                                                                                    # This constraint is redundant
                 energy_storage >= 0,
                 energy_storage <= capacity_storage
                 ]
-#        fcn2min += capacity_storage * capacity_cost_storage +  \
-#            cvx.sum_entries(energy_storage * dispatch_cost_storage)/num_time_periods + \
-#            cvx.sum_entries(((dispatch_from_storage**2)**0.5)* dispatch_cost_dispatch_from_storage**0.5)/num_time_periods
+
         fcn2min += capacity_storage * capacity_cost_storage +  \
-            cvx.sum_entries(energy_storage * dispatch_cost_storage)/num_time_periods  + \
             cvx.sum_entries(dispatch_to_storage * dispatch_cost_dispatch_to_storage)/num_time_periods + \
             cvx.sum_entries(dispatch_from_storage * dispatch_cost_dispatch_from_storage)/num_time_periods 
  
         for i in xrange(num_time_periods):
-#            constraints += [
-#                    energy_storage[(i+1) % num_time_periods] == energy_storage[i] - storage_charging_efficiency * dispatch_from_storage[i]
-#                    ]
+
             constraints += [
-                    energy_storage[(i+1) % num_time_periods] == energy_storage[i] + storage_charging_efficiency * dispatch_to_storage[i] - dispatch_from_storage[i]
+                    energy_storage[(i+1) % num_time_periods] == energy_storage[i] + storage_charging_efficiency * dispatch_to_storage[i] - dispatch_from_storage[i] - energy_storage[i]*storage_decay_rate
                     ]
-#        constraints += [energy_storage[0]==0.0]
+
     else:
         capacity_storage = 0
         dispatch_to_storage = np.zeros(num_time_periods)
@@ -242,7 +242,7 @@ def core_model (global_dic, case_dic):
     # Form and Solve the Problem
     prob = cvx.Problem(obj, constraints)
 #    prob.solve(solver = 'GUROBI')
-    prob.solve(solver = 'GUROBI',BarConvTol = 1e-11, feasibilityTol = 1e-6)
+    prob.solve(solver = 'GUROBI',BarConvTol = 1e-11, feasibilityTol = 1e-6, NumericFocus = 3)
 #    prob.solve(solver = 'GUROBI',BarConvTol = 1e-11, feasibilityTol = 1e-9)
 #    prob.solve(solver = 'GUROBI',BarConvTol = 1e-10, feasibilityTol = 1e-8)
 #    prob.solve(solver = 'GUROBI',BarConvTol = 1e-8, FeasibilityTol = 1e-6)
@@ -252,11 +252,11 @@ def core_model (global_dic, case_dic):
         
     #--------------- curtailment
     dispatch_curtailment = np.zeros(num_time_periods)
-    if 'wind' in system_components :
+    if 'WIND' in system_components :
         dispatch_curtailment = dispatch_curtailment + capacity_wind.value.flatten() * wind_series - dispatch_wind.value.flatten()
-    if 'solar' in system_components:
+    if 'SOLAR' in system_components:
         dispatch_curtailment = dispatch_curtailment + capacity_solar.value.flatten() * solar_series - dispatch_solar.value.flatten()
-    if 'nuclear' in system_components:
+    if 'NUCLEAR' in system_components:
         dispatch_curtailment = dispatch_curtailment + capacity_nuclear.value.flatten()  - dispatch_nuclear.value.flatten()
  
         
