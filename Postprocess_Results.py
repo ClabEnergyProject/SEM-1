@@ -130,8 +130,8 @@ def prepare_scalar_variables (global_dic, case_dic_list, result_list ):
         tmp['DISPATCH_COST_WIND']          = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_WIND']))
         tmp['DISPATCH_COST_NUCLEAR']       = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_NUCLEAR']))
         tmp['STORAGE_DECAY_RATE']       = np.array(np.squeeze(case_dic_list[idx]['STORAGE_DECAY_RATE']))
-        tmp['DISPATCH_COST_DISPATCH_TO_STORAGE']    = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_DISPATCH_TO_STORAGE']))
-        tmp['DISPATCH_COST_DISPATCH_FROM_STORAGE']  = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_DISPATCH_FROM_STORAGE']))
+        tmp['DISPATCH_COST_TO_STORAGE']    = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_TO_STORAGE']))
+        tmp['DISPATCH_COST_FROM_STORAGE']  = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_FROM_STORAGE']))
         tmp['DISPATCH_COST_UNMET_DEMAND']  = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_UNMET_DEMAND']))
         tmp['CAPACITY_NATGAS']  = np.array(np.squeeze(result_list[idx]['CAPACITY_NATGAS']))
         tmp['CAPACITY_SOLAR']   = np.array(np.squeeze(result_list[idx]['CAPACITY_SOLAR']))
@@ -296,8 +296,8 @@ def stack_plot1(
     DISPATCH_COST_WIND    = get_multicases_results(res, num_case, 'DISPATCH_COST_WIND')
     DISPATCH_COST_NUCLEAR = get_multicases_results(res, num_case, 'DISPATCH_COST_NUCLEAR')
     STORAGE_DECAY_RATE    = get_multicases_results(res, num_case, 'STORAGE_DECAY_RATE') 
-    DISPATCH_COST_DISPATCH_TO_STORAGE   = get_multicases_results(res, num_case, 'DISPATCH_COST_DISPATCH_TO_STORAGE') 
-    DISPATCH_COST_DISPATCH_FROM_STORAGE = get_multicases_results(res, num_case, 'DISPATCH_COST_DISPATCH_FROM_STORAGE')     
+    DISPATCH_COST_TO_STORAGE   = get_multicases_results(res, num_case, 'DISPATCH_COST_TO_STORAGE') 
+    DISPATCH_COST_FROM_STORAGE = get_multicases_results(res, num_case, 'DISPATCH_COST_FROM_STORAGE')     
     DISPATCH_NATGAS       = get_multicases_results(res, num_case, 'DISPATCH_NATGAS')        / num_time_periods
     DISPATCH_SOLAR        = get_multicases_results(res, num_case, 'DISPATCH_SOLAR')         / num_time_periods
     DISPATCH_WIND         = get_multicases_results(res, num_case, 'DISPATCH_WIND')          / num_time_periods
@@ -363,8 +363,8 @@ def stack_plot1(
     cost_wind    = cal_cost(CAPACITY_COST_WIND,    CAPACITY_WIND,    DISPATCH_COST_WIND,    DISPATCH_WIND,    num_case, num_time_periods)
     cost_nuclear = cal_cost(CAPACITY_COST_NUCLEAR, CAPACITY_NUCLEAR, DISPATCH_COST_NUCLEAR, DISPATCH_NUCLEAR, num_case, num_time_periods)
     cost_storage = cal_cost(CAPACITY_COST_STORAGE, CAPACITY_STORAGE, STORAGE_DECAY_RATE,    ENERGY_STORAGE   ,num_case, num_time_periods, 
-                            DISPATCH_COST_DISPATCH_TO_STORAGE,  DISPATCH_TO_STORAGE,
-                            DISPATCH_COST_DISPATCH_FROM_STORAGE,DISPATCH_FROM_STORAGE)  # now dispatch_to/from is free    
+                            DISPATCH_COST_TO_STORAGE,  DISPATCH_TO_STORAGE,
+                            DISPATCH_COST_FROM_STORAGE,DISPATCH_FROM_STORAGE)  # now dispatch_to/from is free    
     
     yaxis_cost_ne = np.zeros(num_case)
     yaxis_cost1_po = np.vstack([cost_natgas[2][order_list], 
