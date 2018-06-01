@@ -94,17 +94,17 @@ def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
         header_list += ['demand (kW)']
         series_list.append( case_dic['DEMAND_SERIES'] )
         
-        header_list += ['wind potential generation (kW)']
-        series_list.append( np.asarray(case_dic['WIND_SERIES']) *  result['CAPACITY_WIND'])
-        
-        header_list += ['dispatch wind (kW)']
-        series_list.append( result['DISPATCH_WIND'].flatten() )
-        
-        header_list += ['solar potential generation (kW)']
-        series_list.append( np.asarray(case_dic['SOLAR_SERIES']) * result['CAPACITY_SOLAR'])
+        header_list += ['solar (kW)']
+        series_list.append( np.array(case_dic['SOLAR_SERIES'])*result['CAPACITY_SOLAR'] )
         
         header_list += ['dispatch_solar (kW)']
-        series_list.append( result['DISPATCH_SOLAR'].flatten() )
+        series_list.append( result['DISPATCH_SOLAR'].flatten() )     
+        
+        header_list += ['wind (kW)']
+        series_list.append( np.array(case_dic['WIND_SERIES'])*result['CAPACITY_WIND'] )
+
+        header_list += ['dispatch wind (kW)']
+        series_list.append( result['DISPATCH_WIND'].flatten() )
         
         header_list += ['dispatch_natgas (kW)']
         series_list.append( result['DISPATCH_NATGAS'].flatten() )
@@ -153,11 +153,12 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
             'dispatch_cost_solar ($/kWh)',
             'dispatch_cost_wind ($/kWh)',
             'dispatch_cost_nuclear ($/kWh)',
-            'dispatch_cost_dispatch_to_storage ($/kWh)',
-            'dispatch_cost_dispatch_from_storage ($/kWh)',
+            'dispatch_cost_to_storage ($/kWh)',
+            'dispatch_cost_from_storage ($/kWh)',
             'dispatch_cost_unmet_demand ($/kWh)',
             
             'storage_charging_efficiency',
+            'storage_charging_time (h)',
             'storage_decay_rate (1/h)',
             
             'demand (kW)',
@@ -168,7 +169,7 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
             'capacity_solar (kW)',
             'capacity_wind (kW)',
             'capacity_nuclear (kW)',
-            'capacity_storage (kW)',
+            'capacity_storage (kWh)',
             'system_cost ($/kW/h)', # assuming demand normalized to 1 kW
             'problem_status',
             
@@ -200,12 +201,12 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
                     d['DISPATCH_COST_SOLAR'],
                     d['DISPATCH_COST_WIND'],
                     d['DISPATCH_COST_NUCLEAR'],
-
-                    d['DISPATCH_COST_DISPATCH_TO_STORAGE'],
-                    d['DISPATCH_COST_DISPATCH_FROM_STORAGE'],
+                    d['DISPATCH_COST_TO_STORAGE'],
+                    d['DISPATCH_COST_FROM_STORAGE'],
                     d['DISPATCH_COST_UNMET_DEMAND'],
                     
                     d['STORAGE_CHARGING_EFFICIENCY'],
+                    d['STORAGE_CHARGING_TIME'],
                     d['STORAGE_DECAY_RATE'],
                     
                     # mean of time series assumptions
