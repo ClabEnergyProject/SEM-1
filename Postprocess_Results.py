@@ -47,7 +47,7 @@ def get_dimension_info(case_dic_list):
     DISPATCH_COST_SOLAR = []
     DISPATCH_COST_WIND = []
     DISPATCH_COST_NUCLEAR = []
-    DISPATCH_COST_STORAGE = []
+    STORAGE_DECAY_RATE = []
     
     STORAGE_CHARGING_TIME = []
     
@@ -63,7 +63,7 @@ def get_dimension_info(case_dic_list):
         DISPATCH_COST_SOLAR   = np.r_[DISPATCH_COST_SOLAR,   case_dic_list[idx]['DISPATCH_COST_SOLAR']]
         DISPATCH_COST_WIND    = np.r_[DISPATCH_COST_WIND,    case_dic_list[idx]['DISPATCH_COST_WIND']]
         DISPATCH_COST_NUCLEAR = np.r_[DISPATCH_COST_NUCLEAR, case_dic_list[idx]['DISPATCH_COST_NUCLEAR']]
-        DISPATCH_COST_STORAGE = np.r_[DISPATCH_COST_STORAGE, case_dic_list[idx]['DISPATCH_COST_STORAGE']]
+        STORAGE_DECAY_RATE = np.r_[STORAGE_DECAY_RATE, case_dic_list[idx]['STORAGE_DECAY_RATE']]
         
         STORAGE_CHARGING_TIME = np.r_[STORAGE_CHARGING_TIME, case_dic_list[idx]['STORAGE_CHARGING_TIME']]
         
@@ -77,7 +77,7 @@ def get_dimension_info(case_dic_list):
     DISPATCH_COST_SOLAR_list   = np.unique(DISPATCH_COST_SOLAR)
     DISPATCH_COST_WIND_list    = np.unique(DISPATCH_COST_WIND)
     DISPATCH_COST_NUCLEAR_list = np.unique(DISPATCH_COST_NUCLEAR)
-    DISPATCH_COST_STORAGE_list = np.unique(DISPATCH_COST_STORAGE)
+    STORAGE_DECAY_RATE_list = np.unique(STORAGE_DECAY_RATE)
     
     STORAGE_CHARGING_TIME_list = np.unique(STORAGE_CHARGING_TIME)
     
@@ -90,7 +90,7 @@ def get_dimension_info(case_dic_list):
                  'DISPATCH_COST_SOLAR':DISPATCH_COST_SOLAR_list,
                  'DISPATCH_COST_WIND':DISPATCH_COST_WIND_list,
                  'DISPATCH_COST_NUCLEAR':DISPATCH_COST_NUCLEAR_list,
-                 'DISPATCH_COST_STORAGE':DISPATCH_COST_STORAGE_list,
+                 'STORAGE_DECAY_RATE':STORAGE_DECAY_RATE_list,
                  'STORAGE_CHARGING_TIME':STORAGE_CHARGING_TIME_list}
     var_list = ['CAPACITY_COST_NATGAS',
                 'CAPACITY_COST_SOLAR',
@@ -101,7 +101,7 @@ def get_dimension_info(case_dic_list):
                 'DISPATCH_COST_SOLAR',
                 'DISPATCH_COST_WIND',
                 'DISPATCH_COST_NUCLEAR',
-                'DISPATCH_COST_STORAGE',
+                'STORAGE_DECAY_RATE',
                 'STORAGE_CHARGING_TIME']
     
     return cost_list, var_list
@@ -129,7 +129,7 @@ def prepare_scalar_variables (global_dic, case_dic_list, result_list ):
         tmp['DISPATCH_COST_SOLAR']         = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_SOLAR']))
         tmp['DISPATCH_COST_WIND']          = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_WIND']))
         tmp['DISPATCH_COST_NUCLEAR']       = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_NUCLEAR']))
-        tmp['DISPATCH_COST_STORAGE']       = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_STORAGE']))
+        tmp['STORAGE_DECAY_RATE']       = np.array(np.squeeze(case_dic_list[idx]['STORAGE_DECAY_RATE']))
         tmp['DISPATCH_COST_DISPATCH_TO_STORAGE']    = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_DISPATCH_TO_STORAGE']))
         tmp['DISPATCH_COST_DISPATCH_FROM_STORAGE']  = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_DISPATCH_FROM_STORAGE']))
         tmp['DISPATCH_COST_UNMET_DEMAND']  = np.array(np.squeeze(case_dic_list[idx]['DISPATCH_COST_UNMET_DEMAND']))
@@ -205,8 +205,7 @@ def cal_cost(fix_cost, capacity,
     cost_var = np.zeros(num_case)
     for idx in range(num_case):
         if battery_dispatch:
-            cost_var_tmp = var_cost[idx]       * np.sum(dispatch[idx]) + \
-                           np.array(battery_dispatch[0][idx]) * np.sum(np.array(battery_dispatch[1][idx])) +\
+            cost_var_tmp = np.array(battery_dispatch[0][idx]) * np.sum(np.array(battery_dispatch[1][idx])) +\
                            np.array(battery_dispatch[2][idx]) * np.sum(np.array(battery_dispatch[3][idx]))
         else:
             cost_var_tmp = var_cost[idx] * np.sum(dispatch[idx]) 
@@ -296,7 +295,7 @@ def stack_plot1(
     DISPATCH_COST_SOLAR   = get_multicases_results(res, num_case, 'DISPATCH_COST_SOLAR')
     DISPATCH_COST_WIND    = get_multicases_results(res, num_case, 'DISPATCH_COST_WIND')
     DISPATCH_COST_NUCLEAR = get_multicases_results(res, num_case, 'DISPATCH_COST_NUCLEAR')
-    DISPATCH_COST_STORAGE = get_multicases_results(res, num_case, 'DISPATCH_COST_STORAGE') 
+    STORAGE_DECAY_RATE    = get_multicases_results(res, num_case, 'STORAGE_DECAY_RATE') 
     DISPATCH_COST_DISPATCH_TO_STORAGE   = get_multicases_results(res, num_case, 'DISPATCH_COST_DISPATCH_TO_STORAGE') 
     DISPATCH_COST_DISPATCH_FROM_STORAGE = get_multicases_results(res, num_case, 'DISPATCH_COST_DISPATCH_FROM_STORAGE')     
     DISPATCH_NATGAS       = get_multicases_results(res, num_case, 'DISPATCH_NATGAS')        / num_time_periods
@@ -363,7 +362,7 @@ def stack_plot1(
     cost_solar   = cal_cost(CAPACITY_COST_SOLAR,   CAPACITY_SOLAR,   DISPATCH_COST_SOLAR,   DISPATCH_SOLAR,   num_case, num_time_periods)
     cost_wind    = cal_cost(CAPACITY_COST_WIND,    CAPACITY_WIND,    DISPATCH_COST_WIND,    DISPATCH_WIND,    num_case, num_time_periods)
     cost_nuclear = cal_cost(CAPACITY_COST_NUCLEAR, CAPACITY_NUCLEAR, DISPATCH_COST_NUCLEAR, DISPATCH_NUCLEAR, num_case, num_time_periods)
-    cost_storage = cal_cost(CAPACITY_COST_STORAGE, CAPACITY_STORAGE, DISPATCH_COST_STORAGE, ENERGY_STORAGE,num_case, num_time_periods, 
+    cost_storage = cal_cost(CAPACITY_COST_STORAGE, CAPACITY_STORAGE, STORAGE_DECAY_RATE,    ENERGY_STORAGE   ,num_case, num_time_periods, 
                             DISPATCH_COST_DISPATCH_TO_STORAGE,  DISPATCH_TO_STORAGE,
                             DISPATCH_COST_DISPATCH_FROM_STORAGE,DISPATCH_FROM_STORAGE)  # now dispatch_to/from is free    
     
@@ -907,9 +906,9 @@ def battery_plot(res,
 
 
 
+
+
 def post_process(global_dic):
-    print '--- post process begin ---'
-    
     file_path = global_dic['OUTPUT_PATH']+'/'
     scenario_name = global_dic["GLOBAL_NAME"]
     
@@ -1001,11 +1000,11 @@ def post_process(global_dic):
                 print "not support larger than 2 dimensions yet"
                 sys.exit()
     pp.close()
- 
+
 #===============================================================================
 #================================================== EXECUTION SECTION ==========
 #===============================================================================
-
+"""
 ### this part is for individually use of post-process script
 file_path = '/Users/leiduan/Desktop/File/GitHub_Desptop/SEM-1/SEM_1_output/test/'
 case_name = 'test.pickle'
@@ -1092,3 +1091,4 @@ if run:
                 print "not support larger than 2 dimensions yet"
                 sys.exit()
 pp.close()
+"""
