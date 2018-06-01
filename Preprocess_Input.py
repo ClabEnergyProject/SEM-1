@@ -25,8 +25,8 @@ Each dictionary in <assumption_list> OPTIONALLY contains:
             'DISPATCH_COST_wind' -- scalar
             'DISPATCH_COST_solar' -- scalar
             'DISPATCH_COST_storage' -- scalar
-            'DISPATCH_COST_dispatch_to_storage' -- scalar
-            'DISPATCH_COST_dispatch_from_storage' -- scalar
+            'DISPATCH_COST_TO_STORAGE' -- scalar
+            'DISPATCH_COST_FROM_STORAGE' -- scalar
             'DISPATCH_COST_unmet_demand' -- scalar
             'STORAGE_CHARGING_TIME' -- scalar
             'storage_charging_efficiency' -- scalar
@@ -157,7 +157,7 @@ def preprocess_input(case_input_path_filename):
             "CAPACITY_COST_NUCLEAR","CAPACITY_COST_STORAGE",
             "START_DAY","START_HOUR","START_MONTH",
             "START_YEAR","STORAGE_CHARGING_EFFICIENCY",
-            "DISPATCH_COST_DISPATCH_FROM_STORAGE","DISPATCH_COST_DISPATCH_TO_STORAGE",
+            "DISPATCH_COST_FROM_STORAGE","DISPATCH_COST_TO_STORAGE",
             "DISPATCH_COST_NATGAS","DISPATCH_COST_SOLAR","STORAGE_DECAY_RATE",
             "DISPATCH_COST_WIND","DISPATCH_COST_NUCLEAR","DISPATCH_COST_UNMET_DEMAND",
             "STORAGE_CHARGING_TIME"]
@@ -233,9 +233,6 @@ def preprocess_input(case_input_path_filename):
 #    print case_data
 #    print 'before adding ', case_list_dic
     
-    if not set(all_cases_dic.keys()).isdisjoint(case_list_dic.keys()):
-        sys.exit( "Warning: all cases keywords overlap with case keywords")
-    
     # Number of cases to run is number of rows in case input file.
     # Num cases and verbose are the only non-case specific inputs in case_list_dic.
     num_cases = len(case_data) - 1 # the 1 is for the keyword row
@@ -243,7 +240,8 @@ def preprocess_input(case_input_path_filename):
     
     # now add global variables to case_list_dic
     for keyword in all_cases_dic.keys():
-        case_list_dic[keyword] = [all_cases_dic[keyword] for i in range(num_cases)] # replicate lists
+        if keyword not in case_list_dic.keys():  # make sure that the specific cases override global
+            case_list_dic[keyword] = [all_cases_dic[keyword] for i in range(num_cases)] # replicate values
 
     # define all keywords in dictionary, but set to -1 if not present    
     dummy = [-1 for i in range(num_cases)]
@@ -333,29 +331,32 @@ def preprocess_input(case_input_path_filename):
     case_list_dic['SOLAR_SERIES'] = solar_series_list
                                                 
     # Now develop list of component lists
+    # If any of the cost variables for a technology is negative, that technology is assumed 
+    # not to be in the mix.
+    
     list_of_component_lists = []
     for case_index in range(num_cases):
         if verbose:
             print 'Preprocess_Input.py:Components for ',case_list_dic['CASE_NAME'][case_index]
         component_list = []
         if 'CAPACITY_COST_NUCLEAR' in have_keys:
-            if case_list_dic['CAPACITY_COST_NUCLEAR'][case_index] >= 0:
+            if case_list_dic['CAPACITY_COST_NUCLEAR'][case_index] >= 0 and case_list_dic['DISPATCH_COST_NUCLEAR'][case_index] >= 0 :
                 component_list.append('NUCLEAR')
                                                 
         if 'CAPACITY_COST_NATGAS' in have_keys:
-            if case_list_dic['CAPACITY_COST_NATGAS'][case_index] >= 0:
+            if case_list_dic['CAPACITY_COST_NATGAS'][case_index] >= 0 and case_list_dic['DISPATCH_COST_NATGAS'][case_index] >= 0 :
                 component_list.append('NATGAS')
                                                 
         if 'CAPACITY_COST_WIND' in have_keys:
-            if case_list_dic['CAPACITY_COST_WIND'][case_index] >= 0:
+            if case_list_dic['CAPACITY_COST_WIND'][case_index] >= 0 and case_list_dic['DISPATCH_COST_WIND'][case_index] >= 0 :
                 component_list.append('WIND')
                                                 
         if 'CAPACITY_COST_NATGAS' in have_keys:
-            if case_list_dic['CAPACITY_COST_SOLAR'][case_index] >= 0:
+            if case_list_dic['CAPACITY_COST_SOLAR'][case_index] >= 0 and case_list_dic['DISPATCH_COST_SOLAR'][case_index] >= 0 :
                 component_list.append('SOLAR')
                                                 
         if 'CAPACITY_COST_STORAGE' in have_keys:
-            if case_list_dic['CAPACITY_COST_STORAGE'][case_index] >= 0:
+            if case_list_dic['CAPACITY_COST_STORAGE'][case_index] >= 0 and case_list_dic['DISPATCH_COST_FROM_STORAGE'][case_index] >= 0  and case_list_dic['DISPATCH_COST_TO_STORAGE'][case_index] >= 0 :
                 component_list.append('STORAGE')
                 
         if 'DISPATCH_COST_UNMET_DEMAND' in have_keys:

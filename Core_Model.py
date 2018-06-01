@@ -84,8 +84,8 @@ def core_model (global_dic, case_dic):
     dispatch_cost_wind = case_dic['DISPATCH_COST_WIND']
     dispatch_cost_nuclear = case_dic['DISPATCH_COST_NUCLEAR']
     dispatch_cost_unmet_demand = case_dic['DISPATCH_COST_UNMET_DEMAND']
-    dispatch_cost_dispatch_from_storage = case_dic['DISPATCH_COST_DISPATCH_FROM_STORAGE']
-    dispatch_cost_dispatch_to_storage = case_dic['DISPATCH_COST_DISPATCH_TO_STORAGE']
+    dispatch_cost_from_storage = case_dic['DISPATCH_COST_FROM_STORAGE']
+    dispatch_cost_to_storage = case_dic['DISPATCH_COST_TO_STORAGE']
 
     
     storage_charging_efficiency = case_dic['STORAGE_CHARGING_EFFICIENCY']
@@ -198,8 +198,8 @@ def core_model (global_dic, case_dic):
                 ]
 
         fcn2min += capacity_storage * capacity_cost_storage +  \
-            cvx.sum_entries(dispatch_to_storage * dispatch_cost_dispatch_to_storage)/num_time_periods + \
-            cvx.sum_entries(dispatch_from_storage * dispatch_cost_dispatch_from_storage)/num_time_periods 
+            cvx.sum_entries(dispatch_to_storage * dispatch_cost_to_storage)/num_time_periods + \
+            cvx.sum_entries(dispatch_from_storage * dispatch_cost_from_storage)/num_time_periods 
  
         for i in xrange(num_time_periods):
 
