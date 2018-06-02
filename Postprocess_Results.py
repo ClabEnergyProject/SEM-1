@@ -997,8 +997,14 @@ def post_process(global_dic):
                                 pp.savefig(ploty,dpi=200,bbox_inches='tight',transparent=True)
                                 pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
             else:
-                print "not support larger than 2 dimensions yet"
-                sys.exit()
+                # if dimension > 2, then just make individual plots
+                for idx in range( len(cost_list[var_dimension[0]]) ):
+                    select_case1 = [var_dimension[0], var_dimension[0]]
+                    select_case2 = [cost_list[var_dimension[0]][idx], cost_list[var_dimension[0]][idx]]
+                    ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension, select_case1, select_case2)
+                    plotk = battery_plot(res,num_case,case_name, multipanel, select_case1, select_case2)
+                    pp.savefig(ploty,dpi=200,bbox_inches='tight',transparent=True)
+                    pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
     pp.close()
 
 #===============================================================================
