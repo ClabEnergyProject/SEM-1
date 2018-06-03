@@ -152,7 +152,8 @@ def preprocess_input(case_input_path_filename):
             )
     
     keywords_real = map(str.upper,
-            ["END_DAY","END_HOUR","END_MONTH",
+            ["NUMERICS_COST_SCALING","NUMERICS_DEMAND_SCALING",
+             "END_DAY","END_HOUR","END_MONTH",
             "END_YEAR","CAPACITY_COST_NATGAS","CAPACITY_COST_SOLAR","CAPACITY_COST_WIND",
             "CAPACITY_COST_NUCLEAR","CAPACITY_COST_STORAGE",
             "START_DAY","START_HOUR","START_MONTH",
@@ -185,6 +186,9 @@ def preprocess_input(case_input_path_filename):
         
     # Parse global data
     global_dic = {}
+    # default global values to help with numerical issues
+    global_dic["NUMERICS_COST_SCALING"] = 1e+12 # multiplies all costs by a factor and then divides at end
+    global_dic["NUMERICS_DEMAND_SCALING"] = 1e+12 # multiplies demand by a factor and then divides all costs and capacities at end
     for list_item in global_data:
         test_key = str.upper(list_item[0])
         test_value = list_item[1]

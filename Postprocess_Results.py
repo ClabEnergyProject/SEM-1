@@ -10,6 +10,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+import datetime
 plt.ioff()
 
 #from matplotlib import style
@@ -913,7 +914,11 @@ def post_process(global_dic):
     scenario_name = global_dic["GLOBAL_NAME"]
     
     multipanel = True
-    pp = PdfPages(global_dic['OUTPUT_PATH']+ '/'+ global_dic['GLOBAL_NAME']+ '/' + global_dic['GLOBAL_NAME'] + '_pdfBOOK.pdf')
+    today = datetime.datetime.now()
+    todayString = str(today.year) + str(today.month).zfill(2) + str(today.day).zfill(2) + '_' + \
+        str(today.hour).zfill(2) + str(today.minute).zfill(2) + str(today.second).zfill(2)
+
+    pp = PdfPages(global_dic['OUTPUT_PATH']+ '/'+ global_dic['GLOBAL_NAME']+ '/' + global_dic['GLOBAL_NAME'] + '_pdfBOOK_' + todayString +'.pdf')
     file_list = os.listdir(file_path)
     
     for file in file_list:
@@ -938,10 +943,9 @@ def post_process(global_dic):
                     dimension = dimension+1
                     var_dimension.append( var_list[idx] )
             if dimension == 0:
-                case_name = file_name + ' - ' + case_dic_list[idx]['CASE_NAME']
                 print 'only one case included'
-                ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension)
-                plotk = battery_plot(res,num_case,case_name, multipanel)
+                ploty = stack_plot2(res, num_case, file_name,multipanel, var_dimension)
+                plotk = battery_plot(res,num_case,file_name, multipanel)
                 pp.savefig(ploty,dpi=200,bbox_inches='tight',transparent=True)
                 pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
                 #print "set at least one dimension change"

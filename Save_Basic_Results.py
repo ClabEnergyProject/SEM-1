@@ -15,7 +15,7 @@ save basic results for the simple energy model
 import os
 import numpy as np
 import csv
-import shelve
+import datetime
 import contextlib
 import pickle
 
@@ -244,7 +244,10 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
     output_path = global_dic['OUTPUT_PATH']
     global_name = global_dic['GLOBAL_NAME']
     output_folder = output_path + "/" + global_name
-    output_file_name = global_name
+    today = datetime.datetime.now()
+    todayString = str(today.year) + str(today.month).zfill(2) + str(today.day).zfill(2) + '_' + \
+        str(today.hour).zfill(2) + str(today.minute).zfill(2) + str(today.second).zfill(2)
+    output_file_name = global_name + '_' + todayString
     
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)

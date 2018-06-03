@@ -64,28 +64,30 @@ def core_model_loop (global_dic, case_dic_list):
 
 def core_model (global_dic, case_dic):
     verbose = global_dic['VERBOSE']
+    numerics_cost_scaling = global_dic['NUMERICS_COST_SCALING']
+    numerics_demand_scaling = global_dic['NUMERICS_DEMAND_SCALING']
     if verbose:
         print "Core_Model.py: processing case ",case_dic['CASE_NAME']
-    demand_series = case_dic['DEMAND_SERIES'] # Assumed to be normalized to 1 kW mean
+    demand_series = np.array(case_dic['DEMAND_SERIES'])*numerics_demand_scaling 
     solar_series = case_dic['SOLAR_SERIES'] # Assumed to be normalized per kW capacity
     wind_series = case_dic['WIND_SERIES'] # Assumed to be normalized per kW capacity
 
     
     # Fixed costs are assumed to be per time period (1 hour)
-    capacity_cost_natgas = case_dic['CAPACITY_COST_NATGAS']
-    capacity_cost_solar = case_dic['CAPACITY_COST_SOLAR']
-    capacity_cost_wind = case_dic['CAPACITY_COST_WIND']
-    capacity_cost_nuclear = case_dic['CAPACITY_COST_NUCLEAR']
-    capacity_cost_storage = case_dic['CAPACITY_COST_STORAGE']
+    capacity_cost_natgas = case_dic['CAPACITY_COST_NATGAS']*numerics_cost_scaling
+    capacity_cost_solar = case_dic['CAPACITY_COST_SOLAR']*numerics_cost_scaling
+    capacity_cost_wind = case_dic['CAPACITY_COST_WIND']*numerics_cost_scaling
+    capacity_cost_nuclear = case_dic['CAPACITY_COST_NUCLEAR']*numerics_cost_scaling
+    capacity_cost_storage = case_dic['CAPACITY_COST_STORAGE']*numerics_cost_scaling
 
     # Variable costs are assumed to be kWh
-    dispatch_cost_natgas = case_dic['DISPATCH_COST_NATGAS']
-    dispatch_cost_solar = case_dic['DISPATCH_COST_SOLAR']
-    dispatch_cost_wind = case_dic['DISPATCH_COST_WIND']
-    dispatch_cost_nuclear = case_dic['DISPATCH_COST_NUCLEAR']
-    dispatch_cost_unmet_demand = case_dic['DISPATCH_COST_UNMET_DEMAND']
-    dispatch_cost_from_storage = case_dic['DISPATCH_COST_FROM_STORAGE']
-    dispatch_cost_to_storage = case_dic['DISPATCH_COST_TO_STORAGE']
+    dispatch_cost_natgas = case_dic['DISPATCH_COST_NATGAS']*numerics_cost_scaling
+    dispatch_cost_solar = case_dic['DISPATCH_COST_SOLAR']*numerics_cost_scaling
+    dispatch_cost_wind = case_dic['DISPATCH_COST_WIND']*numerics_cost_scaling
+    dispatch_cost_nuclear = case_dic['DISPATCH_COST_NUCLEAR']*numerics_cost_scaling
+    dispatch_cost_unmet_demand = case_dic['DISPATCH_COST_UNMET_DEMAND']*numerics_cost_scaling
+    dispatch_cost_from_storage = case_dic['DISPATCH_COST_FROM_STORAGE']*numerics_cost_scaling
+    dispatch_cost_to_storage = case_dic['DISPATCH_COST_TO_STORAGE']*numerics_cost_scaling
 
     
     storage_charging_efficiency = case_dic['STORAGE_CHARGING_EFFICIENCY']
@@ -266,54 +268,54 @@ def core_model (global_dic, case_dic):
     # -----------------------------------------------------------------------------
     
     result={
-            'SYSTEM_COST':prob.value,
+            'SYSTEM_COST':prob.value/(numerics_cost_scaling * numerics_demand_scaling),
             'PROBLEM_STATUS':prob.status,
-            'DISPATCH_CURTAILMENT':dispatch_curtailment
+            'DISPATCH_CURTAILMENT':dispatch_curtailment / numerics_demand_scaling
             }
     
     if 'NATGAS' in system_components:
-        result['CAPACITY_NATGAS'] = np.asscalar(capacity_natgas.value)
-        result['DISPATCH_NATGAS'] = np.array(dispatch_natgas.value).flatten()
+        result['CAPACITY_NATGAS'] = np.asscalar(capacity_natgas.value)/numerics_demand_scaling
+        result['DISPATCH_NATGAS'] = np.array(dispatch_natgas.value).flatten()/numerics_demand_scaling
     else:
-        result['CAPACITY_NATGAS'] = capacity_natgas
-        result['DISPATCH_NATGAS'] = dispatch_natgas
+        result['CAPACITY_NATGAS'] = capacity_natgas/numerics_demand_scaling
+        result['DISPATCH_NATGAS'] = dispatch_natgas/numerics_demand_scaling
 
     if 'SOLAR' in system_components:
-        result['CAPACITY_SOLAR'] = np.asscalar(capacity_solar.value)
-        result['DISPATCH_SOLAR'] = np.array(dispatch_solar.value).flatten()
+        result['CAPACITY_SOLAR'] = np.asscalar(capacity_solar.value)/numerics_demand_scaling
+        result['DISPATCH_SOLAR'] = np.array(dispatch_solar.value).flatten()/numerics_demand_scaling
     else:
-        result['CAPACITY_SOLAR'] = capacity_solar
-        result['DISPATCH_SOLAR'] = dispatch_solar
+        result['CAPACITY_SOLAR'] = capacity_solar/numerics_demand_scaling
+        result['DISPATCH_SOLAR'] = dispatch_solar/numerics_demand_scaling
 
     if 'WIND' in system_components:
-        result['CAPACITY_WIND'] = np.asscalar(capacity_wind.value)
-        result['DISPATCH_WIND'] = np.array(dispatch_wind.value).flatten()
+        result['CAPACITY_WIND'] = np.asscalar(capacity_wind.value)/numerics_demand_scaling
+        result['DISPATCH_WIND'] = np.array(dispatch_wind.value).flatten()/numerics_demand_scaling
     else:
-        result['CAPACITY_WIND'] = capacity_wind
-        result['DISPATCH_WIND'] = dispatch_wind
+        result['CAPACITY_WIND'] = capacity_wind/numerics_demand_scaling
+        result['DISPATCH_WIND'] = dispatch_wind/numerics_demand_scaling
 
     if 'NUCLEAR' in system_components:
-        result['CAPACITY_NUCLEAR'] = np.asscalar(capacity_nuclear.value)
-        result['DISPATCH_NUCLEAR'] = np.array(dispatch_nuclear.value).flatten()
+        result['CAPACITY_NUCLEAR'] = np.asscalar(capacity_nuclear.value)/numerics_demand_scaling
+        result['DISPATCH_NUCLEAR'] = np.array(dispatch_nuclear.value).flatten()/numerics_demand_scaling
     else:
-        result['CAPACITY_NUCLEAR'] = capacity_nuclear
-        result['DISPATCH_NUCLEAR'] = dispatch_nuclear
+        result['CAPACITY_NUCLEAR'] = capacity_nuclear/numerics_demand_scaling
+        result['DISPATCH_NUCLEAR'] = dispatch_nuclear/numerics_demand_scaling
 
     if 'STORAGE' in system_components:
-        result['CAPACITY_STORAGE'] = np.asscalar(capacity_storage.value)
-        result['DISPATCH_TO_STORAGE'] = np.array(dispatch_to_storage.value).flatten()
-        result['DISPATCH_FROM_STORAGE'] = np.array(dispatch_from_storage.value).flatten()
-        result['ENERGY_STORAGE'] = np.array(energy_storage.value).flatten()
+        result['CAPACITY_STORAGE'] = np.asscalar(capacity_storage.value)/numerics_demand_scaling
+        result['DISPATCH_TO_STORAGE'] = np.array(dispatch_to_storage.value).flatten()/numerics_demand_scaling
+        result['DISPATCH_FROM_STORAGE'] = np.array(dispatch_from_storage.value).flatten()/numerics_demand_scaling
+        result['ENERGY_STORAGE'] = np.array(energy_storage.value).flatten()/numerics_demand_scaling
     else:
-        result['CAPACITY_STORAGE'] = capacity_storage
-        result['DISPATCH_TO_STORAGE'] = dispatch_to_storage
-        result['DISPATCH_FROM_STORAGE'] = dispatch_from_storage
-        result['ENERGY_STORAGE'] = energy_storage
+        result['CAPACITY_STORAGE'] = capacity_storage/numerics_demand_scaling
+        result['DISPATCH_TO_STORAGE'] = dispatch_to_storage/numerics_demand_scaling
+        result['DISPATCH_FROM_STORAGE'] = dispatch_from_storage/numerics_demand_scaling
+        result['ENERGY_STORAGE'] = energy_storage/numerics_demand_scaling
         
     if 'UNMET_DEMAND' in system_components:
-        result['DISPATCH_UNMET_DEMAND'] = np.array(dispatch_unmet_demand.value).flatten()
+        result['DISPATCH_UNMET_DEMAND'] = np.array(dispatch_unmet_demand.value).flatten()/numerics_demand_scaling
     else:
-        result['DISPATCH_UNMET_DEMAND'] = dispatch_unmet_demand
+        result['DISPATCH_UNMET_DEMAND'] = dispatch_unmet_demand/numerics_demand_scaling
         
 
     return result
