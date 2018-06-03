@@ -242,7 +242,8 @@ def core_model (global_dic, case_dic):
     # Form and Solve the Problem
     prob = cvx.Problem(obj, constraints)
 #    prob.solve(solver = 'GUROBI')
-    prob.solve(solver = 'GUROBI',BarConvTol = 1e-11, feasibilityTol = 1e-6, NumericFocus = 3)
+    #prob.solve(solver = 'GUROBI',BarConvTol = 1e-11, feasibilityTol = 1e-6, NumericFocus = 3)
+    prob.solve(solver = 'GUROBI')
 #    prob.solve(solver = 'GUROBI',BarConvTol = 1e-11, feasibilityTol = 1e-9)
 #    prob.solve(solver = 'GUROBI',BarConvTol = 1e-10, feasibilityTol = 1e-8)
 #    prob.solve(solver = 'GUROBI',BarConvTol = 1e-8, FeasibilityTol = 1e-6)

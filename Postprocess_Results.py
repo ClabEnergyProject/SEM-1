@@ -917,8 +917,8 @@ def post_process(global_dic):
     file_list = os.listdir(file_path)
     
     for file in file_list:
-        case_name = file
-        if scenario_name == 'all' or case_name == scenario_name:
+        file_name = file
+        if scenario_name == 'all' or file_name == scenario_name:
             print 'deal with case:', scenario_name
         
             global_dic,case_dic_list,result_list = unpickle_raw_results(global_dic)
@@ -938,6 +938,7 @@ def post_process(global_dic):
                     dimension = dimension+1
                     var_dimension.append( var_list[idx] )
             if dimension == 0:
+                case_name = file_name + ' - ' + case_dic_list[idx]['CASE_NAME']
                 print 'only one case included'
                 ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension)
                 plotk = battery_plot(res,num_case,case_name, multipanel)
@@ -948,9 +949,10 @@ def post_process(global_dic):
             elif dimension == 1 or dimension ==2:
                 if dimension ==1:
                     print "variation list:", var_dimension[0]
-                    plotx = stack_plot1(res, num_case, case_name, multipanel, var_dimension)
+                    plotx = stack_plot1(res, num_case, file_name, multipanel, var_dimension)
                     pp.savefig(plotx,dpi=200,bbox_inches='tight',transparent=True)
                     for idx in range( len(cost_list[var_dimension[0]]) ):
+                        case_name = file_name + ' - ' + case_dic_list[idx]['CASE_NAME']
                         select_case1 = [var_dimension[0], var_dimension[0]]
                         select_case2 = [cost_list[var_dimension[0]][idx], cost_list[var_dimension[0]][idx]]
                         ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension, select_case1, select_case2)
@@ -960,7 +962,7 @@ def post_process(global_dic):
                 else:
                     print "variation list 1:", var_dimension[0]
                     print "variation list 2:", var_dimension[1]
-                    plotz = contour_plot(res,num_case, case_name, var_dimension)
+                    plotz = contour_plot(res,num_case, file_name, var_dimension)
                     pp.savefig(plotz,dpi=200,bbox_inches='tight',transparent=True)
                     for idx_1 in range( len(cost_list[var_dimension[0]])):
                         subset_res = {}
@@ -970,9 +972,10 @@ def post_process(global_dic):
                                 subset_res[num_idx] = res[idx_2]
                                 num_idx = num_idx + 1
                         if len(subset_res) > 1:
-                            plotx = stack_plot1(subset_res, num_idx, case_name, multipanel, [var_dimension[1]])
+                            plotx = stack_plot1(subset_res, num_idx, file_name, multipanel, [var_dimension[1]])
                             pp.savefig(plotx,dpi=200,bbox_inches='tight',transparent=True)
                             for idx_3 in range( len(cost_list[var_dimension[1]]) ):
+                                case_name = file_name + ' - ' + case_dic_list[idx]['CASE_NAME']
                                 select_case1 = [var_dimension[0], var_dimension[1]]
                                 select_case2 = [cost_list[var_dimension[0]][idx_1], cost_list[var_dimension[1]][idx_3]]
                                 ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension, select_case1, select_case2)
@@ -987,9 +990,10 @@ def post_process(global_dic):
                                 subset_res[num_idx] = res[idx_2]
                                 num_idx = num_idx + 1
                         if len(subset_res) > 1:
-                            plotx = stack_plot1(subset_res, num_idx, case_name, multipanel, [var_dimension[0]])
+                            plotx = stack_plot1(subset_res, num_idx, file_name, multipanel, [var_dimension[0]])
                             pp.savefig(plotx,dpi=200,bbox_inches='tight',transparent=True)
                             for idx_3 in range( len(cost_list[var_dimension[0]]) ):
+                                case_name = file_name + ' - ' + case_dic_list[idx]['CASE_NAME']
                                 select_case1 = [var_dimension[0], var_dimension[1]]
                                 select_case2 = [cost_list[var_dimension[0]][idx_3], cost_list[var_dimension[1]][idx_1]]
                                 ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension, select_case1, select_case2)
@@ -999,6 +1003,7 @@ def post_process(global_dic):
             else:
                 # if dimension > 2, then just make individual plots
                 for idx in range( len(cost_list[var_dimension[0]]) ):
+                    case_name = file_name + ' - ' + case_dic_list[idx]['CASE_NAME']
                     select_case1 = [var_dimension[0], var_dimension[0]]
                     select_case2 = [cost_list[var_dimension[0]][idx], cost_list[var_dimension[0]][idx]]
                     ploty = stack_plot2(res, num_case, case_name,multipanel, var_dimension, select_case1, select_case2)
