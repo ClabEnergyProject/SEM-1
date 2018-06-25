@@ -151,6 +151,7 @@ def prepare_scalar_variables (global_dic, case_dic_list, result_list ):
         tmp['SYSTEM_COST']    = np.array(np.squeeze(result_list[idx]['SYSTEM_COST']))  
         tmp['STORAGE_CHARGING_EFFICIENCY']    = np.array(np.squeeze(case_dic_list[idx]['STORAGE_CHARGING_EFFICIENCY']))
         tmp['STORAGE_CHARGING_TIME']    = np.array(np.squeeze(case_dic_list[idx]['STORAGE_CHARGING_TIME']))
+        tmp['CASE_NAME'] = np.array(np.squeeze(case_dic_list[idx]['CASE_NAME']))
 
         res[idx] = tmp
     return res
@@ -516,6 +517,7 @@ def stack_plot2(
         print "too many case for time path plot"
         sys.exit(0)
     
+    CASE_NAME = get_multicases_results(res, num_case , 'CASE_NAME')[case_idx]
     CAPACITY_SOLAR    = get_multicases_results(res, num_case , 'CAPACITY_SOLAR')[case_idx]
     CAPACITY_WIND     = get_multicases_results(res, num_case , 'CAPACITY_WIND')[case_idx]
     CAPACITY_NUCLEAR  = get_multicases_results(res, num_case , 'CAPACITY_NUCLEAR')[case_idx]
@@ -571,17 +573,10 @@ def stack_plot2(
                              DISPATCH_FROM_STORAGE_yr
                              ]) 
     
-    if num_case == 1:
-        opccinfo1 = ''
-        opccinfo2 = case_name
-    else:
-        opccinfo1 = select_case[0][0]+'='+str(select_case[1][0])
-        opccinfo2 = select_case[0][1]+'='+str(select_case[1][1])
-    
     labels = ["natgas", "solar", "wind", "nuclear","dispatch"]
     colors = [color_natgas[1], color_solar[1], color_wind[1], color_nuclear[1], color_storage[1]]    
     info_yr = {
-            "title": "Daily-average per hour dispatch (kWh)\n(For central case:  " + opccinfo1+';  '+opccinfo2+')',
+            "title": "Daily-average per hour dispatch (kWh)\n(CASE_NAME:  " + CASE_NAME + ')',
             "xlabel": "time step (day)",
             "ylabel": "",
             "fig_name": "dispatch_case"}
@@ -734,7 +729,7 @@ def battery_TP(xaxis, mean_residence_time, max_residence_time, max_headroom, bat
     ax3 = plt.subplot2grid((3,1),(1,0),rowspan=1, colspan=1)
     ax3.stackplot(xaxis[::4], battery_output[0][::4], labels = ['Battery DISPATCH'])
     ax3.stackplot(xaxis[::4], battery_output[1][::4]*(-1), labels = ['Battery charge'])
-    ax3.plot(xaxis[::4], battery_output[1][::4]*(1.-battery_output[2])*(-1), c='k', label = 'Energy loss from charging')
+    ax3.plot(xaxis[::4], battery_output[1][::4]*(battery_output[2])*(-1), c='k', linewidth=1, label = 'Energy loss from charging')
     leg = ax3.legend(loc='center left', ncol=1, 
                      bbox_to_anchor=(1.07, 0.5), prop={'size': 5})
     ax3.set_title('Battery charge and DISPATCH',
@@ -1016,12 +1011,13 @@ def post_process(global_dic):
                     pp.savefig(plotk,dpi=200,bbox_inches='tight',transparent=True)
     pp.close()
 
+
 #===============================================================================
 #================================================== EXECUTION SECTION ==========
 #===============================================================================
 """
 ### this part is for individually use of post-process script
-file_path = '/Users/leiduan/Desktop/File/GitHub_Desptop/SEM-1/SEM_1_output/test/'
+file_path = '/Users/leiduan/Desktop/File/GitHub_Desptop/Latest_Model_Code_Running/SEM-1/Output_Data/test/'
 case_name = 'test.pickle'
 multipanel = True
 pp = PdfPages(file_path + 'postprocess_pdfBOOK.pdf')
@@ -1106,4 +1102,4 @@ if run:
                 print "not support larger than 2 dimensions yet"
                 sys.exit()
 pp.close()
-"""
+#"""
