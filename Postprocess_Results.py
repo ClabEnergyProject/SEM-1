@@ -951,7 +951,7 @@ def post_process(global_dic):
                 #print "set at least one dimension change"
                 #sys.exit()
             elif dimension == 1 or dimension ==2:
-                if dimension ==1:
+                if dimension ==1 or dimension ==2:  # problem with 2D case, treat as 1D
                     print "variation list:", var_dimension[0]
                     plotx = stack_plot1(res, num_case, file_name, multipanel, var_dimension)
                     pp.savefig(plotx,dpi=200,bbox_inches='tight',transparent=True)
