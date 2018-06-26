@@ -32,7 +32,11 @@ Each dictionary in <assumption_list> OPTIONALLY contains:
             'storage_charging_efficiency' -- scalar
             'wind_series' -- time series of wind capacity data
             'solar_series' -- time series of solar capacity data
-
+            "CAPACITY_COST_PGP_STORAGE",
+            "CAPACITY_COST_PGP_FUEL_CELL",
+            "DISPATCH_COST_PGP_TO_STORAGE",
+            "DISPATCH_COST_PGP_FROM_STORAGE",
+            "PGP_STORAGE_CHARGING_EFFICIENCY"
 """
 
 import csv
@@ -161,7 +165,11 @@ def preprocess_input(case_input_path_filename):
             "DISPATCH_COST_FROM_STORAGE","DISPATCH_COST_TO_STORAGE",
             "DISPATCH_COST_NATGAS","DISPATCH_COST_SOLAR","STORAGE_DECAY_RATE",
             "DISPATCH_COST_WIND","DISPATCH_COST_NUCLEAR","DISPATCH_COST_UNMET_DEMAND",
-            "STORAGE_CHARGING_TIME"]
+            "STORAGE_CHARGING_TIME",
+            "CAPACITY_COST_PGP_STORAGE",
+            "CAPACITY_COST_PGP_FUEL_CELL",
+            "DISPATCH_COST_TO_PGP_STORAGE","DISPATCH_COST_FROM_PGP_STORAGE",
+            "PGP_STORAGE_CHARGING_EFFICIENCY"]
             )
     
     #Capacity cost -- Cost per hour of capacity that must be incurred whether or 
@@ -363,10 +371,15 @@ def preprocess_input(case_input_path_filename):
             if case_list_dic['CAPACITY_COST_STORAGE'][case_index] >= 0 and case_list_dic['DISPATCH_COST_FROM_STORAGE'][case_index] >= 0  and case_list_dic['DISPATCH_COST_TO_STORAGE'][case_index] >= 0 :
                 component_list.append('STORAGE')
                 
+        if 'CAPACITY_COST_PGP_STORAGE' in have_keys:
+            if (case_list_dic['CAPACITY_COST_PGP_STORAGE'][case_index] >= 0 and case_list_dic['DISPATCH_COST_FROM_PGP_STORAGE'][case_index] >= 0  and 
+                case_list_dic['DISPATCH_COST_TO_PGP_STORAGE'][case_index] >= 0 and case_list_dic['PGP_STORAGE_CHARGING_EFFICIENCY'][case_index] >= 0):
+                component_list.append('PGP_STORAGE')
+                
         if 'DISPATCH_COST_UNMET_DEMAND' in have_keys:
             if case_list_dic['DISPATCH_COST_UNMET_DEMAND'][case_index] >= 0:
                 component_list.append('UNMET_DEMAND')
-                
+                                
         list_of_component_lists.append(component_list)
     case_list_dic['SYSTEM_COMPONENTS'] = list_of_component_lists
     

@@ -32,7 +32,6 @@ Time
 
 
 import cvxpy as cvx
-import time
 import datetime
 import numpy as np
 
@@ -79,6 +78,8 @@ def core_model (global_dic, case_dic):
     capacity_cost_wind = case_dic['CAPACITY_COST_WIND']*numerics_cost_scaling
     capacity_cost_nuclear = case_dic['CAPACITY_COST_NUCLEAR']*numerics_cost_scaling
     capacity_cost_storage = case_dic['CAPACITY_COST_STORAGE']*numerics_cost_scaling
+    capacity_cost_pgp_storage = case_dic['CAPACITY_COST_PGP_STORAGE']*numerics_cost_scaling
+    capacity_cost_pgp_fuel_cell = case_dic['CAPACITY_COST_PGP_FUEL_CELL']*numerics_cost_scaling
 
     # Variable costs are assumed to be kWh
     dispatch_cost_natgas = case_dic['DISPATCH_COST_NATGAS']*numerics_cost_scaling
@@ -88,11 +89,14 @@ def core_model (global_dic, case_dic):
     dispatch_cost_unmet_demand = case_dic['DISPATCH_COST_UNMET_DEMAND']*numerics_cost_scaling
     dispatch_cost_from_storage = case_dic['DISPATCH_COST_FROM_STORAGE']*numerics_cost_scaling
     dispatch_cost_to_storage = case_dic['DISPATCH_COST_TO_STORAGE']*numerics_cost_scaling
+    dispatch_cost_from_pgp_storage = case_dic['DISPATCH_COST_FROM_PGP_STORAGE']*numerics_cost_scaling
+    dispatch_cost_to_pgp_storage = case_dic['DISPATCH_COST_TO_PGP_STORAGE']*numerics_cost_scaling
 
     
     storage_charging_efficiency = case_dic['STORAGE_CHARGING_EFFICIENCY']
     storage_charging_time       = case_dic['STORAGE_CHARGING_TIME']
     storage_decay_rate          = case_dic['STORAGE_DECAY_RATE'] # fraction of stored electricity lost each hour
+    pgp_storage_charging_efficiency = case_dic['PGP_STORAGE_CHARGING_EFFICIENCY']
     
     system_components = case_dic['SYSTEM_COMPONENTS']
       
@@ -215,6 +219,43 @@ def core_model (global_dic, case_dic):
         dispatch_from_storage = np.zeros(num_time_periods)
         energy_storage = np.zeros(num_time_periods)
        
+#---------------------- pgp storage (power to gas to power) -------------------    
+    if 'PGP_STORAGE' in system_components:
+        capacity_pgp_storage = cvx.Variable(1)  # energy storage capacity in kWh (i.e., tank size)
+        capacity_pgp_fuel_cell = cvx.Variable(1) # maximum power input / output (in kW) fuel cell / electrolyzer size
+        dispatch_to_pgp_storage = cvx.Variable(num_time_periods)
+        dispatch_from_pgp_storage = cvx.Variable(num_time_periods)
+        energy_pgp_storage = cvx.Variable(num_time_periods) # amount of energy currently stored in tank
+        constraints += [
+                capacity_pgp_storage >= 0,
+                capacity_pgp_fuel_cell >= 0,
+                dispatch_to_pgp_storage >= 0, 
+                dispatch_to_pgp_storage <= capacity_pgp_fuel_cell,
+                dispatch_from_pgp_storage >= 0, # dispatch_to_storage is negative value
+                dispatch_from_pgp_storage <= capacity_pgp_fuel_cell,
+                dispatch_from_pgp_storage <= energy_pgp_storage, # you can't dispatch more from storage in a time step than is in the battery
+                                                                                    # This constraint is redundant
+                energy_pgp_storage >= 0,
+                energy_pgp_storage <= capacity_pgp_storage
+                ]
+
+        fcn2min += capacity_pgp_storage * capacity_cost_pgp_storage +  capacity_pgp_fuel_cell * capacity_cost_pgp_fuel_cell + \
+            cvx.sum_entries(dispatch_to_pgp_storage * dispatch_cost_to_pgp_storage)/num_time_periods + \
+            cvx.sum_entries(dispatch_from_pgp_storage * dispatch_cost_from_pgp_storage)/num_time_periods 
+ 
+        for i in xrange(num_time_periods):
+
+            constraints += [
+                    energy_pgp_storage[(i+1) % num_time_periods] == energy_pgp_storage[i] + pgp_storage_charging_efficiency * dispatch_to_pgp_storage[i] - dispatch_from_pgp_storage[i] 
+                    ]
+
+    else:
+        capacity_pgp_storage = 0  # energy storage capacity in kWh (i.e., tank size)
+        capacity_pgp_fuel_cell = 0 # maximum power input / output (in kW) fuel cell / electrolyzer size
+        dispatch_to_pgp_storage = np.zeros(num_time_periods)
+        dispatch_from_pgp_storage = np.zeros(num_time_periods)
+        energy_pgp_storage = np.zeros(num_time_periods) # amount of energy currently stored in tank
+
 #---------------------- unmet demand ------------------------------------------    
     if 'UNMET_DEMAND' in system_components:
         dispatch_unmet_demand = cvx.Variable(num_time_periods)
@@ -226,10 +267,10 @@ def core_model (global_dic, case_dic):
         dispatch_unmet_demand = np.zeros(num_time_periods)
         
   
-#---------------------- dispatch constraint ------------------------------------------    
+#---------------------- dispatch energy balance constraint ------------------------------------------    
     constraints += [
-            dispatch_natgas + dispatch_solar + dispatch_wind + dispatch_nuclear + dispatch_from_storage +  dispatch_unmet_demand  == 
-                demand_series + dispatch_to_storage
+            dispatch_natgas + dispatch_solar + dispatch_wind + dispatch_nuclear + dispatch_from_storage + dispatch_from_pgp_storage + dispatch_unmet_demand  == 
+                demand_series + dispatch_to_storage + dispatch_to_pgp_storage
             ]    
     
     # -----------------------------------------------------------------------------
@@ -311,6 +352,20 @@ def core_model (global_dic, case_dic):
         result['DISPATCH_TO_STORAGE'] = dispatch_to_storage/numerics_demand_scaling
         result['DISPATCH_FROM_STORAGE'] = dispatch_from_storage/numerics_demand_scaling
         result['ENERGY_STORAGE'] = energy_storage/numerics_demand_scaling
+        
+    if 'PGP_STORAGE' in system_components:
+        result['CAPACITY_PGP_STORAGE'] = np.asscalar(capacity_pgp_storage.value)/numerics_demand_scaling
+        result['CAPACITY_PGP_FUEL_CELL'] = np.asscalar(capacity_pgp_fuel_cell.value)/numerics_demand_scaling
+        result['DISPATCH_TO_PGP_STORAGE'] = np.array(dispatch_to_pgp_storage.value).flatten()/numerics_demand_scaling
+        result['DISPATCH_FROM_PGP_STORAGE'] = np.array(dispatch_from_pgp_storage.value).flatten()/numerics_demand_scaling
+        result['ENERGY_PGP_STORAGE'] = np.array(energy_pgp_storage.value).flatten()/numerics_demand_scaling
+    else:
+        result['CAPACITY_PGP_STORAGE'] = capacity_pgp_storage/numerics_demand_scaling
+        result['CAPACITY_PGP_FUEL_CELL'] = capacity_pgp_fuel_cell/numerics_demand_scaling
+        result['DISPATCH_TO_PGP_STORAGE'] = dispatch_to_pgp_storage/numerics_demand_scaling
+        result['DISPATCH_FROM_PGP_STORAGE'] = dispatch_from_pgp_storage/numerics_demand_scaling
+        result['ENERGY_PGP_STORAGE'] = energy_pgp_storage/numerics_demand_scaling
+        
         
     if 'UNMET_DEMAND' in system_components:
         result['DISPATCH_UNMET_DEMAND'] = np.array(dispatch_unmet_demand.value).flatten()/numerics_demand_scaling

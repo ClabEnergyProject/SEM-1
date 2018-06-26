@@ -120,13 +120,22 @@ def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
 
         header_list += ['energy storage (kWh)']
         series_list.append( result['ENERGY_STORAGE'].flatten() )
+      
+        header_list += ['dispatch_to_PGP_storage (kW)']
+        series_list.append( result['DISPATCH_TO_PGP_STORAGE'].flatten() )
+        
+        header_list += ['dispatch_from_PGP_storage (kW)']
+        series_list.append( result['DISPATCH_FROM_PGP_STORAGE'].flatten() )
+
+        header_list += ['energy PGP storage (kWh)']
+        series_list.append( result['ENERGY_PGP_STORAGE'].flatten() )
         
         header_list += ['dispatch_curtailment (kW)']
         series_list.append( result['DISPATCH_CURTAILMENT'].flatten() )
         
         header_list += ['dispatch_unmet_demand (kW)']
         series_list.append( result['DISPATCH_UNMET_DEMAND'].flatten() )
-       
+         
         output_file_name = case_dic['CASE_NAME']
     
         with contextlib.closing(open(output_folder + "/" + output_file_name + '.csv', 'wb')) as output_file:
@@ -147,7 +156,8 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
             'capacity_cost_solar ($/kW/h)',
             'capacity_cost_wind ($/kW/h)',
             'capacity_cost_nuclear ($/kW/h)',
-            'capacity_cost_storage ($/kW/h)',
+            'capacity_cost_storage (($/h)/kWh)',
+            'capacity_cost_pgp_storage (($/h)/kWh)',
             
             'dispatch_cost_natgas ($/kWh)',
             'dispatch_cost_solar ($/kWh)',
@@ -155,11 +165,14 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
             'dispatch_cost_nuclear ($/kWh)',
             'dispatch_cost_to_storage ($/kWh)',
             'dispatch_cost_from_storage ($/kWh)',
+            'dispatch_cost_to_pgp_storage ($/kWh)',
+            'dispatch_cost_from_pgp_storage ($/kWh)',
             'dispatch_cost_unmet_demand ($/kWh)',
             
             'storage_charging_efficiency',
             'storage_charging_time (h)',
             'storage_decay_rate (1/h)',
+            'pgp_storage_charging_efficiency',
             
             'demand (kW)',
             'wind capacity (kW)',
@@ -170,6 +183,8 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
             'capacity_wind (kW)',
             'capacity_nuclear (kW)',
             'capacity_storage (kWh)',
+            'capacity_pgp_storage (kWh)',
+            'capacity_pgp_fuel_cell (kW)',
             'system_cost ($/kW/h)', # assuming demand normalized to 1 kW
             'problem_status',
             
@@ -180,6 +195,9 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
             'dispatch_to_storage (kW)',
             'dispatch_from_storage (kW)',
             'energy_storage (kWh)',
+            'dispatch_to_pgp_storage (kW)',
+            'dispatch_from_pgp_storage (kW)',
+            'energy_pgp_storage (kWh)',
             'dispatch_curtailment (kW)',
             'dispatch_unmet_demand (kW)'
             
@@ -196,6 +214,7 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
                     d['CAPACITY_COST_WIND'],
                     d['CAPACITY_COST_NUCLEAR'],
                     d['CAPACITY_COST_STORAGE'],
+                    d['CAPACITY_COST_PGP_STORAGE'],
                     
                     d['DISPATCH_COST_NATGAS'],
                     d['DISPATCH_COST_SOLAR'],
@@ -203,11 +222,14 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
                     d['DISPATCH_COST_NUCLEAR'],
                     d['DISPATCH_COST_TO_STORAGE'],
                     d['DISPATCH_COST_FROM_STORAGE'],
+                    d['DISPATCH_COST_TO_PGP_STORAGE'],
+                    d['DISPATCH_COST_FROM_PGP_STORAGE'],
                     d['DISPATCH_COST_UNMET_DEMAND'],
                     
                     d['STORAGE_CHARGING_EFFICIENCY'],
                     d['STORAGE_CHARGING_TIME'],
                     d['STORAGE_DECAY_RATE'],
+                    d['PGP_STORAGE_CHARGING_EFFICIENCY'],
                     
                     # mean of time series assumptions
                     np.average(d['DEMAND_SERIES']),
@@ -221,6 +243,8 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
                     d['CAPACITY_WIND'],
                     d['CAPACITY_NUCLEAR'],
                     d['CAPACITY_STORAGE'],
+                    d['CAPACITY_PGP_STORAGE'],
+                    d['CAPACITY_PGP_FUEL_CELL'],
                     d['SYSTEM_COST'],
                     d['PROBLEM_STATUS'],
                     
@@ -233,6 +257,9 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
                     np.average(d['DISPATCH_TO_STORAGE']),
                     np.average(d['DISPATCH_FROM_STORAGE']),
                     np.average(d['ENERGY_STORAGE']),
+                    np.average(d['DISPATCH_TO_PGP_STORAGE']),
+                    np.average(d['DISPATCH_FROM_PGP_STORAGE']),
+                    np.average(d['ENERGY_PGP_STORAGE']),
                     np.average(d['DISPATCH_CURTAILMENT']),
                     np.average(d['DISPATCH_UNMET_DEMAND'])
                     
