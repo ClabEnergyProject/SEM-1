@@ -174,9 +174,9 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
             'storage_decay_rate (1/h)',
             'pgp_storage_charging_efficiency',
             
-            'demand (kW)',
-            'wind capacity (kW)',
-            'solar capacity (kW)',
+            'mean demand (kW)',
+            'capacity factor wind series (kW)',
+            'capacity factor solar series (kW)',
             
             'capacity_natgas (kW)',
             'capacity_solar (kW)',
