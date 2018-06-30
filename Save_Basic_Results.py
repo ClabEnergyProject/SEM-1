@@ -94,13 +94,13 @@ def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
         header_list += ['demand (kW)']
         series_list.append( case_dic['DEMAND_SERIES'] )
         
-        header_list += ['solar (kW)']
+        header_list += ['solar capacity factor (kW)']
         series_list.append( np.array(case_dic['SOLAR_SERIES'])*result['CAPACITY_SOLAR'] )
         
-        header_list += ['dispatch_solar (kW)']
+        header_list += ['dispatch_solar (kW per unit deployed)']
         series_list.append( result['DISPATCH_SOLAR'].flatten() )     
         
-        header_list += ['wind (kW)']
+        header_list += ['wind capacity factor (kW per unit deployed)']
         series_list.append( np.array(case_dic['WIND_SERIES'])*result['CAPACITY_WIND'] )
 
         header_list += ['dispatch wind (kW)']
