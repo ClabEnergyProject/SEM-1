@@ -38,5 +38,11 @@ print 'Simple_Energy_Model: Saving basic results'
 scalar_names,scalar_table = save_basic_results(global_dic, case_dic_list, result_list)
 
 if global_dic['POSTPROCESS']:
-    print 'Simple_Energy_Model: Post-processing results'
-    post_process(global_dic)
+    print 'Simple_Energy_Model: Post-processing results using old postprocessing'
+    post_process(global_dic)  # Lei's old postprocessing
+
+if global_dic['QUICKLOOK']:
+    print 'Simple_Energy_Model: Post-processing results using new postprocessing'
+    quicklook(global_dic)  # Lei's old postprocessing
+    
+

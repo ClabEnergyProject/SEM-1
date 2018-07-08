@@ -146,7 +146,7 @@ def preprocess_input(case_input_path_filename):
     # Recognized keywords in case_input.csv file
     
     keywords_logical = map(str.upper,
-            ["VERBOSE","POSTPROCESS"]
+            ["VERBOSE","POSTPROCESS","QUICKLOOK"]
             )
 
     keywords_str = map(str.upper,
