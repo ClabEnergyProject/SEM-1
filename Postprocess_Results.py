@@ -517,55 +517,69 @@ def stack_plot2(
         print "too many case for time path plot"
         sys.exit(0)
     
+    num_periods_week = 24 * 7
+    week1start = 1
+    week2start = 183*24
+    
     CASE_NAME = get_multicases_results(res, num_case , 'CASE_NAME')[case_idx]
     CAPACITY_SOLAR    = get_multicases_results(res, num_case , 'CAPACITY_SOLAR')[case_idx]
     CAPACITY_WIND     = get_multicases_results(res, num_case , 'CAPACITY_WIND')[case_idx]
     CAPACITY_NUCLEAR  = get_multicases_results(res, num_case , 'CAPACITY_NUCLEAR')[case_idx]
     demand_yr = get_multicases_results(res, num_case , 'DEMAND'   ,1,num_time_periods,24,1)[case_idx]
-    demand_day1 = get_multicases_results(res, num_case , 'DEMAND'   ,1,48,24,2)[case_idx]
-    demand_day2 = get_multicases_results(res, num_case , 'DEMAND'   ,241,288,24,2)[case_idx]    
+    demand_week1 = get_multicases_results(res, num_case , 'DEMAND'   ,week1start,week1start+num_periods_week-1,num_periods_week,2)[case_idx]
+    demand_week2 = get_multicases_results(res, num_case , 'DEMAND'   ,week2start,week2start+num_periods_week-1,num_periods_week,2)[case_idx]  
+    
     solar_series_yr = get_multicases_results(res, num_case , 'SOLAR_CAPACITY'   ,1,num_time_periods,24,1)[case_idx]
-    solar_series_day1 = get_multicases_results(res, num_case , 'SOLAR_CAPACITY' ,1,48,24,2)[case_idx]
-    solar_series_day2 = get_multicases_results(res, num_case , 'SOLAR_CAPACITY' ,241,288,24,2)[case_idx]
+    solar_series_week1 = get_multicases_results(res, num_case , 'SOLAR_CAPACITY' ,week1start,week1start+num_periods_week-1,num_periods_week,2)[case_idx]
+    solar_series_week2 = get_multicases_results(res, num_case , 'SOLAR_CAPACITY' ,week2start,week2start+num_periods_week-1,num_periods_week,2)[case_idx]
+    
     wind_series_yr  = get_multicases_results(res, num_case , 'WIND_CAPACITY'   ,1,num_time_periods,24,1)[case_idx]
-    wind_series_day1  = get_multicases_results(res, num_case , 'WIND_CAPACITY' ,1,48,24,2)[case_idx]
-    wind_series_day2  = get_multicases_results(res, num_case , 'WIND_CAPACITY' ,241,288,24,2)[case_idx]
+    wind_series_week1  = get_multicases_results(res, num_case , 'WIND_CAPACITY' ,week1start,week1start+num_periods_week-1,num_periods_week,2)[case_idx]
+    wind_series_week2  = get_multicases_results(res, num_case , 'WIND_CAPACITY' ,week2start,week2start+num_periods_week-1,num_periods_week,2)[case_idx]
+    
     DISPATCH_NATGAS_yr  = get_multicases_results(res, num_case,      'DISPATCH_NATGAS',      1,num_time_periods,24,1)[case_idx]
     DISPATCH_SOLAR_yr   = get_multicases_results(res, num_case,      'DISPATCH_SOLAR',       1,num_time_periods,24,1)[case_idx]     
     DISPATCH_WIND_yr    = get_multicases_results(res, num_case,      'DISPATCH_WIND',        1,num_time_periods,24,1)[case_idx]          
     DISPATCH_NUCLEAR_yr = get_multicases_results(res, num_case,      'DISPATCH_NUCLEAR',     1,num_time_periods,24,1)[case_idx]  
     DISPATCH_FROM_STORAGE_yr = get_multicases_results(res, num_case, 'DISPATCH_FROM_STORAGE',1,num_time_periods,24,1)[case_idx]
-    DISPATCH_NATGAS_day1  = get_multicases_results(res, num_case,      'DISPATCH_NATGAS',      1,48,24,2)[case_idx]     
-    DISPATCH_SOLAR_day1   = get_multicases_results(res, num_case,      'DISPATCH_SOLAR',       1,48,24,2)[case_idx]     
-    DISPATCH_WIND_day1    = get_multicases_results(res, num_case,      'DISPATCH_WIND',        1,48,24,2)[case_idx]          
-    DISPATCH_NUCLEAR_day1 = get_multicases_results(res, num_case,      'DISPATCH_NUCLEAR',     1,48,24,2)[case_idx]  
-    DISPATCH_FROM_STORAGE_day1 = get_multicases_results(res, num_case, 'DISPATCH_FROM_STORAGE',1,48,24,2)[case_idx]    
-    DISPATCH_NATGAS_day2  = get_multicases_results(res, num_case,      'DISPATCH_NATGAS',      241,288,24,2)[case_idx]     
-    DISPATCH_SOLAR_day2   = get_multicases_results(res, num_case,      'DISPATCH_SOLAR',       241,288,24,2)[case_idx]     
-    DISPATCH_WIND_day2    = get_multicases_results(res, num_case,      'DISPATCH_WIND',        241,288,24,2)[case_idx]          
-    DISPATCH_NUCLEAR_day2 = get_multicases_results(res, num_case,      'DISPATCH_NUCLEAR',     241,288,24,2)[case_idx]  
-    DISPATCH_FROM_STORAGE_day2 = get_multicases_results(res, num_case, 'DISPATCH_FROM_STORAGE',241,288,24,2)[case_idx] 
+
+    DISPATCH_NATGAS_week1  = get_multicases_results(res, num_case,      'DISPATCH_NATGAS',      week1start,week1start+num_periods_week-1,num_periods_week,2)[case_idx]     
+    DISPATCH_SOLAR_week1   = get_multicases_results(res, num_case,      'DISPATCH_SOLAR',       week1start,week1start+num_periods_week-1,num_periods_week,2)[case_idx]     
+    DISPATCH_WIND_week1    = get_multicases_results(res, num_case,      'DISPATCH_WIND',        week1start,week1start+num_periods_week-1,num_periods_week,2)[case_idx]          
+    DISPATCH_NUCLEAR_week1 = get_multicases_results(res, num_case,      'DISPATCH_NUCLEAR',     week1start,week1start+num_periods_week-1,num_periods_week,2)[case_idx]  
+    DISPATCH_FROM_STORAGE_week1 = get_multicases_results(res, num_case, 'DISPATCH_FROM_STORAGE',week1start,week1start+num_periods_week-1,num_periods_week,2)[case_idx]    
+
+    DISPATCH_NATGAS_week2  = get_multicases_results(res, num_case,      'DISPATCH_NATGAS',      week2start,week2start+num_periods_week-1,num_periods_week,2)[case_idx]     
+    DISPATCH_SOLAR_week2   = get_multicases_results(res, num_case,      'DISPATCH_SOLAR',       week2start,week2start+num_periods_week-1,num_periods_week,2)[case_idx]     
+    DISPATCH_WIND_week2    = get_multicases_results(res, num_case,      'DISPATCH_WIND',        week2start,week2start+num_periods_week-1,num_periods_week,2)[case_idx]          
+    DISPATCH_NUCLEAR_week2 = get_multicases_results(res, num_case,      'DISPATCH_NUCLEAR',     week2start,week2start+num_periods_week-1,num_periods_week,2)[case_idx]  
+    DISPATCH_FROM_STORAGE_week2 = get_multicases_results(res, num_case, 'DISPATCH_FROM_STORAGE',week2start,week2start+num_periods_week-1,num_periods_week,2)[case_idx] 
+
     curtail_natgas_yr  = CAPACITY_NATGAS                    - DISPATCH_NATGAS_yr
     curtail_solar_yr   = CAPACITY_SOLAR   * solar_series_yr - DISPATCH_SOLAR_yr
     curtail_wind_yr    = CAPACITY_WIND    * wind_series_yr  - DISPATCH_WIND_yr
     curtail_nuclear_yr = CAPACITY_NUCLEAR                   - DISPATCH_NUCLEAR_yr
-    curtail_natgas_day1  = CAPACITY_NATGAS                      - DISPATCH_NATGAS_day1
-    curtail_solar_day1   = CAPACITY_SOLAR   * solar_series_day1 - DISPATCH_SOLAR_day1
-    curtail_wind_day1    = CAPACITY_WIND    * wind_series_day1  - DISPATCH_WIND_day1
-    curtail_nuclear_day1 = CAPACITY_NUCLEAR                     - DISPATCH_NUCLEAR_day1
-    curtail_natgas_day2  = CAPACITY_NATGAS                      - DISPATCH_NATGAS_day2
-    curtail_solar_day2   = CAPACITY_SOLAR   * solar_series_day2 - DISPATCH_SOLAR_day2
-    curtail_wind_day2    = CAPACITY_WIND    * wind_series_day2  - DISPATCH_WIND_day2
-    curtail_nuclear_day2 = CAPACITY_NUCLEAR                     - DISPATCH_NUCLEAR_day2
+    
+    curtail_natgas_week1  = CAPACITY_NATGAS                      - DISPATCH_NATGAS_week1
+    curtail_solar_week1   = CAPACITY_SOLAR   * solar_series_week1 - DISPATCH_SOLAR_week1
+    curtail_wind_week1    = CAPACITY_WIND    * wind_series_week1  - DISPATCH_WIND_week1
+    curtail_nuclear_week1 = CAPACITY_NUCLEAR                     - DISPATCH_NUCLEAR_week1
+    
+    curtail_natgas_week2  = CAPACITY_NATGAS                      - DISPATCH_NATGAS_week2
+    curtail_solar_week2   = CAPACITY_SOLAR   * solar_series_week2 - DISPATCH_SOLAR_week2
+    curtail_wind_week2    = CAPACITY_WIND    * wind_series_week2  - DISPATCH_WIND_week2
+    curtail_nuclear_week2 = CAPACITY_NUCLEAR                     - DISPATCH_NUCLEAR_week2
 
     # Now plot
     xaxis_yr = np.arange(num_time_periods/24)+1
+    
     yaxis_yr_ne = np.vstack([curtail_natgas_yr*(-1),
                              curtail_solar_yr*(-1),
                              curtail_wind_yr*(-1),
                              curtail_nuclear_yr*(-1),
                              curtail_natgas_yr*0.0
                              ])
+        
     yaxis_yr_po = np.vstack([DISPATCH_NATGAS_yr,
                              DISPATCH_SOLAR_yr,
                              DISPATCH_WIND_yr,
@@ -581,46 +595,49 @@ def stack_plot2(
             "ylabel": "",
             "fig_name": "dispatch_case"}
     
-    xaxis_day = np.arange(24)+1
-    yaxis_day1_ne = np.vstack([curtail_natgas_day1*(-1),
-                               curtail_solar_day1*(-1),
-                               curtail_wind_day1*(-1),
-                               curtail_nuclear_day1*(-1),
-                               curtail_natgas_day1*0.0
+    xaxis_week = np.arange(num_periods_week)+1
+    
+    print len(curtail_natgas_week1),len(curtail_solar_week1),len(curtail_wind_week1),len(curtail_nuclear_week1)
+    yaxis_week1_ne = np.vstack([curtail_natgas_week1*(-1),
+                               curtail_solar_week1*(-1),
+                               curtail_wind_week1*(-1),
+                               curtail_nuclear_week1*(-1),
+                               curtail_natgas_week1*0.0
                                ])
-    yaxis_day1_po = np.vstack([DISPATCH_NATGAS_day1,
-                               DISPATCH_SOLAR_day1,
-                               DISPATCH_WIND_day1,
-                               DISPATCH_NUCLEAR_day1,
-                               DISPATCH_FROM_STORAGE_day1
+        
+    yaxis_week1_po = np.vstack([DISPATCH_NATGAS_week1,
+                               DISPATCH_SOLAR_week1,
+                               DISPATCH_WIND_week1,
+                               DISPATCH_NUCLEAR_week1,
+                               DISPATCH_FROM_STORAGE_week1
                                ]) 
-    info_day1 = {
+    info_week1 = {
             "title": "Hourly-average per hour dispatch (kWh)\n(Day1-2)",
             "xlabel": "time step (hour)",
             "ylabel": "",
             "fig_name": "dispatch_case"}   
     
-    yaxis_day2_ne = np.vstack([curtail_natgas_day2*(-1),
-                               curtail_solar_day2*(-1),
-                               curtail_wind_day2*(-1),
-                               curtail_nuclear_day2*(-1),
-                               curtail_natgas_day2*0.0
+    yaxis_week2_ne = np.vstack([curtail_natgas_week2*(-1),
+                               curtail_solar_week2*(-1),
+                               curtail_wind_week2*(-1),
+                               curtail_nuclear_week2*(-1),
+                               curtail_natgas_week2*0.0
                                ])
-    yaxis_day2_po = np.vstack([DISPATCH_NATGAS_day2,
-                               DISPATCH_SOLAR_day2,
-                               DISPATCH_WIND_day2,
-                               DISPATCH_NUCLEAR_day2,
-                               DISPATCH_FROM_STORAGE_day2
+    yaxis_week2_po = np.vstack([DISPATCH_NATGAS_week2,
+                               DISPATCH_SOLAR_week2,
+                               DISPATCH_WIND_week2,
+                               DISPATCH_NUCLEAR_week2,
+                               DISPATCH_FROM_STORAGE_week2
                                ]) 
-    info_day2 = {
+    info_week2 = {
             "title": "Hourly-average per hour dispatch (kWh)\n(Day11-12)",
             "xlabel": "time step (hour)",
             "ylabel": "",
             "fig_name": "dispatch_case"}  
     if multipanel:
         plot_case1 = [xaxis_yr, yaxis_yr_ne,yaxis_yr_po,labels, colors, demand_yr, info_yr]
-        plot_case2 = [xaxis_day, yaxis_day1_ne,yaxis_day1_po,labels, colors, demand_day1, info_day1]
-        plot_case3 = [xaxis_day, yaxis_day2_ne,yaxis_day2_po,labels, colors, demand_day2, info_day2]
+        plot_case2 = [xaxis_week, yaxis_week1_ne,yaxis_week1_po,labels, colors, demand_week1, info_week1]
+        plot_case3 = [xaxis_week, yaxis_week2_ne,yaxis_week2_po,labels, colors, demand_week2, info_week2]
         ploty = plot_stack_multi2(plot_case1,plot_case2,plot_case3,case_name)
     else:
         print 'please use multipanel = True!'
