@@ -54,6 +54,9 @@ History
         .. for a technology of interest
     Jun 23, 2018 checked the code and comments
     June 23-24, 2018 updated texts and labels on figures
+    Jul 8, 2018 [kc]
+        Started making changes so this code runs off of dictionaries rather
+        than pickle files. This will then be called by <quicklook.py>
             
 @author: Fan Tong
 """
@@ -188,9 +191,11 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     
     inputs_dispatch = {
         "x_data":           x_data, 
-        "y_data":           dispatched_results_matrix/1e6,
+#        "y_data":           dispatched_results_matrix/1e6,
+        "y_data":           dispatched_results_matrix,
         "y2_data":          dispatched_results_matrix/np.average(demand),
-        'z_data':           demand/1e6,
+#        'z_data':           demand/1e6,
+        'z_data':           demand,
         'z2_data':          demand/np.average(demand),
         "ax":               ax1a,
         "x_label":          'Time (hour in the year)',
@@ -226,7 +231,7 @@ def func_graphics_dispatch_mix_1scenario (input_data):
         #'z_data':           demand/1e6,
         "ax":               ax1c,
         "x_label":          'Time (hour in the year)',
-        "y_label":          '1e6 kWh',
+#        "y_label":          '1e6 kWh',
         'y2_label':         'hourly-average demand',
         "title":            'Demand mix',
         "legend":           legend_list_demand,
