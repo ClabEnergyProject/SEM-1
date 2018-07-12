@@ -45,7 +45,6 @@ from __future__ import division
 import os
 import sys
 import numpy as np
-import matplotlib.pyplot as plt
 
 # -----------------------------------------------------------------------------
 # func_load_optimization_results()

@@ -16,7 +16,7 @@ from Preprocess_Input import preprocess_input
 from Postprocess_Results import post_process
 #from Postprocess_Results_kc180214 import postprocess_key_scalar_results,merge_two_dicts
 from Save_Basic_Results import save_basic_results
-
+from Quick_Look import quick_look
 
 # directory = "D:/M/WORK/"
 #root_directory = "/Users/kcaldeira/Google Drive/simple energy system model/Kens version/"
@@ -38,11 +38,12 @@ print 'Simple_Energy_Model: Saving basic results'
 scalar_names,scalar_table = save_basic_results(global_dic, case_dic_list, result_list)
 
 if global_dic['POSTPROCESS']:
-    print 'Simple_Energy_Model: Post-processing results using old postprocessing'
+    print 'Simple_Energy_Model: Post-processing results'
     post_process(global_dic)  # Lei's old postprocessing
 
-if global_dic['QUICKLOOK']:
-    print 'Simple_Energy_Model: Post-processing results using new postprocessing'
-    quicklook(global_dic)  # Lei's old postprocessing
+if global_dic['QUICK_LOOK']:
+    print 'Simple_Energy_Model: Preparing quick look at results'
+    pickle_file_name = './Output_Data/'+global_dic['GLOBAL_NAME']+'/'+global_dic['GLOBAL_NAME']+'.pickle'
+    quick_look(pickle_file_name)  # Fan's new postprocessing
     
 

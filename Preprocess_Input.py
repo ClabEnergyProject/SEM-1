@@ -2,49 +2,44 @@
 """
 This code reads a file called 'case_input.csv' which is assumed to exist in the directory in which the code is running.
 
-It generates a result containing <assumption_list>
-    
-<assumption_list> is a list of dictionaries. Each element in that list corresponds to a different case to be run.
+It generates a result containing <global_dic> and <case_dic_list>
 
-Each dictionary in <assumption_list> ALWAYS contains:
+<global_dic> is a dictionary of values applied to all cases
     
-    'system_components' -- list of components, choices are: 'wind','solar', 'natgas','nuclear','storage','unmet'
-    'root_path' -- path to data files
-    'demand_series' -- time series of demand data
-    'output_directory' -- string containing name of output directory
+<global_dic> contains:
     
-Each dictionary in <assumption_list> OPTIONALLY contains:
     
-            'CAPACITY_COST_natgas' -- scalar
-            'CAPACITY_COST_nuclear' -- scalar
-            'CAPACITY_COST_wind' -- scalar
-            'CAPACITY_COST_solar' -- scalar
-            'CAPACITY_COST_storage' -- scalar
-            'DISPATCH_COST_natgas' -- scalar
-            'DISPATCH_COST_nuclear' -- scalar
-            'DISPATCH_COST_wind' -- scalar
-            'DISPATCH_COST_solar' -- scalar
-            'DISPATCH_COST_storage' -- scalar
-            'DISPATCH_COST_TO_STORAGE' -- scalar
-            'DISPATCH_COST_FROM_STORAGE' -- scalar
-            'DISPATCH_COST_unmet_demand' -- scalar
-            'STORAGE_CHARGING_TIME' -- scalar
-            'storage_charging_efficiency' -- scalar
-            'wind_series' -- time series of wind capacity data
-            'solar_series' -- time series of solar capacity data
+<case_dic_list> is a list of dictionaries. Each element in that list corresponds to a different case to be run.
+
+    'ROOT_PATH' -- PATH TO DATA FILES
+    'OUTPUT_DIRECTORY' -- STRING CONTAINING NAME OF OUTPUT DIRECTORY
+
+Each dictionary in <case_dic_list> ALWAYS contains:
+    
+    'SYSTEM_COMPONENTS' -- LIST OF COMPONENTS, CHOICES ARE: 'WIND','SOLAR', 'NATGAS','NUCLEAR','STORAGE', 'PGP_STORAGE', 'UNMET'
+    'DEMAND_SERIES' -- TIME SERIES OF DEMAND DATA
+    
+Each dictionary in <case_dic_list> OPTIONALLY contains:
+    
+           ["NUMERICS_COST_SCALING","NUMERICS_DEMAND_SCALING",
+             "END_DAY","END_HOUR","END_MONTH",
+            "END_YEAR","CAPACITY_COST_NATGAS","CAPACITY_COST_SOLAR","CAPACITY_COST_WIND",
+            "CAPACITY_COST_NUCLEAR","CAPACITY_COST_STORAGE",
+            "START_DAY","START_HOUR","START_MONTH",
+            "START_YEAR","STORAGE_CHARGING_EFFICIENCY",
+            "DISPATCH_COST_STORAGE","DISPATCH_COST_TO_STORAGE",
+            "DISPATCH_COST_NATGAS","DISPATCH_COST_SOLAR","STORAGE_DECAY_RATE",
+            "DISPATCH_COST_WIND","DISPATCH_COST_NUCLEAR","DISPATCH_COST_UNMET_DEMAND",
+            "STORAGE_CHARGING_TIME",
             "CAPACITY_COST_PGP_STORAGE",
-            "CAPACITY_COST_PGP_FUEL_CELL",
-            "DISPATCH_COST_PGP_TO_STORAGE",
-            "DISPATCH_COST_PGP_FROM_STORAGE",
-            "PGP_STORAGE_CHARGING_EFFICIENCY"
+            "CAPACITY_COST_TO_PGP_STORAGE","CAPACITY_COST_FROM_PGP_STORAGE",
+            "DISPATCH_COST_TO_PGP_STORAGE","DISPATCH_COST_FROM_PGP_STORAGE",
+            "PGP_STORAGE_CHARGING_EFFICIENCY"]
+
 """
 
 import csv
-import sys
 import numpy as np
-import pickle
-
-
 
 
 #%%
@@ -140,13 +135,13 @@ def read_csv_dated_data_file(start_year,start_month,start_day,start_hour,
 
 def preprocess_input(case_input_path_filename):
     # This is the highest level function that reads in the case input file
-    # and generated <assumption_list> from this input.
+    # and generated <case_dic_list> from this input.
         
     # -----------------------------------------------------------------------------
     # Recognized keywords in case_input.csv file
     
     keywords_logical = map(str.upper,
-            ["VERBOSE","POSTPROCESS","QUICKLOOK"]
+            ["VERBOSE","POSTPROCESS","QUICK_LOOK"]
             )
 
     keywords_str = map(str.upper,
@@ -167,7 +162,7 @@ def preprocess_input(case_input_path_filename):
             "DISPATCH_COST_WIND","DISPATCH_COST_NUCLEAR","DISPATCH_COST_UNMET_DEMAND",
             "STORAGE_CHARGING_TIME",
             "CAPACITY_COST_PGP_STORAGE",
-            "CAPACITY_COST_PGP_FUEL_CELL",
+            "CAPACITY_COST_TO_PGP_STORAGE","CAPACITY_COST_FROM_PGP_STORAGE",
             "DISPATCH_COST_TO_PGP_STORAGE","DISPATCH_COST_FROM_PGP_STORAGE",
             "PGP_STORAGE_CHARGING_EFFICIENCY"]
             )
@@ -194,9 +189,14 @@ def preprocess_input(case_input_path_filename):
         
     # Parse global data
     global_dic = {}
+    #------DEFAULT VALUES ---------
+    # For now, default for quicklook output is FALSE
+    global_dic["QUICK_LOOK"] = False
+    
     # default global values to help with numerical issues
     global_dic["NUMERICS_COST_SCALING"] = 1e+12 # multiplies all costs by a factor and then divides at end
     global_dic["NUMERICS_DEMAND_SCALING"] = 1e+12 # multiplies demand by a factor and then divides all costs and capacities at end
+    #------convert file input to dictionary of global data ---------
     for list_item in global_data:
         test_key = str.upper(list_item[0])
         test_value = list_item[1]
@@ -368,7 +368,7 @@ def preprocess_input(case_input_path_filename):
                 component_list.append('SOLAR')
                                                 
         if 'CAPACITY_COST_STORAGE' in have_keys:
-            if case_list_dic['CAPACITY_COST_STORAGE'][case_index] >= 0 and case_list_dic['DISPATCH_COST_FROM_STORAGE'][case_index] >= 0  and case_list_dic['DISPATCH_COST_TO_STORAGE'][case_index] >= 0 :
+            if case_list_dic['CAPACITY_COST_STORAGE'][case_index] >= 0 and case_list_dic['DISPATCH_COST_TO_STORAGE'][case_index] >= 0  and case_list_dic['DISPATCH_COST_FROM_STORAGE'][case_index] >= 0 :
                 component_list.append('STORAGE')
                 
         if 'CAPACITY_COST_PGP_STORAGE' in have_keys:
