@@ -87,7 +87,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 #
 # Input
 #   A packaging dictionary variable: input_data, which contrains the following data
-#       [1] dispatched_results_matrix:  dispatch mix for a particular scenario
+#       [1] results_matrix_dispatch:  dispatch mix for a particular scenario
 #       [2] demand
 #   the following texts
 #       [3] legend_list
@@ -98,7 +98,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 #       [7] graphics_file_name
 #
 #   Data dimentions
-#       dispatched_results_matrix
+#       results_matrix_dispatch
 #           ROW dimension: optimization time steps
 #           COLUMN dimension: technology options (that dispatched energy)
 #       demand
@@ -127,50 +127,150 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 def quick_look(pickle_file_name):
     
-    with open(pickle_file_name, 'r') as db:
+    with open(pickle_file_name, 'rb') as db:
         global_dic,case_dic_list,result_list = pickle.load( db )
+        
+    verbose = global_dic['VERBOSE']
+    if verbose:
+        print 'pickle file '+ pickle_file_name+' read'
+        
+    # --------------- define and open output files -------------------------
+    
+    output_dir = global_dic['OUTPUT_PATH'] + '/' + global_dic['GLOBAL_NAME']
+        # Create the ouput folder    
+    
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Define file for pdfs containing figures comparing cases
+    output_all = global_dic['GLOBAL_NAME'] + '_all_cases.pdf'
+    pdf_all = PdfPages(output_dir + '/' + output_all) # create and open pdf file
+    # Define file for pdfs containing figures relating to individual cases
+    output_each = global_dic['GLOBAL_NAME'] + '_each_case.pdf'
+    pdf_each = PdfPages(output_dir + '/' + output_each) # create and open pdf file
+    # Define file for text output
+    output_text = global_dic['GLOBAL_NAME'] + '_text.txt'
+    text_file = open(output_dir + '/' + output_text,'w')
+        
+    # --------------- define colors for plots --------------------- 
+    color_DEMAND = "black"
+    color_NATGAS  = "tomato" # not explicitly referenced but referenced through eval()
+    color_SOLAR   = "wheat" # not explicitly referenced but referenced through eval()
+    color_WIND    = "skyblue" # not explicitly referenced but referenced through eval()
+    color_NUCLEAR = "limegreen" # not explicitly referenced but referenced through eval()
+    color_STORAGE = "orchid"
+    color_PGP_STORAGE =  "mediumslateblue"
+    color_DISPATCH_CURTAILMENT =  "peru"
+    color_UNMET_DEMAND =  "lightslategrey" # not explicitly referenced but referenced through eval()
     
     num_cases = len (case_dic_list) # number of cases
     # 'SYSTEM_COMPONENTS' -- LIST OF COMPONENTS, CHOICES ARE: 'WIND','SOLAR', 'NATGAS','NUCLEAR','STORAGE', 'PGP_STORAGE', 'UNMET'    
     # Loop around and make output for individual cases  
+    
+    # ============= CREATE LIST OF input_data DICTIONARIES FOR PLOTTING PROGRAMS =========
+    
+    input_data_list = [] # list of input_data dictionaries
     for case_idx in range(num_cases):
         
         case_dic = case_dic_list[case_idx] # get the input data for case in question
+        if verbose:
+            print 'preparing case ',case_idx,' ', case_dic['CASE_NAME']
         result_dic = result_list[case_idx] # get the results data for case in question
         input_data = {} # Dictionary of input data for 1scenario graphics fucntion
-        input_data["demand"] = case_dic["DEMAND_SERIES"]
-        input_data["SAVE_FIGURES_TO_PDF"] = True 
-        input_data["graphics_file_name"] = [] #XXXXXXXXX????????????????????
-          
-
+        input_data["case_name"] = case_dic["CASE_NAME"]
+        input_data["demand"] = np.array(case_dic["DEMAND_SERIES"])
+        
+        input_data['pdf_each'] = pdf_each # file handle for pdf output case by case
+        input_data['text_file'] = text_file # file handle for text output case by case
         system_components = case_dic["SYSTEM_COMPONENTS"]
+        input_data['system_components'] = system_components
 
+        # results_matrix_dispatch contains time series of things that add electricity to the grid
+        # where unmet_demand is considered a pure variable cost source
+        
         # Now build the array of dispatch technologies to be plotted for this case
+        results_matrix_dispatch = []
         legend_list_dispatch = []
-        dispatched_results_matrix = []
+        color_list_dispatch = []
+        component_index_dispatch = {}
 
         for component in system_components:
             addfrom = ''
             if component == 'STORAGE' or component == 'PGP_STORAGE': 
                 addfrom = 'FROM_'
+            results_matrix_dispatch.append(result_dic['DISPATCH_' + addfrom + component ])
             legend_list_dispatch.append( 'DISPATCH_' + addfrom + component +' kW' )
-            dispatched_results_matrix.append(result_dic['DISPATCH_' + addfrom + component ])
+            color_list_dispatch.append(eval('color_' + component))
+            component_index_dispatch[component] = len(results_matrix_dispatch)-1 # row index for each component
         
-        input_data["dispatched_results_matrix"] = dispatched_results_matrix
+        input_data["results_matrix_dispatch"] = np.transpose(np.array(results_matrix_dispatch))
         input_data["legend_list_dispatch"] = legend_list_dispatch
+        input_data["component_index_dispatch"] = component_index_dispatch
+        input_data["color_list_dispatch"] = color_list_dispatch
 
         # Now build the array of demand components to be plotted for this case
         # NOTE: this should  check that all these options are in the scenario
-        demand_results_matrix = [case_dic["DEMAND_SERIES"],
-                                 result_dic["DISPATCH_TO_STORAGE"],
-                                 result_dic["DISPATCH_TO_PGP_STORAGE"],
-                                 result_dic["DISPATCH_CURTAILMENT"]
-                                 ] # demand, storage charge, pgp storage charge, and curtailment
-        legend_list_demand = ['demand (kW)]','dispatch to storage (kW)',
-                              'dispatch_to_PGP_storage (kW)','curtailment kW']
-
-        input_data["demand_results_matrix"] = demand_results_matrix
+        # The next set of things gets electricity from the grid
+        results_matrix_demand = [case_dic["DEMAND_SERIES"]]
+        legend_list_demand = ['demand (kW)]']
+        color_list_demand = [color_DEMAND]
+        component_index_demand = {'DEMAND':1}
+        
+        for component in system_components:
+            if component == 'STORAGE':
+                results_matrix_demand.append(result_dic["DISPATCH_TO_STORAGE"])
+                legend_list_demand.append('dispatch to storage (kW)')
+                color_list_demand.append(color_STORAGE)
+                component_index_demand["STORAGE"] = len(results_matrix_demand)-1
+            elif component == 'PGP_STORAGE': 
+                results_matrix_demand.append(result_dic["DISPATCH_TO_PGP_STORAGE"])
+                legend_list_demand.append('dispatch to pgp storage (kW)')
+                color_list_demand.append(color_PGP_STORAGE)
+                component_index_demand["PGP_STORAGE"] = len(results_matrix_demand)-1
+        
+        legend_list_demand.append('curtailment (kW)')
+        results_matrix_demand.append(result_dic["DISPATCH_CURTAILMENT"])
+        color_list_demand.append(color_DISPATCH_CURTAILMENT)
+        component_index_demand["DISPATCH_CURTAILMENT"] = len(results_matrix_demand)-1
+        
+        input_data["results_matrix_demand"] = np.transpose(np.array(results_matrix_demand))
         input_data["legend_list_demand"] = legend_list_demand
+        input_data["component_index_demand"] = component_index_demand
+        input_data["color_list_demand"] = color_list_demand
+        
+        input_data_list.append(input_data)
+    if verbose:
+        print 'input_data dictionaries created for plotting programs'
+        
+        # end of section to generate list of input_data dictionaries
+
+    # ========== CREATE PLOTS =========
+  
+    for input_data in input_data_list:
+        func_optimization_results_time_series_1scenario (input_data) # produce single case plots
+        if verbose:
+            print 'func_optimization_results_time_series_1scenario executed'
+            
+            
+    # ============= LOGIC FOR COMPARING CASES ==============================
+    
+    
+#        func_optimization_results_system_results_Nscenarios (input_data) # produce weeks of the most extreme values
+#        if verbose:
+#            print 'func_optimization_results_system_results_Nscenarios executed'
+#        func_optimization_results_dispatch_var_Nscenarios (input_data)
+#        if verbose:
+#            print 'func_optimization_results_dispatch_var_Nscenarios executed'
+#    func_optimization_results_time_series_1scenario() -- directly callable
+#    func_optimization_results_system_results_Nscenarios() -- directly callable
+#    func_optimization_results_dispatch_var_Nscenarios() -- directly callable
+         
+    # close files
+    pdf_all.close()
+    pdf_each.close()
+    text_file.close()
+    if verbose:
+        print 'files closed'
 
        
 def func_graphics_dispatch_mix_1scenario (input_data):    
@@ -179,24 +279,14 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     # Get the input data
     
     demand = input_data["demand"]
-    dispatched_results_matrix = input_data["dispatched_results_matrix"]
-    demand_results_matrix = input_data["demand_results_matrix"]
-    directory_output = input_data["directory_output"]
-    SAVE_FIGURES_TO_PDF = input_data["SAVE_FIGURES_TO_PDF"]    
-    graphics_file_name = input_data["graphics_file_name"]
+    results_matrix_dispatch = input_data["results_matrix_dispatch"]
+    results_matrix_demand = input_data["results_matrix_demand"]
+    pdf_each = input_data["pdf_each"]
     legend_list_dispatch = input_data["legend_list_dispatch"]
-    legend_list_demand = input_data["legend_list_demand"]    
+    legend_list_demand = input_data["legend_list_demand"]
+    case_name = input_data["case_name"]
     
     # -------------------------------------------------------------------------    
-    # Create the ouput folder    
-    
-    if SAVE_FIGURES_TO_PDF:
-        if not os.path.exists(directory_output):
-            os.makedirs(directory_output)
-                        
-        pdf_pages = PdfPages(
-            directory_output + graphics_file_name + '.pdf')
-
     # -------------------------------------------------------------------------
     # Define the plotting style
     
@@ -235,27 +325,25 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     
     # -------------
     
+    
     optimization_time_steps = demand.size
     x_data = np.arange(0, optimization_time_steps)
     
     # -------------
     
     figure1a = plt.figure(figsize=figsize_oneplot)
-    ax1a = figure1a.add_subplot(111)
+    ax1a = figure1a.add_subplot(221)
     
     inputs_dispatch = {
         "x_data":           x_data, 
-#        "y_data":           dispatched_results_matrix/1e6,
-        "y_data":           dispatched_results_matrix,
-        "y2_data":          dispatched_results_matrix/np.average(demand),
-#        'z_data':           demand/1e6,
+#        "y_data":           results_matrix_dispatch,
+        "y_data":           results_matrix_dispatch,
+#        'z_data':           demand,
         'z_data':           demand,
-        'z2_data':          demand/np.average(demand),
         "ax":               ax1a,
         "x_label":          'Time (hour in the year)',
-        "y_label":          '1e6 kWh',
-        'y2_label':         'hourly-average demand',
-        "title":            'Dispatch mix',
+        "y_label":          'kW',
+        "title":            case_name +': Dispatch mix',
         "legend":           legend_list_dispatch,
         "legend_z":         'demand',
         "line_width":       2,
@@ -267,27 +355,25 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     
     # -------------
     
-    figure1b = plt.figure(figsize=figsize_oneplot)
-    ax1b = figure1b.add_subplot(111)
+    #figure1b = plt.figure(figsize=figsize_oneplot)
+    ax1b = figure1a.add_subplot(222)
 
     inputs_dispatch["ax"] = ax1b
     func_stack_plot(inputs_dispatch)
     
     # -------------
 
-    figure1c = plt.figure(figsize=figsize_oneplot)
-    ax1c = figure1c.add_subplot(111)
+    #figure1c = plt.figure(figsize=figsize_oneplot)
+    ax1c = figure1a.add_subplot(223)
 
     inputs_demand = {
         "x_data":           x_data, 
-        "y_data":           demand_results_matrix/1e6,
-        "y2_data":          demand_results_matrix/np.average(demand),
-        #'z_data':           demand/1e6,
+        "y_data":           results_matrix_demand,
+        #'z_data':           demand,
         "ax":               ax1c,
         "x_label":          'Time (hour in the year)',
-#        "y_label":          '1e6 kWh',
-        'y2_label':         'hourly-average demand',
-        "title":            'Demand mix',
+#        "y_label":          'kW',
+        "title":            case_name+': Demand mix',
         "legend":           legend_list_demand,
         #"legend_z":         'demand',
         "line_width":       2,
@@ -299,8 +385,8 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     
     # -------------
     
-    figure1d = plt.figure(figsize=figsize_oneplot)
-    ax1d = figure1d.add_subplot(111)
+    #figure1d = plt.figure(figsize=figsize_oneplot)
+    ax1d = figure1a.add_subplot(224)
 
     inputs_demand["ax"] = ax1d
     
@@ -308,18 +394,17 @@ def func_graphics_dispatch_mix_1scenario (input_data):
 
     # -------------
 
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure1a, bbox_inches='tight')
-        plt.close()
-        
-        pdf_pages.savefig(figure1b, bbox_inches='tight')
-        plt.close()
-        
-        pdf_pages.savefig(figure1c, bbox_inches='tight')
-        plt.close()
-        
-        pdf_pages.savefig(figure1d, bbox_inches='tight')
-        plt.close()
+    pdf_each.savefig(figure1a, bbox_inches='tight')
+    #plt.close()
+    
+    #pdf_each.savefig(figure1b, bbox_inches='tight')
+    #plt.close()
+    
+    #pdf_each.savefig(figure1c, bbox_inches='tight')
+    #plt.close()
+    
+    #pdf_each.savefig(figure1d, bbox_inches='tight')
+    plt.close()
         
     # -------------------------------------------------------------------------
     
@@ -332,38 +417,36 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     temporal_scale = 24
     x_data = np.arange(0, optimization_time_steps/temporal_scale)
     
-    dispatched_results_matrix2 = np.zeros(
-        (int(dispatched_results_matrix.shape[0]/temporal_scale), 
-        int(dispatched_results_matrix.shape[1])))
+    results_matrix_dispatch2 = np.zeros(
+        (int(results_matrix_dispatch.shape[0]/temporal_scale), 
+        int(results_matrix_dispatch.shape[1])))
 
-    for i in xrange(dispatched_results_matrix2.shape[1]):
-        dispatched_results_matrix2 [:,i] = \
-            func_time_conversion(dispatched_results_matrix[:,i],temporal_scale)
+    for i in xrange(results_matrix_dispatch2.shape[1]):
+        results_matrix_dispatch2 [:,i] = \
+            func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
 
-    demand_results_matrix2 = np.zeros(
-        (int(demand_results_matrix.shape[0]/temporal_scale), 
-        int(demand_results_matrix.shape[1])))
+    results_matrix_demand2 = np.zeros(
+        (int(results_matrix_demand.shape[0]/temporal_scale), 
+        int(results_matrix_demand.shape[1])))
     
-    for i in xrange(demand_results_matrix2.shape[1]):
-        demand_results_matrix2 [:,i] = \
-            func_time_conversion(demand_results_matrix[:,i],temporal_scale)
+    for i in xrange(results_matrix_demand2.shape[1]):
+        results_matrix_demand2 [:,i] = \
+            func_time_conversion(results_matrix_demand[:,i],temporal_scale)
 
     # -------------
 
     figure2a = plt.figure(figsize=figsize_oneplot)
-    ax2a = figure2a.add_subplot(111)
+    ax2a = figure2a.add_subplot(2,2,1)
 
     inputs_dispatch = {
         "x_data":           x_data, 
-        "y_data":           dispatched_results_matrix2/1e6,
-        "y2_data":          dispatched_results_matrix2/np.average(demand),
-        "z_data":           func_time_conversion(demand/1e6,temporal_scale),
+        "y_data":           results_matrix_dispatch2,
+        "z_data":           func_time_conversion(demand,temporal_scale),
         "z2_data":           func_time_conversion(demand/np.average(demand),temporal_scale),
         "ax":               ax2a,
         "x_label":          'Time (day in the year)',
-        "y_label":          '1e6 kWh',
-        "y2_label":         'hourly-average demand',
-        "title":            'Dispatch mix',
+        "y_label":          'kW',
+        "title":            case_name+': Dispatch mix',
         "legend":           legend_list_dispatch,
         "legend_z":         'demand',
         "line_width":       2,
@@ -375,29 +458,27 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     
     # -------------
     
-    figure2b = plt.figure(figsize=figsize_oneplot)
-    ax2b = figure2b.add_subplot(111)
+    #figure2b = plt.figure(figsize=figsize_oneplot)
+    ax2b = figure2a.add_subplot(2,2,2)
     inputs_dispatch['ax'] = ax2b
     
     func_stack_plot(inputs_dispatch)
 
     # -------------
 
-    figure2c = plt.figure(figsize=figsize_oneplot)
-    ax2c = figure2c.add_subplot(111)
+    #figure2c = plt.figure(figsize=figsize_oneplot)
+    ax2c = figure2a.add_subplot(2,2,3)
 
     # -------------
 
     inputs_demand = {
         "x_data":           x_data, 
-        "y_data":           demand_results_matrix2/1e6,
-        "y2_data":          demand_results_matrix2/np.average(demand),
-        #"z_data":           func_time_conversion(demand/1e6,temporal_scale),
+        "y_data":           results_matrix_demand2,
+        #"z_data":           func_time_conversion(demand,temporal_scale),
         "ax":               ax2c,
         "x_label":          'Time (day in the year)',
-        "y_label":          '1e6 kWh',
-        "y2_label":         'hourly-average demand',
-        "title":            'Demand mix',
+        "y_label":          'kW',
+        "title":            case_name+': Demand mix',
         "legend":           legend_list_demand,
         #"legend_z":         'demand',
         "line_width":       2,
@@ -409,26 +490,25 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     
     # -------------
 
-    figure2d = plt.figure(figsize=figsize_oneplot)
-    ax2d = figure2d.add_subplot(111)
+    #figure2d = plt.figure(figsize=figsize_oneplot)
+    ax2d = figure2a.add_subplot(2,2,4)
     inputs_demand['ax'] = ax2d
     
     func_stack_plot(inputs_demand) 
     
     # -------------
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure2a, bbox_inches='tight')
-        plt.close()
-        
-        pdf_pages.savefig(figure2b, bbox_inches='tight')
-        plt.close()
-        
-        pdf_pages.savefig(figure2c, bbox_inches='tight')
-        plt.close()
-        
-        pdf_pages.savefig(figure2d, bbox_inches='tight')
-        plt.close()
+    pdf_each.savefig(figure2a, bbox_inches='tight')
+    #plt.close()
+    
+    #pdf_each.savefig(figure2b, bbox_inches='tight')
+    #plt.close()
+    
+    #pdf_each.savefig(figure2c, bbox_inches='tight')
+    #plt.close()
+    
+    #pdf_each.savefig(figure2d, bbox_inches='tight')
+    plt.close()
 
     # -------------------------------------------------------------------------
     # Figures 3 Weekly time series results
@@ -446,40 +526,38 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     #   (1) use floor_division to be compatiable with func_time_conversion()    
     #   (2) force type conversion to integer for slice indices
     
-    dispatched_results_matrix3 = np.zeros(
-        (int(np.floor(dispatched_results_matrix.shape[0]/temporal_scale)), 
-        int(dispatched_results_matrix.shape[1]))
+    results_matrix_dispatch3 = np.zeros(
+        (int(np.floor(results_matrix_dispatch.shape[0]/temporal_scale)), 
+        int(results_matrix_dispatch.shape[1]))
         )
 
-    for i in xrange(dispatched_results_matrix3.shape[1]):
-        dispatched_results_matrix3 [:,i] = \
-            func_time_conversion(dispatched_results_matrix[:,i],temporal_scale)
+    for i in xrange(results_matrix_dispatch3.shape[1]):
+        results_matrix_dispatch3 [:,i] = \
+            func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
 
-    demand_results_matrix3 = np.zeros(
-        (int(np.floor(demand_results_matrix.shape[0]/temporal_scale)),
-        int(demand_results_matrix.shape[1]))
+    results_matrix_demand3 = np.zeros(
+        (int(np.floor(results_matrix_demand.shape[0]/temporal_scale)),
+        int(results_matrix_demand.shape[1]))
         )
     
-    for i in xrange(demand_results_matrix3.shape[1]):
-        demand_results_matrix3 [:,i] = \
-            func_time_conversion(demand_results_matrix[:,i],temporal_scale)
+    for i in xrange(results_matrix_demand3.shape[1]):
+        results_matrix_demand3 [:,i] = \
+            func_time_conversion(results_matrix_demand[:,i],temporal_scale)
     
     # --------------------
 
     figure3a = plt.figure(figsize=figsize_oneplot)
-    ax3a = figure3a.add_subplot(111)
+    ax3a = figure3a.add_subplot(2,2,1)
 
     inputs_dispatch = {
         "x_data":           x_data, 
-        "y_data":           dispatched_results_matrix3/1e6,
-        "y2_data":          dispatched_results_matrix3/np.average(demand),
-        "z_data":           func_time_conversion(demand/1e6,temporal_scale),
+        "y_data":           results_matrix_dispatch3,
+        "z_data":           func_time_conversion(demand,temporal_scale),
         "z2_data":          func_time_conversion(demand/np.average(demand),temporal_scale),
         "ax":               ax3a,
         "x_label":          'Time (week in the year)',
-        "y_label":          '1e6 kWh',
-        "y2_label":         'hourly-average demand',
-        "title":            'Dispatch mix',
+        "y_label":          'kW',
+        "title":            case_name+': Dispatch mix',
         "legend":           legend_list_dispatch,
         "legend_z":         'demand',
         "line_width":       2,
@@ -491,27 +569,25 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     
     # --------------------
     
-    figure3b = plt.figure(figsize=figsize_oneplot)
-    ax3b = figure3b.add_subplot(111)
+    #figure3b = plt.figure(figsize=figsize_oneplot)
+    ax3b = figure3a.add_subplot(2,2,2)
     inputs_dispatch['ax'] = ax3b
     
     func_stack_plot(inputs_dispatch)
 
     # --------------------
     
-    figure3c = plt.figure(figsize=figsize_oneplot)
-    ax3c = figure3c.add_subplot(111)
+    #figure3c = plt.figure(figsize=figsize_oneplot)
+    ax3c = figure3a.add_subplot(2,2,3)
     
     inputs_demand = {
         "x_data":           x_data, 
-        "y_data":           demand_results_matrix3/1e6,
-        "y2_data":           demand_results_matrix3/np.average(demand),
-        #"z_data":           func_time_conversion(demand/1e6,temporal_scale),
+        "y_data":           results_matrix_demand3,
+        #"z_data":           func_time_conversion(demand,temporal_scale),
         "ax":               ax3c,
         "x_label":          'Time (week in the year)',
-        "y_label":          '1e6 kWh',
-        "y2_label":         'hourly-average demand',
-        "title":            'Demand mix',
+        "y_label":          'kW',
+        "title":            case_name+': Demand mix',
         "legend":           legend_list_demand,
         #"legend_z":         'demand',
         "line_width":       2,
@@ -523,34 +599,27 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     
     # --------------------
     
-    figure3d = plt.figure(figsize=figsize_oneplot)
-    ax3d = figure3d.add_subplot(111)
+    #figure3d = plt.figure(figsize=figsize_oneplot)
+    ax3d = figure3a.add_subplot(2,2,4)
     inputs_demand['ax'] = ax3d
     
     func_stack_plot(inputs_demand)
     
     # --------------------
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure3a, bbox_inches='tight')
-        plt.close()
-        
-        pdf_pages.savefig(figure3b, bbox_inches='tight')
-        plt.close()
-        
-        pdf_pages.savefig(figure3c, bbox_inches='tight')
-        plt.close()
-        
-        pdf_pages.savefig(figure3d, bbox_inches='tight')
-        plt.close()
+    pdf_each.savefig(figure3a, bbox_inches='tight')
+    #plt.close()
+    
+    #pdf_each.savefig(figure3b, bbox_inches='tight')
+    #plt.close()
+    
+    #pdf_each.savefig(figure3c, bbox_inches='tight')
+    #plt.close()
+    
+    #pdf_each.savefig(figure3d, bbox_inches='tight')
+    plt.close()
     
     # -------------------------------------------------------------------------
-    
-    # Write the PDF document to the disk
-    
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.close()
-
 
 
 #==============================================================================
@@ -570,7 +639,7 @@ def func_graphics_dispatch_mix_1scenario (input_data):
 #       [4] title_text
 #   and the following controls for graphical outputs
 #       [5] SAVE_FIGURES_TO_PDF:   logical variable [0/1]
-#       [6] pdf_pages:   a <PDF> object passed from the outer function
+#       [6] pdf_each:   a <PDF> object passed from the outer function
 #        
 #   Data dimentions
 #       mix_matrix
@@ -606,7 +675,6 @@ def func_graphics_dispatch_mix_time_selection_1scenario (input_data):
     mix_matrix = input_data["mix_matrix"]
     time_range = input_data["time_range"]
     
-    SAVE_FIGURES_TO_PDF = input_data["SAVE_FIGURES_TO_PDF"]
     legend_list = input_data["legend_list"]
     title_text = input_data["title_text"]
     
@@ -628,12 +696,10 @@ def func_graphics_dispatch_mix_time_selection_1scenario (input_data):
     input_data_1 = {
         "x_data_range":     time_range,
         "x_data":           x_data, 
-        "y_data":           mix_matrix/1e6,
-        "y2_data":          mix_matrix/np.average(demand),
+        "y_data":           mix_matrix,
         "ax":               ax1,
         "x_label":          'Time (hour in the year)',
-        "y_label":          '1e6 kWh',
-        'y2_label':         'hourly-average demand',
+        "y_label":          'kW',
         "title":            title_text,
         "legend":           legend_list,
         "line_width":       2,
@@ -649,12 +715,10 @@ def func_graphics_dispatch_mix_time_selection_1scenario (input_data):
     input_data_2 = {
         "x_data_range":     time_range,
         "x_data":           x_data, 
-        "y_data":           mix_matrix/1e6,
-        "y2_data":          mix_matrix/np.average(demand),
+        "y_data":           mix_matrix,
         "ax":               ax2,
         "x_label":          'Time (hour in the year)',
-        "y_label":          '1e6 kWh',
-        "y2_label":         'hourly-average demand',
+        "y_label":          'kW',
         "title":            title_text,
         "legend":           legend_list,
         "line_width":       2,
@@ -672,7 +736,7 @@ def func_graphics_dispatch_mix_time_selection_1scenario (input_data):
         else:
             line_width_z = 1
         
-        input_data_2['z_data'] = demand/1e6
+        input_data_2['z_data'] = demand
         input_data_2['z2_data'] = demand/np.average(demand)
         input_data_2['legend_z'] = 'demand'
         input_data_2['line_width_z'] = line_width_z   
@@ -681,15 +745,13 @@ def func_graphics_dispatch_mix_time_selection_1scenario (input_data):
 
     # -------------------------
 
-    if SAVE_FIGURES_TO_PDF:
-        
-        pdf_pages = input_data["pdf_pages"]
-        
-        pdf_pages.savefig(figure1, bbox_inches='tight')
-        plt.close()
-        
-        pdf_pages.savefig(figure2, bbox_inches='tight')
-        plt.close()
+    pdf_each = input_data["pdf_each"]
+    
+    pdf_each.savefig(figure1, bbox_inches='tight')
+    #plt.close()
+    
+    pdf_each.savefig(figure2, bbox_inches='tight')
+    plt.close()
    
 #%%
 #==============================================================================
@@ -702,7 +764,7 @@ def func_graphics_dispatch_mix_time_selection_1scenario (input_data):
 #
 # Input
 #   A packaging dictionary variable: input_data, which contrains the following data
-#       [1] dispatched_results_matrix:  
+#       [1] results_matrix_dispatch:  
 #           dispatch energy time series for the same technology
 #           across a number of different scenarios
 #       [2] demand
@@ -715,7 +777,7 @@ def func_graphics_dispatch_mix_time_selection_1scenario (input_data):
 #       [7] graphics_file_name        
 #
 #   Data dimentions
-#       dispatched_results_matrix
+#       results_matrix_dispatch
 #           ROW dimension: optimization time steps
 #           COLUMN dimension: different scenarios
 #       legend list
@@ -738,26 +800,13 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     # -------------------------------------------------------------------------
     # Get the input data
     
+    pdf_all = input_data['pdf_all']
     demand = input_data["demand"]
-    dispatched_results_matrix = input_data["dispatched_results_matrix"]
+    results_matrix_dispatch = input_data["results_matrix_dispatch"]
     
     legend_list = input_data["legend_list"]
     title_text = input_data["title_text"]   
     
-    directory_output = input_data["directory_output"]
-    SAVE_FIGURES_TO_PDF = input_data["SAVE_FIGURES_TO_PDF"]    
-    graphics_file_name = input_data["graphics_file_name"]     
-    
-    # -------------------------------------------------------------------------
-    # Create the output folder
-    
-    if SAVE_FIGURES_TO_PDF:
-        
-        if not os.path.exists(directory_output):
-            os.makedirs(directory_output)
-        
-        pdf_pages = PdfPages(
-                directory_output + graphics_file_name + '.pdf')
     
     # -------------------------------------------------------------------------
     # Define the plotting style
@@ -798,15 +847,15 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     
     # -----------------------------
     
-    optimization_time_steps = dispatched_results_matrix.shape[0]
+    optimization_time_steps = results_matrix_dispatch.shape[0]
     x_data = np.arange(0, optimization_time_steps)
     
-    dispatched_results_matrix1 = np.zeros(
-            dispatched_results_matrix.shape)
+    results_matrix_dispatch1 = np.zeros(
+            results_matrix_dispatch.shape)
     
-    for i in xrange(dispatched_results_matrix.shape[1]):
-        dispatched_results_matrix1 [:,i] = \
-            -np.sort(-np.reshape(dispatched_results_matrix[:,i], -1))
+    for i in xrange(results_matrix_dispatch.shape[1]):
+        results_matrix_dispatch1 [:,i] = \
+            -np.sort(-np.reshape(results_matrix_dispatch[:,i], -1))
     
     # -----------------------------
     
@@ -815,12 +864,10 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     
     inputs = {
             "x_data":       x_data, 
-            "y_data":       dispatched_results_matrix1/1e6,
-            "y2_data":      dispatched_results_matrix1/np.average(demand),
+            "y_data":       results_matrix_dispatch1,
             "ax":           ax1,
             "x_label":      'Time (hour in the year)',
-            "y_label":      '1e6 kWh',
-            "y2_label":     'hourly-average demand',
+            "y_label":      'kW',
             "title":        title_text,
             "legend":       legend_list,
             "line_width":    2,
@@ -829,9 +876,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
             
     func_lines_plot(inputs)
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure1, bbox_inches='tight')
-        plt.close()
+    pdf_all.savefig(figure1, bbox_inches='tight')
         
 #    # ---------------------------
 #    
@@ -839,15 +884,15 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 #    
 #    # -----------------------------
 #    
-##    optimization_time_steps = dispatched_results_matrix.shape[0]
+##    optimization_time_steps = results_matrix_dispatch.shape[0]
 ##    x_data = np.arange(0, optimization_time_steps)
 ##    
-##    dispatched_results_matrix1 = np.zeros(
-##            dispatched_results_matrix.shape)
+##    results_matrix_dispatch1 = np.zeros(
+##            results_matrix_dispatch.shape)
 ##    
-##    for i in xrange(dispatched_results_matrix.shape[1]):
-##        dispatched_results_matrix1 [:,i] = \
-##            -np.sort(-np.reshape(dispatched_results_matrix[:,i], -1))
+##    for i in xrange(results_matrix_dispatch.shape[1]):
+##        results_matrix_dispatch1 [:,i] = \
+##            -np.sort(-np.reshape(results_matrix_dispatch[:,i], -1))
 #    
 #    # -----------------------------
 #    
@@ -856,7 +901,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 #    
 #    inputs = {
 #            "x_data":       x_data, 
-#            "y_data":       dispatched_results_matrix1/np.average(demand),
+#            "y_data":       results_matrix_dispatch1/np.average(demand),
 #            "ax":           ax1b,
 #            "x_label":      'Time (hour in the year)',
 #            "y_label":      'Dispatched energy\n(hourly-average demand)',
@@ -869,7 +914,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 #    func_lines_plot(inputs)
 #    
 #    if SAVE_FIGURES_TO_PDF:
-#        pdf_pages.savefig(figure1b, bbox_inches='tight')
+#        pdf_each.savefig(figure1b, bbox_inches='tight')
 #        plt.close()
         
     # -------------------------------------------------------------------------
@@ -886,12 +931,10 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     
     inputs = {
             "x_data":       x_data, 
-            "y_data":       dispatched_results_matrix/1e6,
-            "y2_data":      dispatched_results_matrix/np.average(demand),
+            "y_data":       results_matrix_dispatch,
             "ax":           ax2,
             "x_label":      'Time (hour in the year)',
-            "y_label":      '1e6 kWh',
-            "y2_label":     'hourly-average demand',
+            "y_label":      'kW',
             "title":        title_text,
             "legend":       legend_list,
             "line_width":    1,
@@ -900,9 +943,8 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     
     func_lines_plot(inputs)
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure2, bbox_inches='tight')
-        plt.close()
+    pdf_all.savefig(figure2, bbox_inches='tight')
+    #plt.close()
     
 #    # -------------------------
 #    
@@ -919,7 +961,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 #    
 #    inputs = {
 #            "x_data":       x_data, 
-#            "y_data":       dispatched_results_matrix/np.average(demand),
+#            "y_data":       results_matrix_dispatch/np.average(demand),
 #            "ax":           ax2b,
 #            "x_label":      'Time (hour in the year)',
 #            "y_label":      'Discharged energy\n(hourly-average demand)',
@@ -932,7 +974,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 #    func_lines_plot(inputs)
 #    
 #    if SAVE_FIGURES_TO_PDF:
-#        pdf_pages.savefig(figure2b, bbox_inches='tight') 
+#        pdf_each.savefig(figure2b, bbox_inches='tight') 
 #        plt.close()
     
     # -------------------------------------------------------------------------
@@ -943,13 +985,13 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     temporal_scale = 24
     x_data = np.arange(0, optimization_time_steps/temporal_scale)
     
-    dispatched_results_matrix1 = np.zeros(
-            (int(dispatched_results_matrix.shape[0]/temporal_scale), 
-            int(dispatched_results_matrix.shape[1])))
+    results_matrix_dispatch1 = np.zeros(
+            (int(results_matrix_dispatch.shape[0]/temporal_scale), 
+            int(results_matrix_dispatch.shape[1])))
     
-    for i in xrange(dispatched_results_matrix.shape[1]):
-        dispatched_results_matrix1 [:,i] = \
-            func_time_conversion(dispatched_results_matrix[:,i],temporal_scale)
+    for i in xrange(results_matrix_dispatch.shape[1]):
+        results_matrix_dispatch1 [:,i] = \
+            func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
     
     # -------------------------
     
@@ -958,12 +1000,10 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     
     inputs = {
             "x_data":       x_data, 
-            "y_data":       dispatched_results_matrix1/1e6,
-            "y2_data":       dispatched_results_matrix1/np.average(demand),
+            "y_data":       results_matrix_dispatch1,
             "ax":           ax3,
             "x_label":      'Time (day in the year)',
-            "y_label":      '1e6 kWh',
-            "y2_label":     'hourly-average demand',
+            "y_label":      'kW',
             "title":        title_text,
             "legend":       legend_list,
             "line_width":    1,
@@ -972,9 +1012,8 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
             
     func_lines_plot(inputs)
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure3, bbox_inches='tight')
-        plt.close()
+    pdf_all.savefig(figure3, bbox_inches='tight')
+    #plt.close()
     
 #    # ---------------------------
 #    # Figure 3b. Time series of discharging - downscale to daily - y axis option #2
@@ -984,13 +1023,13 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 ##    temporal_scale = 24
 ##    x_data = np.arange(0, optimization_time_steps/temporal_scale)
 ##    
-##    dispatched_results_matrix1 = np.zeros(
-##            (int(dispatched_results_matrix.shape[0]/temporal_scale), 
-##            int(dispatched_results_matrix.shape[1])))
+##    results_matrix_dispatch1 = np.zeros(
+##            (int(results_matrix_dispatch.shape[0]/temporal_scale), 
+##            int(results_matrix_dispatch.shape[1])))
 ##    
-##    for i in xrange(dispatched_results_matrix.shape[1]):
-##        dispatched_results_matrix1 [:,i] = \
-##            func_time_conversion(dispatched_results_matrix[:,i],temporal_scale)
+##    for i in xrange(results_matrix_dispatch.shape[1]):
+##        results_matrix_dispatch1 [:,i] = \
+##            func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
 #    
 #    # -------------------------
 #    
@@ -999,7 +1038,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 #    
 #    inputs = {
 #            "x_data":       x_data, 
-#            "y_data":       dispatched_results_matrix1/np.average(demand),
+#            "y_data":       results_matrix_dispatch1/np.average(demand),
 #            "ax":           ax3b,
 #            "x_label":      'Time (day in the year)',
 #            "y_label":      'Discharged energy\n(hourly-average demand)',
@@ -1012,7 +1051,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 #    func_lines_plot(inputs)
 #    
 #    if SAVE_FIGURES_TO_PDF:
-#        pdf_pages.savefig(figure3b, bbox_inches='tight')  
+#        pdf_each.savefig(figure3b, bbox_inches='tight')  
 #        plt.close()
     
     # -----------------------------------------------------------------------------
@@ -1024,13 +1063,13 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     temporal_scale = 24 * 7
     x_data = np.arange(0, int(np.floor(optimization_time_steps/temporal_scale)))
     
-    dispatched_results_matrix1 = np.zeros(
-            (int(np.floor(dispatched_results_matrix.shape[0]/temporal_scale)), 
-            int(dispatched_results_matrix.shape[1])))
+    results_matrix_dispatch1 = np.zeros(
+            (int(np.floor(results_matrix_dispatch.shape[0]/temporal_scale)), 
+            int(results_matrix_dispatch.shape[1])))
     
-    for i in xrange(dispatched_results_matrix.shape[1]):
-        dispatched_results_matrix1 [:,i] = \
-            func_time_conversion(dispatched_results_matrix[:,i],temporal_scale)
+    for i in xrange(results_matrix_dispatch.shape[1]):
+        results_matrix_dispatch1 [:,i] = \
+            func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
     
     # -------------------------
     
@@ -1039,12 +1078,10 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     
     inputs = {
             "x_data":       x_data, 
-            "y_data":       dispatched_results_matrix1/1e6,
-            "y2_data":      dispatched_results_matrix1/np.average(demand),
+            "y_data":       results_matrix_dispatch1,
             "ax":           ax4,
             "x_label":      'Time (week in the year)',
-            "y_label":      '1e6 kWh',
-            "y2_label":      'hourly-average demand',
+            "y_label":      'kW',
             "title":        title_text,
             "legend":       legend_list,
             "line_width":    1,
@@ -1053,9 +1090,8 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
             
     func_lines_plot(inputs)
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure4, bbox_inches='tight')
-        plt.close()
+    pdf_all.savefig(figure4, bbox_inches='tight')
+    #plt.close()
 
 #    # -----------------------------------------------------------------------------
 #    # Figure 4b Time series of discharging - downscale to weekly - y axis option #2
@@ -1065,20 +1101,20 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 ##    temporal_scale = 24 * 7
 ##    x_data = np.arange(0, optimization_time_steps/temporal_scale)
 ##    
-##    dispatched_results_matrix1 = np.zeros(
-##            (int(dispatched_results_matrix.shape[0]/temporal_scale), 
-##            int(dispatched_results_matrix.shape[1])))
+##    results_matrix_dispatch1 = np.zeros(
+##            (int(results_matrix_dispatch.shape[0]/temporal_scale), 
+##            int(results_matrix_dispatch.shape[1])))
 ##    
-##    for i in xrange(dispatched_results_matrix.shape[1]):
-##        dispatched_results_matrix1 [:,i] = \
-##            func_time_conversion(dispatched_results_matrix[:,i],temporal_scale)
+##    for i in xrange(results_matrix_dispatch.shape[1]):
+##        results_matrix_dispatch1 [:,i] = \
+##            func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
 #    
 #    figure4b = plt.figure(figsize=figsize_oneplot)
 #    ax4b = figure4b.add_subplot(111)
 #    
 #    inputs = {
 #            "x_data":       x_data, 
-#            "y_data":       dispatched_results_matrix1/np.average(demand),
+#            "y_data":       results_matrix_dispatch1/np.average(demand),
 #            "ax":           ax4b,
 #            "x_label":      'Time (week in the year)',
 #            "y_label":      'Discharged energy\n(hourly-average demand)',
@@ -1091,14 +1127,9 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 #    func_lines_plot(inputs)
 #    
 #    if SAVE_FIGURES_TO_PDF:
-#        pdf_pages.savefig(figure4b, bbox_inches='tight')
+#        pdf_each.savefig(figure4b, bbox_inches='tight')
 #        plt.close()
     
-    # -------------------------------------------------------------------------
-    # Write the PDF document to the disk
-    
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.close()
 
 #%%
 #==============================================================================
@@ -1111,11 +1142,11 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 # Input
 #   A packaging dictionary variable: input_data, which contrains the following data
 #       First, inputs for the optimization model   
-#       [1] power_tech_index:
+#       [1] component_index_dispatch:
 #       [2] demand
 #       [3] assumptions_matrix
 #       Second, results from the optimization model    
-#       [4] storage_discharge_matrix
+#       [4] storage_dispatch_matrix
 #       [5] storage_capacity_matrix
 #       [6] storage_cycle_matrix
 #       [7] storage_investment_matrix
@@ -1155,13 +1186,13 @@ def func_graphics_system_results_Nscenarios (input_data):
         
     # supporting data
     
-    power_tech_index = input_data["power_tech_index"]
+    component_index_dispatch = input_data["component_index_dispatch"]
     demand = input_data["demand"]
     
     # core data
     
     assumptions_matrix = input_data["assumptions_matrix"]
-    storage_discharge_matrix = input_data["storage_discharge_matrix"]
+    storage_dispatch_matrix = input_data["storage_dispatch_matrix"]
     storage_capacity_matrix = input_data["storage_capacity_matrix"]
     storage_cycle_matrix = input_data["storage_cycle_matrix"]
     storage_investment_matrix = input_data["storage_investment_matrix"]
@@ -1173,23 +1204,12 @@ def func_graphics_system_results_Nscenarios (input_data):
     # graphics-related
     
     x_label = input_data["x_label"]
-    directory_output = input_data["directory_output"]
-    graphics_file_name = input_data["graphics_file_name"]
-    SAVE_FIGURES_TO_PDF = input_data["SAVE_FIGURES_TO_PDF"]
+    pdf_all = input_data["pdf_all"]  # handle for graphics file output for all cases
     
     # -------------------------------------------------------------------------
     
     # Create the output folder
     
-    if SAVE_FIGURES_TO_PDF:
-        
-        if not os.path.exists(directory_output):
-            os.makedirs(directory_output)
-        
-        pdf_pages = PdfPages(
-                directory_output + graphics_file_name + '.pdf')
-    
-    # -------------------------------------------------------------------------
     
     # Define the plotting style
     
@@ -1232,12 +1252,10 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     inputs_dispatch_1 = {
         "x_data":           assumptions_matrix, 
-        "y1_data":          storage_discharge_matrix / 1e9,
-        "y2_data":          storage_discharge_matrix / np.average(demand),
+        "y_data":          storage_dispatch_matrix ,
         "ax":               ax1,
         "x_label":          x_label,
-        "y1_label":         'Storage discharge (1e9 kWh)',
-        "y2_label":         'Storage discharge\n(hourly average demand)',
+        "y_label":         'Storage discharge (kW)',
         "line_width":       2,
         "grid_option":      0,
         }
@@ -1248,9 +1266,8 @@ def func_graphics_system_results_Nscenarios (input_data):
     ax1.set_yscale("log", nonposx='clip')
     ax1b.set_yscale("log", nonposx='clip')
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure1, bbox_inches='tight')
-        plt.close()
+    pdf_all.savefig(figure1, bbox_inches='tight')
+    #plt.close()
     
     # -------------------------------------------------------------------------
     
@@ -1261,12 +1278,10 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     inputs_dispatch_2 = {
         "x_data":           assumptions_matrix, 
-        "y1_data":          storage_capacity_matrix / 1e9,
-        "y2_data":          storage_capacity_matrix / np.average(demand),
+        "y_data":          storage_capacity_matrix ,
         "ax":               ax2,
         "x_label":          x_label,
-        "y1_label":         'Storage capacity (1e9 kWh)',
-        "y2_label":         'Storage capacity\n(hourly average demand)',
+        "y_label":         'Storage capacity (kWh)',
         "line_width":       2,
         'grid_option':      0,
         }
@@ -1277,9 +1292,8 @@ def func_graphics_system_results_Nscenarios (input_data):
     ax2.set_yscale("log", nonposx='clip')
     ax2b.set_yscale("log", nonposx='clip')
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure2, bbox_inches='tight')
-        plt.close()
+    pdf_all.savefig(figure2, bbox_inches='tight')
+    #plt.close()
     
     # -------------------------------------------------------------------------
     
@@ -1303,9 +1317,8 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     func_lines_plot(inputs_dispatch_3)
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure3, bbox_inches='tight')
-        plt.close()
+    pdf_all.savefig(figure3, bbox_inches='tight')
+    #plt.close()
     
     # -------------------------------------------------------------------------
     
@@ -1316,7 +1329,7 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     inputs_dispatch_4 = {
         "x_data":           assumptions_matrix, 
-        "y_data":           storage_investment_matrix / 1e9,
+        "y_data":           storage_investment_matrix ,
         "ax":               ax4,
         "x_label":          x_label,
         "y_label":          'Energy storage investment (billion $)',
@@ -1329,22 +1342,21 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     func_lines_plot(inputs_dispatch_4)
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure4, bbox_inches='tight')
-        plt.close()
+    pdf_all.savefig(figure4, bbox_inches='tight')
+    #plt.close()
     
     # -------------------------------------------------------------------------
     
     # Figure 5 Power generation capacity
     
-    legend_list = sorted(power_tech_index.keys(), key=lambda x: x[1])
+    legend_list = sorted(component_index_dispatch.keys(), key=lambda x: x[1])
     
     figure5 = plt.figure(figsize=figsize_oneplot)
     ax5 = figure5.add_subplot(111)
     
     inputs_dispatch_5 = {
             "x_data":       assumptions_matrix, 
-            "y_data":       power_capacity_matrix.T/1e6,
+            "y_data":       power_capacity_matrix.T,
             "ax":           ax5,
             "x_label":      'Time (hour in the year)',
             "y_label":      'Power generation capacity (GW)',
@@ -1357,15 +1369,14 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     func_stack_plot(inputs_dispatch_5)
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure5, bbox_inches='tight')
-        plt.close()
+    pdf_all.savefig(figure5, bbox_inches='tight')
+    #plt.close()
     
     # -------------------------------------------------------------------------
     
     # Figure 6 Power generation dispatch mix
     
-    legend_list = sorted(power_tech_index.keys(), key=lambda x: x[1])
+    legend_list = sorted(component_index_dispatch.keys(), key=lambda x: x[1])
     
     figure6 = plt.figure(figsize=figsize_oneplot)
     ax6 = figure6.add_subplot(111)
@@ -1385,15 +1396,14 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     func_stack_plot(inputs_dispatch_6)
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure6, bbox_inches='tight')
-        plt.close()
+    pdf_all.savefig(figure6, bbox_inches='tight')
+    #plt.close()
     
     # -------------------------------------------------------------------------
     
     # Figure 7 Cost share - power generation
     
-    legend_list = sorted(power_tech_index.keys(), key=lambda x: x[1])
+    legend_list = sorted(component_index_dispatch.keys(), key=lambda x: x[1])
     
     figure7 = plt.figure(figsize=figsize_oneplot)
     ax7 = figure7.add_subplot(111)
@@ -1416,15 +1426,14 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     func_stack_plot(inputs_dispatch_7)
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure7, bbox_inches='tight')
-        plt.close()
+    pdf_all.savefig(figure7, bbox_inches='tight')
+    #plt.close()
     
     # -------------------------------------------------------------------------
     
     # Figure 8 Cost share - "every type"
     
-    legend_list = sorted(power_tech_index.keys(), key=lambda x: x[1])
+    legend_list = sorted(component_index_dispatch.keys(), key=lambda x: x[1])
     legend_list.append('storage')
     legend_list.append('unmet demand')
     legend_list.append('curtailment')
@@ -1448,16 +1457,11 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     func_stack_plot(inputs_dispatch_8)
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.savefig(figure8, bbox_inches='tight')
-        plt.close()
+    pdf_all.savefig(figure8, bbox_inches='tight')
+    #plt.close()
     
     # -------------------------------------------------------------------------
     
-    # Close the open file streams
-    
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages.close()
 
 
 #%%
@@ -1477,8 +1481,8 @@ def func_graphics_system_results_Nscenarios (input_data):
 #    technology_data   -- the share of demand met by this technology
 #    technology_of_interest -- the textual name of this technology
 #   [system-level data]
-#    dispatched_results_matrix <np.ndarray>
-#    demand_results_matrix <np.ndarray>
+#    results_matrix_dispatch <np.ndarray>
+#    results_matrix_demand <np.ndarray>
 #    legend_list_dispatch
 #    legend_list_demand
 #   [options for controling graphical output]      
@@ -1489,7 +1493,7 @@ def func_graphics_system_results_Nscenarios (input_data):
 #   [output file]
 #    text_file <file> -- an open file stream for outputs
 # 
-#   dimensions: dispatched_results_matrix, demand_results_matrix
+#   dimensions: results_matrix_dispatch, results_matrix_demand
 #       row: time_steps
 #       column: technology  options or demand types
 #        
@@ -1518,17 +1522,14 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
     technology_data = input_data['technology_data']
     technology_of_interest = input_data['technology_of_interest']
     
-    dispatched_results_matrix = input_data['dispatched_results_matrix']
+    results_matrix_dispatch = input_data['results_matrix_dispatch']
     legend_list_dispatch = input_data['legend_list_dispatch']
-    demand_results_matrix = input_data['demand_results_matrix']
+    results_matrix_demand = input_data['results_matrix_demand']
     legend_list_demand = input_data['legend_list_demand']    
     
-    directory_output = input_data['directory_output']
-    SAVE_FIGURES_TO_PDF = input_data['SAVE_FIGURES_TO_PDF']
-    graphics_file_name_prefix = input_data['graphics_file_name_prefix']
-    graphics_file_name_root = input_data['graphics_file_name_root']
-    
-    text_file = input_data['text_file']
+    pdf_each = input_data['pdf_each']  # file handle for pdf output    
+    text_file = input_data['text_file'] # file handle for text output
+    case_name = input_data['case_name']
 
     # -------------------------------------------------------------------------
     # Define the plotting style
@@ -1611,22 +1612,7 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
     # -------------------------------------------------------------------------
     
     # Generate graphics - time period #1
-    
-    # ----------------------------------
-    # Create the ouput folder    
-
-    graphics_file_name_1 = \
-        graphics_file_name_prefix + 'dispatch_and_demand_mix' + \
-        graphics_file_name_root + "{}_{}_".format(time_range_1[0], time_range_1[1]) + \
-        technology_of_interest
-    
-    if SAVE_FIGURES_TO_PDF:
-        if not os.path.exists(directory_output):
-            os.makedirs(directory_output)
-                        
-        pdf_pages_1 = PdfPages(
-            directory_output + graphics_file_name_1 + '.pdf')    
-    
+        
     # ----------------------------------
     
     # Call the functions to do the work
@@ -1635,10 +1621,9 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
             "time_range":                   time_range_1,
             "demand_line_for_dispatch_figure":  1,
             "demand":                       demand,
-            "mix_matrix":                   dispatched_results_matrix,
-            "pdf_pages":                    pdf_pages_1,
-            "SAVE_FIGURES_TO_PDF":          SAVE_FIGURES_TO_PDF,
-            "title_text":                   "dispatch mix\n" + title_info_1,
+            "mix_matrix":                   results_matrix_dispatch,
+            "pdf_each":                    pdf_each,
+            "title_text":                   case_name + "Dispatch mix\n" + title_info_1,
             "legend_list":                  legend_list_dispatch,        
             }
     
@@ -1647,36 +1632,19 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
     input_data_1b = {
             "time_range":                   time_range_1,
             "demand":                       demand,            
-            "mix_matrix":                   demand_results_matrix,
-            "pdf_pages":                    pdf_pages_1,
-            "SAVE_FIGURES_TO_PDF":          SAVE_FIGURES_TO_PDF,
-            "title_text":                   "demand mix\n" + title_info_1,
+            "mix_matrix":                   results_matrix_demand,
+            "pdf_each":                    pdf_each,
+            "title_text":                   case_name + "Demand mix\n" + title_info_1,
             "legend_list":                  legend_list_demand,        
             }
     
     func_graphics_dispatch_mix_time_selection_1scenario(input_data_1b)    
     
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages_1.close()
     
     # -------------------------------------------------------------------------
     
     # Generate graphics - time period #2
-       
-    # ----------------------------------
-    # Create the ouput folder 
-    
-    graphics_file_name_2 = \
-        graphics_file_name_prefix + 'dispatch_and_demand_mix' + \
-        graphics_file_name_root + "{}_{}_".format(time_range_2[0], time_range_2[1]) + \
-        technology_of_interest
-    
-    if SAVE_FIGURES_TO_PDF:
-        if not os.path.exists(directory_output):
-            os.makedirs(directory_output)
-                        
-        pdf_pages_2 = PdfPages(
-            directory_output + graphics_file_name_2 + '.pdf')
+           
     
     # ----------------------------------
     
@@ -1686,10 +1654,9 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
             "time_range":                   time_range_2,
             "demand":                       demand,
             "demand_line_for_dispatch_figure":      1,
-            "mix_matrix":                   dispatched_results_matrix,
-            "pdf_pages":                    pdf_pages_2,
-            "SAVE_FIGURES_TO_PDF":          SAVE_FIGURES_TO_PDF,
-            "title_text":                   "dispatch mix\n" + title_info_2,
+            "mix_matrix":                   results_matrix_dispatch,
+            "pdf_each":                     pdf_each,
+            "title_text":                   case_name + "Dispatch mix\n" + title_info_2,
             "legend_list":                  legend_list_dispatch,        
             }
     
@@ -1698,10 +1665,9 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
     input_data_2b = {
             "demand":                       demand,
             "time_range":                   time_range_2,        
-            "mix_matrix":                   demand_results_matrix,
-            "pdf_pages":                    pdf_pages_2,
-            "SAVE_FIGURES_TO_PDF":          SAVE_FIGURES_TO_PDF,
-            "title_text":                   "demand mix\n" + title_info_2,
+            "mix_matrix":                   results_matrix_demand,
+            "pdf_each":                     pdf_each,
+            "title_text":                   case_name + "Demand mix\n" + title_info_2,
             "legend_list":                  legend_list_demand, 
             }
     
@@ -1709,10 +1675,7 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
 
     # -------------------------------------------------------------------------
     
-    # Close the file
           
-    if SAVE_FIGURES_TO_PDF:
-        pdf_pages_2.close()
         
         
 #%%
@@ -1753,6 +1716,8 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
 #       called the function, func_graphics_dispatch_mix_technology_timeseries_1scenario()
 #        
 # -----------------------------------------------------------------------------
+def get_results_matrix_column(results_matrix,component_list_index_dic,component):
+    return results_matrix[:,component_list_index_dic[component]] 
 
 def func_optimization_results_time_series_1scenario(input_data):
     
@@ -1760,75 +1725,29 @@ def func_optimization_results_time_series_1scenario(input_data):
 
     # load the input assumptions
 
-    optimization_results_file_path = input_data["optimization_results_file_path"]
-    directory_output = input_data["directory_output"]
-    graphics_file_name_prefix = input_data["graphics_file_name_prefix"]
-    graphics_file_name_root = input_data["graphics_file_name_root"]
-    SAVE_FIGURES_TO_PDF = input_data["SAVE_FIGURES_TO_PDF"]
 
     # -------------------------------------------------------------------------
 
-    # load the data    
-   
-    temp_dict = func_load_optimization_results(optimization_results_file_path)
-    model_inputs = temp_dict['model_inputs']
-    model_results = temp_dict['model_results']
+#    # load the data    
+#   
+#    temp_dict = func_load_optimization_results(optimization_results_file_path)
+#    model_inputs = temp_dict['model_inputs']
+#    model_results = temp_dict['model_results']
     
     # -------------------------
     
-    power_tech_index = model_inputs['power_tech_index']
-    demand = model_inputs['demand']
-    dispatched_power = model_results['dispatched_power']
-    dispatched_storage_discharge = model_results['dispatched_storage_discharge']
-    
-    dispatched_storage_charge = model_results['dispatched_storage_charge']
-    unmet_demand = model_results['unmet_demand']
-    dispatched_curtailment = model_results['dispatched_curtailment']
-    
-    dispatched_curtailment = np.array(dispatched_curtailment)
+    demand = input_data['demand']
+    results_matrix_dispatch = input_data['results_matrix_dispatch']   
+    results_matrix_demand = input_data['results_matrix_demand']
     
     # -------------------------------------------------------------------------
     
-    # Quick test to see if system balance is reached at every hour
     
-    # Note the system energy equation looks as follows
-    #   cvx.sum_entries(dispatched_power, axis=0).T + dispatched_storage_discharge + unmet_demand 
-    #   == demand + dispatched_storage_charge
+    legend_list_dispatch = input_data['legend_list_dispatch']    
+    legend_list_demand = input_data['legend_list_demand']
     
-    system_balance = \
-        np.sum(dispatched_power, axis = 0) + dispatched_storage_discharge.flatten() + \
-        unmet_demand.flatten() - demand - dispatched_storage_charge.flatten()
-    
-    if np.abs(np.sum(system_balance)) > 1:        
-         sys.exit("Value error! system energy balance broken!")
-    
-    # -------------------------------------------------------------------------
-    
-    # Prepare the data to be used later
-    
-    # dispatched_results_matrix
-    #   row: time_steps
-    #   column: technology options
-    dispatched_results_matrix = np.column_stack(
-            (dispatched_power.T, 
-             dispatched_storage_discharge,
-             unmet_demand,
-             ))
-    
-    # demand_results_matrix
-    #   row: time_steps
-    #   column: demand, storage charge, curtailment 
-    demand_results_matrix = np.column_stack(
-            (demand, 
-             dispatched_storage_charge,
-             dispatched_curtailment.T)
-            )
-    
-    legend_list_dispatch = sorted(power_tech_index.keys(), key=lambda x: x[1])
-    legend_list_dispatch.append('storage')
-    legend_list_dispatch.append('unmet demand')
-    
-    legend_list_demand = ['demand', 'storage charge', 'curtailed generation']
+    component_index_dispatch = input_data['component_index_dispatch']    
+    component_index_demand = input_data['component_index_demand']
     
     # -------------------------------------------------------------------------
     
@@ -1837,13 +1756,7 @@ def func_optimization_results_time_series_1scenario(input_data):
     # Representative file name
     #   storage_scenario_dispatch_and_demand_mix_1e-2_with_NG_.txt
     
-    text_file_path = (
-            directory_output + 
-            graphics_file_name_prefix + 'dispatch_and_demand_mix' + \
-            graphics_file_name_root + '.txt'
-            )
-    
-    text_file = open(text_file_path, 'w') 
+    text_file = input_data['text_file']  # file handle for text file
     
     # -------------------------------------------------------------------------
     
@@ -1854,19 +1767,15 @@ def func_optimization_results_time_series_1scenario(input_data):
     # 2+2 (supply+demand) figures for each time resolution
     # In total, three time resolutions (hourly, daily, weekly)
         
-    graphics_file_name_1 = \
-        graphics_file_name_prefix + 'dispatch_and_demand_mix' + \
-        graphics_file_name_root + "{}_{}".format(0, 'end')
     
     input_data_1 = {
             "demand":                       demand,
-            "dispatched_results_matrix":    dispatched_results_matrix,
-            "demand_results_matrix":        demand_results_matrix,
-            "directory_output":             directory_output,
-            "graphics_file_name":           graphics_file_name_1,
-            "SAVE_FIGURES_TO_PDF":          SAVE_FIGURES_TO_PDF,        
+            "results_matrix_dispatch":      results_matrix_dispatch,
+            "results_matrix_demand":        results_matrix_demand,
+            "pdf_each":                     input_data['pdf_each'],
             "legend_list_dispatch":         legend_list_dispatch,
-            "legend_list_demand":           legend_list_demand,            
+            "legend_list_demand":           legend_list_demand,
+            "case_name":                    input_data["case_name"]
             }
     
     func_graphics_dispatch_mix_1scenario(input_data_1)
@@ -1877,7 +1786,9 @@ def func_optimization_results_time_series_1scenario(input_data):
     #   technology of interest: energy storage
     #   using func_graphics_dispatch_mix_1scenario()
 
-    technology_data = (dispatched_storage_discharge.flatten() / demand.T)
+    dispatch_storage = get_results_matrix_column(results_matrix_dispatch, component_index_dispatch, 'STORAGE')
+
+    technology_data = (dispatch_storage.flatten() / demand.T)
     technology_of_interest = "storage"
 
     input_data_2 = {
@@ -1886,16 +1797,14 @@ def func_optimization_results_time_series_1scenario(input_data):
             "technology_data":              technology_data,
             "technology_of_interest":       technology_of_interest,
             
-            "dispatched_results_matrix":    dispatched_results_matrix,
-            "demand_results_matrix":        demand_results_matrix,
+            "results_matrix_dispatch":      results_matrix_dispatch,
+            "results_matrix_demand":        results_matrix_demand,
             "legend_list_dispatch":         legend_list_dispatch,
             "legend_list_demand":           legend_list_demand,
             
-            "graphics_file_name_prefix":    graphics_file_name_prefix,
-            "graphics_file_name_root":      graphics_file_name_root,
-            "directory_output":             directory_output,
-            "SAVE_FIGURES_TO_PDF":          SAVE_FIGURES_TO_PDF,
+            "pdf_each":                     input_data['pdf_each'],
             "text_file":                    text_file,
+            "case_name":                    input_data["case_name"]
             }
 
     func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data_2)
@@ -1907,10 +1816,9 @@ def func_optimization_results_time_series_1scenario(input_data):
     #   using func_graphics_dispatch_mix_1scenario()
     
     technology_data = ((
-            dispatched_results_matrix[:, power_tech_index['wind']] + 
-            dispatched_results_matrix[:, power_tech_index['solar']]) / demand.T)
+            results_matrix_dispatch[:, component_index_dispatch['WIND']] + 
+            results_matrix_dispatch[:, component_index_dispatch['SOLAR']]) / demand.T)
             
-    technology_of_interest = "wind and solar"    
 
     input_data_3 = {
             "window_size":                  24*7,
@@ -1918,16 +1826,14 @@ def func_optimization_results_time_series_1scenario(input_data):
             "technology_data":              technology_data,
             "technology_of_interest":       technology_of_interest,
             
-            "dispatched_results_matrix":    dispatched_results_matrix,
-            "demand_results_matrix":        demand_results_matrix,
+            "results_matrix_dispatch":    results_matrix_dispatch,
+            "results_matrix_demand":        results_matrix_demand,
             "legend_list_dispatch":         legend_list_dispatch,
             "legend_list_demand":           legend_list_demand,
             
-            "graphics_file_name_prefix":    graphics_file_name_prefix,
-            "graphics_file_name_root":      graphics_file_name_root,
-            "directory_output":             directory_output,
-            "SAVE_FIGURES_TO_PDF":          SAVE_FIGURES_TO_PDF,
+            "pdf_each":                     input_data['pdf_each'],
             "text_file":                    text_file,
+            "case_name":                    input_data["case_name"]
             }
 
     func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data_3)
@@ -1978,20 +1884,18 @@ def func_optimization_results_system_results_Nscenarios(input_data):
     
     optimization_results_file_path_list = input_data['optimization_results_file_path_list']
     scenario_list_number = input_data['scenario_list_number']
-    SAVE_FIGURES_TO_PDF = input_data['SAVE_FIGURES_TO_PDF']
-    graphics_file_name = input_data['graphics_file_name']
-    directory_output = input_data['directory_output']
+    pdf_all = input_data['pdf_all']
     x_label = input_data['x_label']
 
     # -------------------------------------------------------------------------
 
-    # load the data from scenario to get "power_tech_index"
+    # load the data from scenario to get "component_index_dispatch"
     
     temp_dict = func_load_optimization_results(optimization_results_file_path_list[0])
     model_inputs = temp_dict['model_inputs']
     model_results = temp_dict['model_results']
     
-    power_tech_index = model_inputs['power_tech_index']
+    component_index_dispatch = model_inputs['component_index_dispatch']
     
     # -------------------------------------------------------------------------
     
@@ -2000,14 +1904,14 @@ def func_optimization_results_system_results_Nscenarios(input_data):
     # 9 variables (matrix form) to be assembled
     
     storage_capacity_matrix = np.zeros([len(scenario_list_number)])
-    storage_discharge_matrix = np.zeros([len(scenario_list_number)])
+    storage_dispatch_matrix = np.zeros([len(scenario_list_number)])
     storage_cycle_matrix = np.zeros([len(scenario_list_number)])
     storage_investment_matrix = np.zeros([len(scenario_list_number)])
     
-    power_capacity_matrix = np.zeros([len(power_tech_index), len(scenario_list_number)])
-    power_dispatch_matrix = np.zeros([len(power_tech_index), len(scenario_list_number)])
-    cost_power_matrix = np.zeros([len(power_tech_index), len(scenario_list_number)])
-    cost_everything_matrix = np.zeros([len(power_tech_index)+3, len(scenario_list_number)])
+    power_capacity_matrix = np.zeros([len(component_index_dispatch), len(scenario_list_number)])
+    power_dispatch_matrix = np.zeros([len(component_index_dispatch), len(scenario_list_number)])
+    cost_power_matrix = np.zeros([len(component_index_dispatch), len(scenario_list_number)])
+    cost_everything_matrix = np.zeros([len(component_index_dispatch)+3, len(scenario_list_number)])
     
     optimum_cost_matrix = np.zeros([len(scenario_list_number)])
     
@@ -2029,8 +1933,8 @@ def func_optimization_results_system_results_Nscenarios(input_data):
         
         # Energy storage
     
-        storage_discharge_matrix[scenario_idx] = (
-            sum(model_results["dispatched_storage_discharge"])
+        storage_dispatch_matrix[scenario_idx] = (
+            sum(model_results["dispatch_storage"])
             )
         
         storage_capacity_matrix[scenario_idx] = (
@@ -2038,7 +1942,7 @@ def func_optimization_results_system_results_Nscenarios(input_data):
             )
     
         storage_cycle_matrix[scenario_idx] = (
-            sum(model_results["dispatched_storage_discharge"]) /
+            sum(model_results["dispatch_storage"]) /
             model_results["capacity_storage"]
             )
         
@@ -2054,10 +1958,10 @@ def func_optimization_results_system_results_Nscenarios(input_data):
             np.reshape(model_results['capacity_power'], -1)
     
         power_dispatch_matrix[:,scenario_idx] = \
-            np.reshape(np.sum(model_results['dispatched_power'], axis=1), -1)
+            np.reshape(np.sum(model_results['results_matrix_dispatch'], axis=1), -1)
     
         power_dispatch_total = \
-            np.sum(model_results['dispatched_power'], axis = 1)
+            np.sum(model_results['results_matrix_dispatch'], axis = 1)
     
         cost_power_matrix[:,scenario_idx] = (
             ((power_dispatch_total * model_inputs['variable_cost_power'] +
@@ -2069,24 +1973,24 @@ def func_optimization_results_system_results_Nscenarios(input_data):
         # Cost breakdown by "everything" (every type)
         # -- power generation technologies, storage, unmet demand, curtailment
     
-        storage_discharge_total = np.sum(model_results['dispatched_storage_discharge'])
-        storage_charge_total = np.sum(model_results['dispatched_storage_charge']) 
+        storage_dispatch_total = np.sum(model_results['dispatch_storage'])
+        storage_charge_total = np.sum(model_results['results_matrix_demand']) 
         
-        cost_everything_matrix[0:len(power_tech_index),scenario_idx] = (
+        cost_everything_matrix[0:len(component_index_dispatch),scenario_idx] = (
             cost_power_matrix[:,scenario_idx])
     
-        cost_everything_matrix[len(power_tech_index)+0,scenario_idx] = (
-            (storage_discharge_total * model_inputs['variable_cost_storage'] +
+        cost_everything_matrix[len(component_index_dispatch)+0,scenario_idx] = (
+            (storage_dispatch_total * model_inputs['variable_cost_storage'] +
              storage_charge_total * model_inputs['variable_cost_storage'] +
              model_results["capacity_storage"] * model_inputs['fixed_cost_storage'])
              / np.sum(model_inputs['demand']))
     
-        cost_everything_matrix[len(power_tech_index)+1,scenario_idx] = (
+        cost_everything_matrix[len(component_index_dispatch)+1,scenario_idx] = (
             np.sum(model_results['unmet_demand']) * model_inputs['unmet_demand_cost']
             / np.sum(model_inputs['demand']))
             
-        cost_everything_matrix[len(power_tech_index)+2,scenario_idx] = (
-            np.sum(model_results['dispatched_curtailment']) * model_inputs['curtailment_cost']
+        cost_everything_matrix[len(component_index_dispatch)+2,scenario_idx] = (
+            np.sum(model_results['dispatch_curtailment']) * model_inputs['curtailment_cost']
             / np.sum(model_inputs['demand']))
         
         # ---------------------------------------------------------------------
@@ -2102,10 +2006,10 @@ def func_optimization_results_system_results_Nscenarios(input_data):
     # Graphics settings
     
     input_data = {
-            "power_tech_index":             power_tech_index,
+            "component_index_dispatch":             component_index_dispatch,
             "demand":                       model_inputs['demand'],
             "assumptions_matrix":           np.array(scenario_list_number),
-            "storage_discharge_matrix":     storage_discharge_matrix,
+            "storage_dispatch_matrix":     storage_dispatch_matrix,
             "storage_capacity_matrix":      storage_capacity_matrix,
             "storage_cycle_matrix":         storage_cycle_matrix,
             "storage_investment_matrix":    storage_investment_matrix,
@@ -2113,10 +2017,8 @@ def func_optimization_results_system_results_Nscenarios(input_data):
             "power_dispatch_matrix":        power_dispatch_matrix,
             "cost_power_matrix":            cost_power_matrix,
             "cost_everything_matrix":       cost_everything_matrix,
-            "directory_output":             directory_output,
-            "graphics_file_name":           graphics_file_name,
-            "SAVE_FIGURES_TO_PDF":          SAVE_FIGURES_TO_PDF,
-            "x_label":                      x_label,
+            "pdf_all":                      input_data['pdf_all'],
+            "x_label":                      x_label
             }    
 
     # call the function to generate figures
@@ -2135,7 +2037,7 @@ def func_optimization_results_system_results_Nscenarios(input_data):
 #   A DICT variable named input_data, that has the following keys
 #       optimization_results_file_path_list
 #       scenario_list_number
-#       which_technology_to_compare
+#       which_technology_to_all
 #       SAVE_FIGURES_TO_PDF
 #       graphics_file_name    
 #       directory_output
@@ -2167,28 +2069,26 @@ def func_optimization_results_dispatch_var_Nscenarios(input_data):
     optimization_results_file_path_list = input_data['optimization_results_file_path_list']
     scenario_list_number = input_data['scenario_list_number']
     
-    which_technology_to_compare = input_data['which_technology_to_compare']
+    which_technology_to_all = input_data['which_technology_to_all']
     
-    SAVE_FIGURES_TO_PDF = input_data['SAVE_FIGURES_TO_PDF']
-    graphics_file_name = input_data['graphics_file_name']
-    directory_output = input_data['directory_output']
+    pdf_all = input_data['pdf_all']
     title_text = input_data['title_text']
     legend_list = input_data['legend_list']
 
     # -------------------------------------------------------------------------
 
-    # load the data from scenario to get "power_tech_index"
+    # load the data from scenario to get "component_index_dispatch"
     
     temp_dict = func_load_optimization_results(optimization_results_file_path_list[0])
     model_inputs = temp_dict['model_inputs']
     model_results = temp_dict['model_results']
     
-    power_tech_index = model_inputs['power_tech_index']
+    component_index_dispatch = model_inputs['component_index_dispatch']
     optimization_time_steps = len(model_inputs['demand'])
     
     # -------------------------------------------------------------------------
     
-    dispatched_results_matrix = \
+    results_matrix_dispatch = \
         np.zeros([optimization_time_steps, len(scenario_list_number)])
     
     for scenario_idx in xrange(len(scenario_list_number)):
@@ -2199,29 +2099,28 @@ def func_optimization_results_dispatch_var_Nscenarios(input_data):
         model_inputs = temp_dict['model_inputs']
         model_results = temp_dict['model_results']
         
-        if which_technology_to_compare == "storage":
-            dispatched_results = model_results["dispatched_storage_discharge"]
-            dispatched_results_matrix[:, scenario_idx] = \
-                np.reshape(dispatched_results, -1)
+        if which_technology_to_all == "storage":
+            dispatch_results = model_results["dispatch_storage"]
+            results_matrix_dispatch[:, scenario_idx] = \
+                np.reshape(dispatch_results, -1)
         else:
-            dispatched_results = model_results["dispatched_power"]
-            dispatched_results_matrix[:, scenario_idx] = \
-                np.reshape(dispatched_results[power_tech_index[which_technology_to_compare], :], -1)
+            dispatch_results = model_results["results_matrix_dispatch"]
+            results_matrix_dispatch[:, scenario_idx] = \
+                np.reshape(dispatch_results[component_index_dispatch[which_technology_to_all], :], -1)
     
     # -------------------------------------------------------------------------
     
     # Graphics
     
-    input_data = {
+    input_data_1 = {
             "demand":                       model_inputs['demand'],
-            "dispatched_results_matrix":    dispatched_results_matrix,
+            "results_matrix_dispatch":      results_matrix_dispatch,
             "directory_output":             directory_output,
-            "graphics_file_name":           graphics_file_name,
-            "SAVE_FIGURES_TO_PDF":          SAVE_FIGURES_TO_PDF,
             "title_text":                   title_text,
             "legend_list":                  legend_list,
+            "pdf_all":                      input_data['pdf_all']
             }
     
     # call the function
     
-    func_graphics_dispatch_var_Nscenarios(input_data)    
+    func_graphics_dispatch_var_Nscenarios(input_data_1)    

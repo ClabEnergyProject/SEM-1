@@ -141,7 +141,7 @@ def preprocess_input(case_input_path_filename):
     # Recognized keywords in case_input.csv file
     
     keywords_logical = map(str.upper,
-            ["VERBOSE","POSTPROCESS","QUICK_LOOK"]
+            ["VERBOSE","POSTPROCESS","QUICK_LOOK","NORMALIZE_DEMAND_TO_ONE"]
             )
 
     keywords_str = map(str.upper,
@@ -192,7 +192,7 @@ def preprocess_input(case_input_path_filename):
     #------DEFAULT VALUES ---------
     # For now, default for quicklook output is FALSE
     global_dic["QUICK_LOOK"] = False
-    
+    global_dic["NORMALIZE_DEMAND_TO_ONE"] = False # If True, normalize mean demand to 1.0
     # default global values to help with numerical issues
     global_dic["NUMERICS_COST_SCALING"] = 1e+12 # multiplies all costs by a factor and then divides at end
     global_dic["NUMERICS_DEMAND_SCALING"] = 1e+12 # multiplies demand by a factor and then divides all costs and capacities at end
@@ -338,7 +338,10 @@ def preprocess_input(case_input_path_filename):
         else:
             wind_series_list.append([])
         
-    case_list_dic['DEMAND_SERIES'] = demand_series_list
+    if global_dic['NORMALIZE_DEMAND_TO_ONE']:
+        case_list_dic['DEMAND_SERIES'] =demand_series_list / np.average(demand_series_list)
+    else:
+        case_list_dic['DEMAND_SERIES'] = demand_series_list
     case_list_dic['WIND_SERIES'] = wind_series_list
     case_list_dic['SOLAR_SERIES'] = solar_series_list
                                                 

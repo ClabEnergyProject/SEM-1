@@ -37,6 +37,7 @@ History
         updated func_find_period()
     Jun 23, 2018
         checked the code and comments
+    Jul 12, 2018 removed parallel axes for plots (KC)
 
 @author: Fan Tong
 """
@@ -698,11 +699,11 @@ def func_stack_plot (input_data):
                 color='k', 
                 linewidth = input_data["line_width_z"])
         
-        ax2.plot(
-                x_data[x_data_range[0]:x_data_range[1]], 
-                input_data["z2_data"][x_data_range[0]:x_data_range[1]], 
-                color='k', 
-                linewidth = input_data["line_width_z"])
+#        ax2.plot(
+#                x_data[x_data_range[0]:x_data_range[1]], 
+#                input_data["z2_data"][x_data_range[0]:x_data_range[1]], 
+#                color='k', 
+#                linewidth = input_data["line_width_z"])
         
         # add "legend_z" at the beginning because this way could work
         legend = np.concatenate(([input_data["legend_z"]], legend))

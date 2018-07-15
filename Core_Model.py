@@ -321,7 +321,7 @@ def core_model (global_dic, case_dic):
  
         
         
-    dispatch_curtailment = np.array(dispatch_curtailment.flatten())
+    dispatch_curtailment = np.array(dispatch_curtailment).flatten()
     # -----------------------------------------------------------------------------
     
     result={

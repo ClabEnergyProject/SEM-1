@@ -97,7 +97,7 @@ def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
         header_list += ['solar capacity factor (kW)']
         series_list.append( np.array(case_dic['SOLAR_SERIES'])*result['CAPACITY_SOLAR'] )
         
-        header_list += ['DISPATCH_solar (kW per unit deployed)']
+        header_list += ['dispatch_solar (kW per unit deployed)']
         series_list.append( result['DISPATCH_SOLAR'].flatten() )     
         
         header_list += ['wind capacity factor (kW per unit deployed)']
@@ -106,34 +106,34 @@ def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
         header_list += ['dispatch wind (kW)']
         series_list.append( result['DISPATCH_WIND'].flatten() )
         
-        header_list += ['DISPATCH_natgas (kW)']
+        header_list += ['dispatch_natgas (kW)']
         series_list.append( result['DISPATCH_NATGAS'].flatten() )
         
-        header_list += ['DISPATCH_nuclear (kW)']
+        header_list += ['dispatch_nuclear (kW)']
         series_list.append( result['DISPATCH_NUCLEAR'].flatten() )
         
-        header_list += ['DISPATCH_to_storage (kW)']
+        header_list += ['dispatch_to_storage (kW)']
         series_list.append( result['DISPATCH_TO_STORAGE'].flatten() )
         
-        header_list += ['DISPATCH_FROM_STORAGE (kW)']
+        header_list += ['dispatch_from_storage (kW)']
         series_list.append( result['DISPATCH_FROM_STORAGE'].flatten() )  # THere is no FROM in dispatch results
 
         header_list += ['energy storage (kWh)']
         series_list.append( result['ENERGY_STORAGE'].flatten() )
       
-        header_list += ['DISPATCH_to_PGP_storage (kW)']
+        header_list += ['dispatch_to_pgp_storage (kW)']
         series_list.append( result['DISPATCH_TO_PGP_STORAGE'].flatten() )
         
-        header_list += ['DISPATCH_PGP_storage (kW)']
+        header_list += ['dispatch_pgp_storage (kW)']
         series_list.append( result['DISPATCH_FROM_PGP_STORAGE'].flatten() )
 
-        header_list += ['energy PGP storage (kWh)']
+        header_list += ['energy pgp storage (kWh)']
         series_list.append( result['ENERGY_PGP_STORAGE'].flatten() )
         
-        header_list += ['DISPATCH_curtailment (kW)']
+        header_list += ['dispatch_curtailment (kW)']
         series_list.append( result['DISPATCH_CURTAILMENT'].flatten() )
         
-        header_list += ['DISPATCH_unmet_demand (kW)']
+        header_list += ['dispatch_unmet_demand (kW)']
         series_list.append( result['DISPATCH_UNMET_DEMAND'].flatten() )
          
         output_file_name = case_dic['CASE_NAME']
