@@ -249,7 +249,7 @@ def quick_look(pickle_file_name):
     for input_data in input_data_list:
         func_optimization_results_time_series_1scenario (input_data) # produce single case plots
         if verbose:
-            print 'func_optimization_results_time_series_1scenario executed'
+            print 'done with func_optimization_results_time_series_1scenario for case '+input_data['case_name']
             
             
     # ============= LOGIC FOR COMPARING CASES ==============================
@@ -290,32 +290,33 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     # -------------------------------------------------------------------------
     # Define the plotting style
     
-    plt.style.use('default')
+    #plt.style.use('default')
+    plt.style.use('ggplot')
     # plt.style.use('bmh')
     # plt.style.use('fivethirtyeight')
     # plt.style.use('seaborn-white')
-    plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.serif'] =  'Helvetica ' #'Palatino' # 'Ubuntu'
-    plt.rcParams['font.monospace'] = 'Helvetica Mono' #'Palatino Mono' # 'Ubuntu'
-    plt.rcParams['font.size'] = 16
-    plt.rcParams['axes.labelsize'] = 16
-    plt.rcParams['axes.labelweight'] = 'bold'
-    plt.rcParams['axes.titlesize'] = 16
-    plt.rcParams['xtick.labelsize'] = 16
-    plt.rcParams['ytick.labelsize'] = 16
-    plt.rcParams['legend.fontsize'] = 14
-    plt.rcParams['figure.titlesize'] = 16
-    plt.rcParams['lines.linewidth'] = 2.0
-    plt.rcParams['grid.color'] = 'k'
-    plt.rcParams['grid.linestyle'] = ':'
-    plt.rcParams['grid.linewidth'] = 0.5
-    plt.rcParams['xtick.major.width'] = 2
-    plt.rcParams['xtick.major.size'] = 6
-    plt.rcParams['xtick.direction'] = 'in'
-    plt.rcParams['ytick.major.width'] = 2
-    plt.rcParams['ytick.major.size'] = 6
-    plt.rcParams['ytick.direction'] = 'in'
-    
+#    plt.rcParams['font.family'] = 'serif'
+#    plt.rcParams['font.serif'] =  'Helvetica ' #'Palatino' # 'Ubuntu'
+#    plt.rcParams['font.monospace'] = 'Helvetica Mono' #'Palatino Mono' # 'Ubuntu'
+#    plt.rcParams['font.size'] = 16
+#    plt.rcParams['axes.labelsize'] = 16
+#    plt.rcParams['axes.labelweight'] = 'bold'
+#    plt.rcParams['axes.titlesize'] = 16
+#    plt.rcParams['xtick.labelsize'] = 16
+#    plt.rcParams['ytick.labelsize'] = 16
+#    plt.rcParams['legend.fontsize'] = 14
+#    plt.rcParams['figure.titlesize'] = 16
+#    plt.rcParams['lines.linewidth'] = 2.0
+#    plt.rcParams['grid.color'] = 'k'
+#    plt.rcParams['grid.linestyle'] = ':'
+#    plt.rcParams['grid.linewidth'] = 0.5
+#    plt.rcParams['xtick.major.width'] = 2
+#    plt.rcParams['xtick.major.size'] = 6
+#    plt.rcParams['xtick.direction'] = 'in'
+#    plt.rcParams['ytick.major.width'] = 2
+#    plt.rcParams['ytick.major.size'] = 6
+#    plt.rcParams['ytick.direction'] = 'in'
+#    
     figsize_oneplot = (8,6)
     
     # -------------------------------------------------------------------------
@@ -332,21 +333,22 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     # -------------
     
     figure1a = plt.figure(figsize=figsize_oneplot)
-    ax1a = figure1a.add_subplot(221)
+    ax1a = figure1a.add_subplot(2,2,1)
     
     inputs_dispatch = {
         "x_data":           x_data, 
 #        "y_data":           results_matrix_dispatch,
         "y_data":           results_matrix_dispatch,
-#        'z_data':           demand,
         'z_data':           demand,
         "ax":               ax1a,
-        "x_label":          'Time (hour in the year)',
+        "x_label":          'Time (hour)',
         "y_label":          'kW',
         "title":            case_name +': Dispatch mix',
-        "legend":           legend_list_dispatch,
-        "legend_z":         'demand',
-        "line_width":       2,
+# If legend is not defined, no legend appears on plot
+# legend is provided by accompanying stacked area plot
+#        "legend":           legend_list_dispatch,  
+#        "legend_z":         'demand',
+        "line_width":       1,
         "line_width_z":     0.2,
         'grid_option':      0,
         }        
@@ -355,28 +357,41 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     
     # -------------
     
+# If legend is not defined, no legend appears on plot
+# legend is provided by accompanying stacked area plot
+#        "legend":           legend_list_dispatch,  
+# 
+    # Now add legend for stack plot
+    
     #figure1b = plt.figure(figsize=figsize_oneplot)
-    ax1b = figure1a.add_subplot(222)
+    ax1b = figure1a.add_subplot(2,2,2)
 
     inputs_dispatch["ax"] = ax1b
+ 
+    inputs_dispatch["legend"] = legend_list_dispatch 
+    inputs_dispatch["legend_z"] = 'demand' 
+
     func_stack_plot(inputs_dispatch)
     
-    # -------------
+    
+    # -------------  NOW DO DEMAND ---------------------
 
     #figure1c = plt.figure(figsize=figsize_oneplot)
-    ax1c = figure1a.add_subplot(223)
+    ax1c = figure1a.add_subplot(2,2,3)
 
     inputs_demand = {
         "x_data":           x_data, 
         "y_data":           results_matrix_demand,
         #'z_data':           demand,
         "ax":               ax1c,
-        "x_label":          'Time (hour in the year)',
+        "x_label":          'Time (hour)',
 #        "y_label":          'kW',
-        "title":            case_name+': Demand mix',
-        "legend":           legend_list_demand,
+        "title":            case_name + ': Demand mix',
+        
+# Don't print legend on line plot by not having it defined in this dictionary
+#        "legend":           legend_list_demand,
         #"legend_z":         'demand',
-        "line_width":       2,
+        "line_width":       1,
         #"line_width_z":     0.2,
         'grid_option':      0,
         } 
@@ -386,24 +401,25 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     # -------------
     
     #figure1d = plt.figure(figsize=figsize_oneplot)
-    ax1d = figure1a.add_subplot(224)
+    ax1d = figure1a.add_subplot(2,2,4)
 
     inputs_demand["ax"] = ax1d
+    inputs_demand["legend"] = legend_list_demand
     
     func_stack_plot(inputs_demand) 
 
     # -------------
-
-    pdf_each.savefig(figure1a, bbox_inches='tight')
+    plt.tight_layout(rect=[0,0,0.75,1])
+    pdf_each.savefig(figure1a)
     #plt.close()
     
-    #pdf_each.savefig(figure1b, bbox_inches='tight')
+    #pdf_each.savefig(figure1b)
     #plt.close()
     
-    #pdf_each.savefig(figure1c, bbox_inches='tight')
+    #pdf_each.savefig(figure1c)
     #plt.close()
     
-    #pdf_each.savefig(figure1d, bbox_inches='tight')
+    #pdf_each.savefig(figure1d)
     plt.close()
         
     # -------------------------------------------------------------------------
@@ -414,24 +430,18 @@ def func_graphics_dispatch_mix_1scenario (input_data):
 
     # -------------
 
-    temporal_scale = 24
-    x_data = np.arange(0, optimization_time_steps/temporal_scale)
+    temporal_scale = 24  # 24 hour average
+    x_data = np.arange(0, optimization_time_steps)
     
-    results_matrix_dispatch2 = np.zeros(
-        (int(results_matrix_dispatch.shape[0]/temporal_scale), 
-        int(results_matrix_dispatch.shape[1])))
+    results_matrix_dispatch2 = np.zeros(results_matrix_dispatch.shape)
 
     for i in xrange(results_matrix_dispatch2.shape[1]):
-        results_matrix_dispatch2 [:,i] = \
-            func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
+        results_matrix_dispatch2 [:,i] = func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
 
-    results_matrix_demand2 = np.zeros(
-        (int(results_matrix_demand.shape[0]/temporal_scale), 
-        int(results_matrix_demand.shape[1])))
+    results_matrix_demand2 = np.zeros(results_matrix_demand.shape)
     
     for i in xrange(results_matrix_demand2.shape[1]):
-        results_matrix_demand2 [:,i] = \
-            func_time_conversion(results_matrix_demand[:,i],temporal_scale)
+        results_matrix_demand2 [:,i] = func_time_conversion(results_matrix_demand[:,i],temporal_scale)
 
     # -------------
 
@@ -444,12 +454,10 @@ def func_graphics_dispatch_mix_1scenario (input_data):
         "z_data":           func_time_conversion(demand,temporal_scale),
         "z2_data":           func_time_conversion(demand/np.average(demand),temporal_scale),
         "ax":               ax2a,
-        "x_label":          'Time (day in the year)',
+        "x_label":          'Time (hour)',
         "y_label":          'kW',
-        "title":            case_name+': Dispatch mix',
-        "legend":           legend_list_dispatch,
-        "legend_z":         'demand',
-        "line_width":       2,
+        "title":            case_name+': Dispatch mix (24 hour moving avg)',
+        "line_width":       1,
         "line_width_z":     1,
         'grid_option':      0,
         }
@@ -461,9 +469,16 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     #figure2b = plt.figure(figsize=figsize_oneplot)
     ax2b = figure2a.add_subplot(2,2,2)
     inputs_dispatch['ax'] = ax2b
+    inputs_dispatch["legend"] = legend_list_dispatch
+    inputs_dispatch["legend_z"] = 'demand'
     
     func_stack_plot(inputs_dispatch)
 
+    print "x_data ",inputs_dispatch["x_data"].shape
+    print inputs_dispatch.keys()
+    for key in inputs_dispatch.keys():
+        print key," ",np.array(inputs_dispatch[key])
+    
     # -------------
 
     #figure2c = plt.figure(figsize=figsize_oneplot)
@@ -476,12 +491,11 @@ def func_graphics_dispatch_mix_1scenario (input_data):
         "y_data":           results_matrix_demand2,
         #"z_data":           func_time_conversion(demand,temporal_scale),
         "ax":               ax2c,
-        "x_label":          'Time (day in the year)',
+        "x_label":          'Time (hour)',
         "y_label":          'kW',
-        "title":            case_name+': Demand mix',
-        "legend":           legend_list_demand,
+        "title":            case_name + ': Demand mix (24 hour moving avg)',
         #"legend_z":         'demand',
-        "line_width":       2,
+        "line_width":       1,
         #"line_width_z":     1,
         'grid_option':      0,
         }
@@ -493,21 +507,23 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     #figure2d = plt.figure(figsize=figsize_oneplot)
     ax2d = figure2a.add_subplot(2,2,4)
     inputs_demand['ax'] = ax2d
+    inputs_demand["legend"] = legend_list_demand
     
     func_stack_plot(inputs_demand) 
     
     # -------------
     
-    pdf_each.savefig(figure2a, bbox_inches='tight')
+    plt.tight_layout(rect=[0,0,0.75,1])
+    pdf_each.savefig(figure2a)
     #plt.close()
     
-    #pdf_each.savefig(figure2b, bbox_inches='tight')
+    #pdf_each.savefig(figure2b)
     #plt.close()
     
-    #pdf_each.savefig(figure2c, bbox_inches='tight')
+    #pdf_each.savefig(figure2c)
     #plt.close()
     
-    #pdf_each.savefig(figure2d, bbox_inches='tight')
+    #pdf_each.savefig(figure2d)
     plt.close()
 
     # -------------------------------------------------------------------------
@@ -518,7 +534,7 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     # -------------
 
     temporal_scale = 24 * 7
-    x_data = np.arange(0, np.floor (optimization_time_steps/temporal_scale))
+    x_data = np.arange(0, optimization_time_steps)
     
     # --------------------
     
@@ -526,23 +542,15 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     #   (1) use floor_division to be compatiable with func_time_conversion()    
     #   (2) force type conversion to integer for slice indices
     
-    results_matrix_dispatch3 = np.zeros(
-        (int(np.floor(results_matrix_dispatch.shape[0]/temporal_scale)), 
-        int(results_matrix_dispatch.shape[1]))
-        )
+    results_matrix_dispatch3 = np.zeros(results_matrix_dispatch.shape)
 
     for i in xrange(results_matrix_dispatch3.shape[1]):
-        results_matrix_dispatch3 [:,i] = \
-            func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
+        results_matrix_dispatch3 [:,i] = func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
 
-    results_matrix_demand3 = np.zeros(
-        (int(np.floor(results_matrix_demand.shape[0]/temporal_scale)),
-        int(results_matrix_demand.shape[1]))
-        )
+    results_matrix_demand3 = np.zeros(results_matrix_demand.shape)
     
     for i in xrange(results_matrix_demand3.shape[1]):
-        results_matrix_demand3 [:,i] = \
-            func_time_conversion(results_matrix_demand[:,i],temporal_scale)
+        results_matrix_demand3 [:,i] = func_time_conversion(results_matrix_demand[:,i],temporal_scale)
     
     # --------------------
 
@@ -553,14 +561,11 @@ def func_graphics_dispatch_mix_1scenario (input_data):
         "x_data":           x_data, 
         "y_data":           results_matrix_dispatch3,
         "z_data":           func_time_conversion(demand,temporal_scale),
-        "z2_data":          func_time_conversion(demand/np.average(demand),temporal_scale),
         "ax":               ax3a,
         "x_label":          'Time (week in the year)',
         "y_label":          'kW',
-        "title":            case_name+': Dispatch mix',
-        "legend":           legend_list_dispatch,
-        "legend_z":         'demand',
-        "line_width":       2,
+        "title":            case_name + ': Dispatch mix (1 wk moving avg)',
+        "line_width":       1,
         "line_width_z":     1,
         'grid_option':      0,
         }
@@ -572,7 +577,9 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     #figure3b = plt.figure(figsize=figsize_oneplot)
     ax3b = figure3a.add_subplot(2,2,2)
     inputs_dispatch['ax'] = ax3b
-    
+    inputs_dispatch["legend"] = legend_list_dispatch
+    inputs_dispatch["legend_z"] = 'demand'
+
     func_stack_plot(inputs_dispatch)
 
     # --------------------
@@ -585,12 +592,10 @@ def func_graphics_dispatch_mix_1scenario (input_data):
         "y_data":           results_matrix_demand3,
         #"z_data":           func_time_conversion(demand,temporal_scale),
         "ax":               ax3c,
-        "x_label":          'Time (week in the year)',
+        "x_label":          'Time (hour)',
         "y_label":          'kW',
-        "title":            case_name+': Demand mix',
-        "legend":           legend_list_demand,
-        #"legend_z":         'demand',
-        "line_width":       2,
+        "title":            case_name + ': Demand mix (1 wk moving avg)',
+        "line_width":       1,
         #"line_width_z":     1,
         'grid_option':      0,
         }
@@ -602,21 +607,24 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     #figure3d = plt.figure(figsize=figsize_oneplot)
     ax3d = figure3a.add_subplot(2,2,4)
     inputs_demand['ax'] = ax3d
+    inputs_demand["legend"] = legend_list_demand
+    #"legend_z":         'demand',
     
     func_stack_plot(inputs_demand)
     
     # --------------------
     
-    pdf_each.savefig(figure3a, bbox_inches='tight')
+    plt.tight_layout(rect=[0,0,0.75,1])
+    pdf_each.savefig(figure3a)
     #plt.close()
     
-    #pdf_each.savefig(figure3b, bbox_inches='tight')
+    #pdf_each.savefig(figure3b)
     #plt.close()
     
-    #pdf_each.savefig(figure3c, bbox_inches='tight')
+    #pdf_each.savefig(figure3c)
     #plt.close()
     
-    #pdf_each.savefig(figure3d, bbox_inches='tight')
+    #pdf_each.savefig(figure3d)
     plt.close()
     
     # -------------------------------------------------------------------------
@@ -691,37 +699,37 @@ def func_graphics_dispatch_mix_time_selection_1scenario (input_data):
     # -------------------------------------------------------------------------
 
     figure1 = plt.figure(figsize=figsize_oneplot)
-    ax1 = figure1.add_subplot(111)
+    ax1 = figure1.add_subplot(2,2,1)
 
     input_data_1 = {
         "x_data_range":     time_range,
         "x_data":           x_data, 
         "y_data":           mix_matrix,
         "ax":               ax1,
-        "x_label":          'Time (hour in the year)',
+        "x_label":          'Time (hour)',
         "y_label":          'kW',
         "title":            title_text,
         "legend":           legend_list,
-        "line_width":       2,
+        "line_width":       1,
         'grid_option':      0,
         }
     func_lines_plot(input_data_1)
     
     # -------------------------
     
-    figure2 = plt.figure(figsize=figsize_oneplot)
-    ax2 = figure2.add_subplot(111)
+    #figure2 = plt.figure(figsize=figsize_oneplot)
+    ax2 = figure1.add_subplot(2,2,2)
     
     input_data_2 = {
         "x_data_range":     time_range,
         "x_data":           x_data, 
         "y_data":           mix_matrix,
         "ax":               ax2,
-        "x_label":          'Time (hour in the year)',
+        "x_label":          'Time (hour)',
         "y_label":          'kW',
         "title":            title_text,
         "legend":           legend_list,
-        "line_width":       2,
+        "line_width":       1,
         'grid_option':      0,
         }
     
@@ -737,7 +745,6 @@ def func_graphics_dispatch_mix_time_selection_1scenario (input_data):
             line_width_z = 1
         
         input_data_2['z_data'] = demand
-        input_data_2['z2_data'] = demand/np.average(demand)
         input_data_2['legend_z'] = 'demand'
         input_data_2['line_width_z'] = line_width_z   
 
@@ -746,11 +753,13 @@ def func_graphics_dispatch_mix_time_selection_1scenario (input_data):
     # -------------------------
 
     pdf_each = input_data["pdf_each"]
+
     
-    pdf_each.savefig(figure1, bbox_inches='tight')
+    plt.tight_layout(rect=[0,0,0.75,1])
+    pdf_each.savefig(figure1)
     #plt.close()
     
-    pdf_each.savefig(figure2, bbox_inches='tight')
+    #pdf_each.savefig(figure2)
     plt.close()
    
 #%%
@@ -803,7 +812,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     pdf_all = input_data['pdf_all']
     demand = input_data["demand"]
     results_matrix_dispatch = input_data["results_matrix_dispatch"]
-    
+    time_range = input_data["time_range"]
     legend_list = input_data["legend_list"]
     title_text = input_data["title_text"]   
     
@@ -811,31 +820,32 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     # -------------------------------------------------------------------------
     # Define the plotting style
     
-    plt.style.use('default')
+    #plt.style.use('default')
+    plt.style.use('ggplot')
     # plt.style.use('bmh')
     # plt.style.use('fivethirtyeight')
     # plt.style.use('seaborn-white')
-    plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.serif'] =  'Helvetica ' #'Palatino' # 'Ubuntu'
-    plt.rcParams['font.monospace'] = 'Helvetica Mono' #'Palatino Mono' # 'Ubuntu'
-    plt.rcParams['font.size'] = 16
-    plt.rcParams['axes.labelsize'] = 16
-    plt.rcParams['axes.labelweight'] = 'bold'
-    plt.rcParams['axes.titlesize'] = 16
-    plt.rcParams['xtick.labelsize'] = 16
-    plt.rcParams['ytick.labelsize'] = 16
-    plt.rcParams['legend.fontsize'] = 14
-    plt.rcParams['figure.titlesize'] = 16
-    plt.rcParams['lines.linewidth'] = 2.0
-    plt.rcParams['grid.color'] = 'k'
-    plt.rcParams['grid.linestyle'] = ':'
-    plt.rcParams['grid.linewidth'] = 0.5
-    plt.rcParams['xtick.major.width'] = 2
-    plt.rcParams['xtick.major.size'] = 6
-    plt.rcParams['xtick.direction'] = 'in'
-    plt.rcParams['ytick.major.width'] = 2
-    plt.rcParams['ytick.major.size'] = 6
-    plt.rcParams['ytick.direction'] = 'in'
+#    plt.rcParams['font.family'] = 'serif'
+#    plt.rcParams['font.serif'] =  'Helvetica ' #'Palatino' # 'Ubuntu'
+#    plt.rcParams['font.monospace'] = 'Helvetica Mono' #'Palatino Mono' # 'Ubuntu'
+#    plt.rcParams['font.size'] = 16
+#    plt.rcParams['axes.labelsize'] = 16
+#    plt.rcParams['axes.labelweight'] = 'bold'
+#    plt.rcParams['axes.titlesize'] = 16
+#    plt.rcParams['xtick.labelsize'] = 16
+#    plt.rcParams['ytick.labelsize'] = 16
+#    plt.rcParams['legend.fontsize'] = 14
+#    plt.rcParams['figure.titlesize'] = 16
+#    plt.rcParams['lines.linewidth'] = 2.0
+#    plt.rcParams['grid.color'] = 'k'
+#    plt.rcParams['grid.linestyle'] = ':'
+#    plt.rcParams['grid.linewidth'] = 0.5
+#    plt.rcParams['xtick.major.width'] = 2
+#    plt.rcParams['xtick.major.size'] = 6
+#    plt.rcParams['xtick.direction'] = 'in'
+#    plt.rcParams['ytick.major.width'] = 2
+#    plt.rcParams['ytick.major.size'] = 6
+#    plt.rcParams['ytick.direction'] = 'in'
     
     # -------------------------------------------------------------------------
     
@@ -850,8 +860,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     optimization_time_steps = results_matrix_dispatch.shape[0]
     x_data = np.arange(0, optimization_time_steps)
     
-    results_matrix_dispatch1 = np.zeros(
-            results_matrix_dispatch.shape)
+    results_matrix_dispatch1 = np.zeros(results_matrix_dispatch.shape)
     
     for i in xrange(results_matrix_dispatch.shape[1]):
         results_matrix_dispatch1 [:,i] = \
@@ -860,13 +869,13 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     # -----------------------------
     
     figure1 = plt.figure(figsize=figsize_oneplot)
-    ax1 = figure1.add_subplot(111)
+    ax1 = figure1.add_subplot(1,1,1)
     
     inputs = {
             "x_data":       x_data, 
             "y_data":       results_matrix_dispatch1,
             "ax":           ax1,
-            "x_label":      'Time (hour in the year)',
+            "x_label":      'Time (hour)',
             "y_label":      'kW',
             "title":        title_text,
             "legend":       legend_list,
@@ -876,7 +885,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
             
     func_lines_plot(inputs)
     
-    pdf_all.savefig(figure1, bbox_inches='tight')
+    pdf_all.savefig(figure1)
         
 #    # ---------------------------
 #    
@@ -914,7 +923,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 #    func_lines_plot(inputs)
 #    
 #    if SAVE_FIGURES_TO_PDF:
-#        pdf_each.savefig(figure1b, bbox_inches='tight')
+#        pdf_each.savefig(figure1b)
 #        plt.close()
         
     # -------------------------------------------------------------------------
@@ -943,7 +952,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     
     func_lines_plot(inputs)
     
-    pdf_all.savefig(figure2, bbox_inches='tight')
+    pdf_all.savefig(figure2)
     #plt.close()
     
 #    # -------------------------
@@ -974,7 +983,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 #    func_lines_plot(inputs)
 #    
 #    if SAVE_FIGURES_TO_PDF:
-#        pdf_each.savefig(figure2b, bbox_inches='tight') 
+#        pdf_each.savefig(figure2b) 
 #        plt.close()
     
     # -------------------------------------------------------------------------
@@ -983,15 +992,12 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     # -------------------------
     
     temporal_scale = 24
-    x_data = np.arange(0, optimization_time_steps/temporal_scale)
+    x_data = np.arange(0, optimization_time_steps)
     
-    results_matrix_dispatch1 = np.zeros(
-            (int(results_matrix_dispatch.shape[0]/temporal_scale), 
-            int(results_matrix_dispatch.shape[1])))
+    results_matrix_dispatch1 = np.zeros(results_matrix_dispatch.shape)
     
     for i in xrange(results_matrix_dispatch.shape[1]):
-        results_matrix_dispatch1 [:,i] = \
-            func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
+        results_matrix_dispatch1 [:,i] = func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
     
     # -------------------------
     
@@ -1002,7 +1008,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
             "x_data":       x_data, 
             "y_data":       results_matrix_dispatch1,
             "ax":           ax3,
-            "x_label":      'Time (day in the year)',
+            "x_label":      'Time (hour)',
             "y_label":      'kW',
             "title":        title_text,
             "legend":       legend_list,
@@ -1012,7 +1018,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
             
     func_lines_plot(inputs)
     
-    pdf_all.savefig(figure3, bbox_inches='tight')
+    pdf_all.savefig(figure3)
     #plt.close()
     
 #    # ---------------------------
@@ -1051,7 +1057,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 #    func_lines_plot(inputs)
 #    
 #    if SAVE_FIGURES_TO_PDF:
-#        pdf_each.savefig(figure3b, bbox_inches='tight')  
+#        pdf_each.savefig(figure3b)  
 #        plt.close()
     
     # -----------------------------------------------------------------------------
@@ -1061,11 +1067,9 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     # -------------------------
     
     temporal_scale = 24 * 7
-    x_data = np.arange(0, int(np.floor(optimization_time_steps/temporal_scale)))
+    x_data = np.arange(0, optimization_time_steps)
     
-    results_matrix_dispatch1 = np.zeros(
-            (int(np.floor(results_matrix_dispatch.shape[0]/temporal_scale)), 
-            int(results_matrix_dispatch.shape[1])))
+    results_matrix_dispatch1 = np.zeros(results_matrix_dispatch.shape)
     
     for i in xrange(results_matrix_dispatch.shape[1]):
         results_matrix_dispatch1 [:,i] = \
@@ -1090,7 +1094,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
             
     func_lines_plot(inputs)
     
-    pdf_all.savefig(figure4, bbox_inches='tight')
+    pdf_all.savefig(figure4)
     #plt.close()
 
 #    # -----------------------------------------------------------------------------
@@ -1127,7 +1131,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
 #    func_lines_plot(inputs)
 #    
 #    if SAVE_FIGURES_TO_PDF:
-#        pdf_each.savefig(figure4b, bbox_inches='tight')
+#        pdf_each.savefig(figure4b)
 #        plt.close()
     
 
@@ -1213,31 +1217,32 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     # Define the plotting style
     
-    plt.style.use('default')
+    #plt.style.use('default')
+    plt.style.use('ggplot')
     # plt.style.use('bmh')
     # plt.style.use('fivethirtyeight')
     # plt.style.use('seaborn-white')
-    plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.serif'] =  'Helvetica ' #'Palatino' # 'Ubuntu'
-    plt.rcParams['font.monospace'] = 'Helvetica Mono' #'Palatino Mono' # 'Ubuntu'
-    plt.rcParams['font.size'] = 16
-    plt.rcParams['axes.labelsize'] = 16
-    plt.rcParams['axes.labelweight'] = 'bold'
-    plt.rcParams['axes.titlesize'] = 16
-    plt.rcParams['xtick.labelsize'] = 16
-    plt.rcParams['ytick.labelsize'] = 16
-    plt.rcParams['legend.fontsize'] = 14
-    plt.rcParams['figure.titlesize'] = 16
-    plt.rcParams['lines.linewidth'] = 2.0
-    plt.rcParams['grid.color'] = 'k'
-    plt.rcParams['grid.linestyle'] = ':'
-    plt.rcParams['grid.linewidth'] = 0.5
-    plt.rcParams['xtick.major.width'] = 2
-    plt.rcParams['xtick.major.size'] = 6
-    plt.rcParams['xtick.direction'] = 'in'
-    plt.rcParams['ytick.major.width'] = 2
-    plt.rcParams['ytick.major.size'] = 6
-    plt.rcParams['ytick.direction'] = 'in'
+#    plt.rcParams['font.family'] = 'serif'
+#    plt.rcParams['font.serif'] =  'Helvetica ' #'Palatino' # 'Ubuntu'
+#    plt.rcParams['font.monospace'] = 'Helvetica Mono' #'Palatino Mono' # 'Ubuntu'
+#    plt.rcParams['font.size'] = 16
+#    plt.rcParams['axes.labelsize'] = 16
+#    plt.rcParams['axes.labelweight'] = 'bold'
+#    plt.rcParams['axes.titlesize'] = 16
+#    plt.rcParams['xtick.labelsize'] = 16
+#    plt.rcParams['ytick.labelsize'] = 16
+#    plt.rcParams['legend.fontsize'] = 14
+#    plt.rcParams['figure.titlesize'] = 16
+#    plt.rcParams['lines.linewidth'] = 2.0
+#    plt.rcParams['grid.color'] = 'k'
+#    plt.rcParams['grid.linestyle'] = ':'
+#    plt.rcParams['grid.linewidth'] = 0.5
+#    plt.rcParams['xtick.major.width'] = 2
+#    plt.rcParams['xtick.major.size'] = 6
+#    plt.rcParams['xtick.direction'] = 'in'
+#    plt.rcParams['ytick.major.width'] = 2
+#    plt.rcParams['ytick.major.size'] = 6
+#    plt.rcParams['ytick.direction'] = 'in'
       
     # -------------------------------------------------------------------------
     
@@ -1256,7 +1261,7 @@ def func_graphics_system_results_Nscenarios (input_data):
         "ax":               ax1,
         "x_label":          x_label,
         "y_label":         'Storage discharge (kW)',
-        "line_width":       2,
+        "line_width":       1,
         "grid_option":      0,
         }
     
@@ -1266,7 +1271,7 @@ def func_graphics_system_results_Nscenarios (input_data):
     ax1.set_yscale("log", nonposx='clip')
     ax1b.set_yscale("log", nonposx='clip')
     
-    pdf_all.savefig(figure1, bbox_inches='tight')
+    pdf_all.savefig(figure1)
     #plt.close()
     
     # -------------------------------------------------------------------------
@@ -1282,7 +1287,7 @@ def func_graphics_system_results_Nscenarios (input_data):
         "ax":               ax2,
         "x_label":          x_label,
         "y_label":         'Storage capacity (kWh)',
-        "line_width":       2,
+        "line_width":       1,
         'grid_option':      0,
         }
     
@@ -1292,7 +1297,7 @@ def func_graphics_system_results_Nscenarios (input_data):
     ax2.set_yscale("log", nonposx='clip')
     ax2b.set_yscale("log", nonposx='clip')
     
-    pdf_all.savefig(figure2, bbox_inches='tight')
+    pdf_all.savefig(figure2)
     #plt.close()
     
     # -------------------------------------------------------------------------
@@ -1308,7 +1313,7 @@ def func_graphics_system_results_Nscenarios (input_data):
         "ax":               ax3,
         "x_label":          x_label,
         "y_label":          'Calculated full-discharge cycles',
-        "line_width":       2,
+        "line_width":       1,
         'grid_option':      0,
         }        
     
@@ -1317,7 +1322,7 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     func_lines_plot(inputs_dispatch_3)
     
-    pdf_all.savefig(figure3, bbox_inches='tight')
+    pdf_all.savefig(figure3)
     #plt.close()
     
     # -------------------------------------------------------------------------
@@ -1333,7 +1338,7 @@ def func_graphics_system_results_Nscenarios (input_data):
         "ax":               ax4,
         "x_label":          x_label,
         "y_label":          'Energy storage investment (billion $)',
-        "line_width":       2,
+        "line_width":       1,
         'grid_option':      0,
         }        
     
@@ -1342,7 +1347,7 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     func_lines_plot(inputs_dispatch_4)
     
-    pdf_all.savefig(figure4, bbox_inches='tight')
+    pdf_all.savefig(figure4)
     #plt.close()
     
     # -------------------------------------------------------------------------
@@ -1369,7 +1374,7 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     func_stack_plot(inputs_dispatch_5)
     
-    pdf_all.savefig(figure5, bbox_inches='tight')
+    pdf_all.savefig(figure5)
     #plt.close()
     
     # -------------------------------------------------------------------------
@@ -1396,7 +1401,7 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     func_stack_plot(inputs_dispatch_6)
     
-    pdf_all.savefig(figure6, bbox_inches='tight')
+    pdf_all.savefig(figure6)
     #plt.close()
     
     # -------------------------------------------------------------------------
@@ -1426,7 +1431,7 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     func_stack_plot(inputs_dispatch_7)
     
-    pdf_all.savefig(figure7, bbox_inches='tight')
+    pdf_all.savefig(figure7)
     #plt.close()
     
     # -------------------------------------------------------------------------
@@ -1457,7 +1462,7 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     func_stack_plot(inputs_dispatch_8)
     
-    pdf_all.savefig(figure8, bbox_inches='tight')
+    pdf_all.savefig(figure8)
     #plt.close()
     
     # -------------------------------------------------------------------------
@@ -1534,31 +1539,32 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
     # -------------------------------------------------------------------------
     # Define the plotting style
     
-    plt.style.use('default')
+    #plt.style.use('default')
+    plt.style.use('ggplot')
     # plt.style.use('bmh')
     # plt.style.use('fivethirtyeight')
     # plt.style.use('seaborn-white')
-    plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.serif'] =  'Helvetica ' #'Palatino' # 'Ubuntu'
-    plt.rcParams['font.monospace'] = 'Helvetica Mono' #'Palatino Mono' # 'Ubuntu'
-    plt.rcParams['font.size'] = 16
-    plt.rcParams['axes.labelsize'] = 16
-    plt.rcParams['axes.labelweight'] = 'bold'
-    plt.rcParams['axes.titlesize'] = 16
-    plt.rcParams['xtick.labelsize'] = 16
-    plt.rcParams['ytick.labelsize'] = 16
-    plt.rcParams['legend.fontsize'] = 14
-    plt.rcParams['figure.titlesize'] = 16
-    plt.rcParams['lines.linewidth'] = 2.0
-    plt.rcParams['grid.color'] = 'k'
-    plt.rcParams['grid.linestyle'] = ':'
-    plt.rcParams['grid.linewidth'] = 0.5
-    plt.rcParams['xtick.major.width'] = 2
-    plt.rcParams['xtick.major.size'] = 6
-    plt.rcParams['xtick.direction'] = 'in'
-    plt.rcParams['ytick.major.width'] = 2
-    plt.rcParams['ytick.major.size'] = 6
-    plt.rcParams['ytick.direction'] = 'in'
+#    plt.rcParams['font.family'] = 'serif'
+#    plt.rcParams['font.serif'] =  'Helvetica ' #'Palatino' # 'Ubuntu'
+#    plt.rcParams['font.monospace'] = 'Helvetica Mono' #'Palatino Mono' # 'Ubuntu'
+#    plt.rcParams['font.size'] = 16
+#    plt.rcParams['axes.labelsize'] = 16
+#    plt.rcParams['axes.labelweight'] = 'bold'
+#    plt.rcParams['axes.titlesize'] = 16
+#    plt.rcParams['xtick.labelsize'] = 16
+#    plt.rcParams['ytick.labelsize'] = 16
+#    plt.rcParams['legend.fontsize'] = 14
+#    plt.rcParams['figure.titlesize'] = 16
+#    plt.rcParams['lines.linewidth'] = 2.0
+#    plt.rcParams['grid.color'] = 'k'
+#    plt.rcParams['grid.linestyle'] = ':'
+#    plt.rcParams['grid.linewidth'] = 0.5
+#    plt.rcParams['xtick.major.width'] = 2
+#    plt.rcParams['xtick.major.size'] = 6
+#    plt.rcParams['xtick.direction'] = 'in'
+#    plt.rcParams['ytick.major.width'] = 2
+#    plt.rcParams['ytick.major.size'] = 6
+#    plt.rcParams['ytick.direction'] = 'in'
     
     # -------------------------------------------------------------------------
     
@@ -1623,7 +1629,7 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
             "demand":                       demand,
             "mix_matrix":                   results_matrix_dispatch,
             "pdf_each":                    pdf_each,
-            "title_text":                   case_name + "Dispatch mix\n" + title_info_1,
+            "title_text":                   case_name + ": Dispatch mix\n" + title_info_1,
             "legend_list":                  legend_list_dispatch,        
             }
     
@@ -1634,7 +1640,7 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
             "demand":                       demand,            
             "mix_matrix":                   results_matrix_demand,
             "pdf_each":                    pdf_each,
-            "title_text":                   case_name + "Demand mix\n" + title_info_1,
+            "title_text":                   case_name + ": Demand mix\n" + title_info_1,
             "legend_list":                  legend_list_demand,        
             }
     
@@ -1656,7 +1662,7 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
             "demand_line_for_dispatch_figure":      1,
             "mix_matrix":                   results_matrix_dispatch,
             "pdf_each":                     pdf_each,
-            "title_text":                   case_name + "Dispatch mix\n" + title_info_2,
+            "title_text":                   case_name + ": Dispatch mix\n" + title_info_2,
             "legend_list":                  legend_list_dispatch,        
             }
     
@@ -1667,7 +1673,7 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
             "time_range":                   time_range_2,        
             "mix_matrix":                   results_matrix_demand,
             "pdf_each":                     pdf_each,
-            "title_text":                   case_name + "Demand mix\n" + title_info_2,
+            "title_text":                   case_name + ": Demand mix\n" + title_info_2,
             "legend_list":                  legend_list_demand, 
             }
     
@@ -1675,6 +1681,9 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
 
     # -------------------------------------------------------------------------
     
+def get_results_matrix_column(results_matrix,component_list_index_dic,component):
+    return results_matrix[:,component_list_index_dic[component]] 
+
           
         
         
@@ -1716,9 +1725,6 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
 #       called the function, func_graphics_dispatch_mix_technology_timeseries_1scenario()
 #        
 # -----------------------------------------------------------------------------
-def get_results_matrix_column(results_matrix,component_list_index_dic,component):
-    return results_matrix[:,component_list_index_dic[component]] 
-
 def func_optimization_results_time_series_1scenario(input_data):
     
     # -------------------------------------------------------------------------
@@ -1838,11 +1844,6 @@ def func_optimization_results_time_series_1scenario(input_data):
 
     func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data_3)
 
-    # -------------------------------------------------------------------------
-    
-    # deal with open file streams
-    
-    text_file.close()
 
 #%%
 # -----------------------------------------------------------------------------

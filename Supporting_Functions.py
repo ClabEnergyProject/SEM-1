@@ -11,7 +11,7 @@ Goal
 Functions defined
     func_load_optimization_results()
     func_time_conversion()
-    func_moving_window()
+    func_time_conversion()
     func_change_in_period()
     func_find_period()
     func_lines_plot()
@@ -46,6 +46,7 @@ from __future__ import division
 import os
 import sys
 import numpy as np
+from matplotlib.font_manager import FontProperties
 
 # -----------------------------------------------------------------------------
 # func_load_optimization_results()
@@ -153,28 +154,11 @@ def func_load_optimization_results(optimization_results_file_path):
 # @ Fan Tong    
 # -----------------------------------------------------------------------------
 
-def func_time_conversion (input_data, window_size, operation_type = 'mean'):
-    
-    N = int(np.floor(input_data.size / window_size))
 
-    output_data = np.zeros(N)
-    
-    for ii in range(N):
-
-        if (operation_type == 'mean'):        
-            output_data[ii] = np.mean(input_data[ii*window_size : (ii+1)*window_size])
-        elif(operation_type == 'min'):
-            output_data[ii] = np.min(input_data[ii*window_size : (ii+1)*window_size])
-        elif(operation_type == 'max'):
-            output_data[ii] = np.max(input_data[ii*window_size : (ii+1)*window_size])
-        elif(operation_type == 'sum'):
-            output_data[ii] = np.sum(input_data[ii*window_size : (ii+1)*window_size])
-            
-    return output_data
 
 #%%
 # -----------------------------------------------------------------------------
-# func_moving_window()
+# func_time_conversion()
 #
 # Function
 #   calculate key statistics of the input_data in a moving window (rolling basis)
@@ -197,29 +181,6 @@ def func_time_conversion (input_data, window_size, operation_type = 'mean'):
 # @ Fan Tong    
 # -----------------------------------------------------------------------------
 
-def func_moving_window (input_data, window_size, operation_type = 'mean'):
-        
-    input_data = input_data
-    output_data = np.zeros(len(input_data))
-    
-    # Coding notice
-    # the slice indices should be integers.
-    
-    for ii in range(len(input_data)):
-        
-        window_left = max(0, int(ii - window_size/2))
-        window_right = min(len(input_data), int(ii + window_size/2 + 1))
-            
-        if (operation_type == 'mean'):        
-            output_data[ii] = np.mean(input_data[window_left : window_right])
-        elif(operation_type == 'min'):
-            output_data[ii] = np.min(input_data[window_left : window_right])
-        elif(operation_type == 'max'):
-            output_data[ii] = np.max(input_data[window_left : window_right])
-        elif(operation_type == 'sum'):
-            output_data[ii] = np.sum(input_data[window_left : window_right])
-
-    return output_data
 
 
 #%%
@@ -245,6 +206,45 @@ def func_moving_window (input_data, window_size, operation_type = 'mean'):
 #
 # @ Fan Tong
 # -----------------------------------------------------------------------------
+def func_time_conversion (input_data, window_size, operation_type = 'mean'):
+    
+    # NOTE: THIS FUNCTION HAS ONLY BEEN VERIFIED FOR PROPER WRAP-AROUND BEHAVIOR
+    #       FOR 'mean'
+    # For odd windows sizes, easy. For even need to consider ends where you have half hour of data.
+
+    N_periods = len(input_data)
+    input_data_x3 = np.concatenate((input_data,input_data,input_data))
+    
+    half_size = window_size / 2.
+    half_size_full = int(half_size) # number of full things for the mean
+    print half_size, half_size_full
+    output_data = np.zeros(len(input_data))
+    
+    for ii in range(len(output_data)):
+        if half_size != float (half_size_full): # odd number, easy
+            if (operation_type == 'mean'):
+                output_data[ii] = np.sum(input_data_x3[N_periods + ii - half_size_full : N_periods + ii + half_size_full + 1 ])/ float(window_size)
+            elif(operation_type == 'min'):
+                output_data[ii] = np.min(input_data_x3[N_periods + ii - half_size_full : N_periods + ii + half_size_full + 1 ])
+            elif(operation_type == 'max'):
+                output_data[ii] = np.max(input_data_x3[N_periods + ii - half_size_full : N_periods + ii + half_size_full  + 1])
+            elif(operation_type == 'sum'):
+                output_data[ii] = np.sum(input_data_x3[N_periods + ii - half_size_full : N_periods + ii + half_size_full  + 1])
+        else: # even number need to include half of last ones
+            if (operation_type == 'mean'):
+                output_data[ii] = ( np.sum(input_data_x3[N_periods + ii - half_size_full : N_periods + ii + half_size_full ])  \
+                        + input_data_x3[N_periods + ii - half_size_full -1 ] *0.5 +  input_data_x3[N_periods + ii + half_size_full + 1 ] *0.5) / window_size
+            elif(operation_type == 'min'):
+                output_data[ii] = np.min(input_data_x3[N_periods + ii - half_size_full -1 : N_periods + ii + half_size_full + 1 ])
+            elif(operation_type == 'max'):
+                output_data[ii] = np.max(input_data_x3[N_periods + ii - half_size_full -1 : N_periods + ii + half_size_full + 1 ])
+            elif(operation_type == 'sum'):
+                output_data[ii] = (
+                        np.sum(input_data_x3[N_periods + ii - half_size_full : N_periods + ii + half_size_full ]) 
+                        + input_data_x3[N_periods + ii - half_size_full -1 ] *0.5 +  input_data_x3[N_periods + ii + half_size_full + 1 ] *0.5
+                        ) 
+        
+    return output_data
 
 def func_change_in_period (input_data, window_size):
     
@@ -303,7 +303,7 @@ def func_find_period (input_data):
     
     # Get the down-scaled data
     
-    data_in_window = func_moving_window(data, window_size, 'sum')
+    data_in_window = func_time_conversion(data, window_size, 'sum')
     
     # -------------------------------------------------------------------------
     
@@ -319,7 +319,7 @@ def func_find_period (input_data):
 
     # -------------------------------------------------------------------------
 
-    # The same algorithm as in func_moving_window()
+    # The same algorithm as in func_time_conversion()
 
     left_index = max(0, int(center_index - window_size/2))
     right_index = min(len(data), int(center_index + window_size/2 + 1))
@@ -477,7 +477,11 @@ def func_lines_plot(input_data):
         ax.set_title(input_data["title"])
 
     if "legend" in input_data.keys():
-        ax.legend(input_data["legend"], loc='best')    
+        from matplotlib.font_manager import FontProperties
+
+        fontP = FontProperties()
+        fontP.set_size('small')
+        ax.legend(input_data["legend"],bbox_to_anchor=(1.04,1), borderaxespad=0,prop=fontP)    
 
     if grid_option:
         ax.grid()
@@ -576,7 +580,9 @@ def func_lines_2yaxes_plot (input_data):
         ax1.set_title(input_data["title"])
 
     if "legend" in input_data.keys():
-        ax1.legend(input_data["legend"], loc='best')
+        fontP = FontProperties()
+        fontP.set_size('small')
+        ax1.legend(input_data["legend"],bbox_to_anchor=(1.04,1), borderaxespad=0,prop=fontP)
     
     return [ax1, ax2]
 
@@ -736,7 +742,10 @@ def func_stack_plot (input_data):
         ax.set_title(input_data["title"])
 
     if "legend" in input_data.keys():
-        ax.legend(legend, loc='best')    
+#        ax.legend(legend, loc='best')    
+        fontP = FontProperties()
+        fontP.set_size('small')
+        ax.legend(legend,bbox_to_anchor=(1.04,1), borderaxespad=0,prop=fontP)   # put legend to right of figure  
 
     if grid_option:
         ax.grid()
@@ -824,7 +833,9 @@ def func_PMF_plot(input_data):
         ax.set_title(input_data["title"])
 
     if "legend" in input_data.keys():
-        ax.legend(input_data["legend"], loc='best')        
+        fontP = FontProperties()
+        fontP.set_size('small')
+        ax.legend(input_data["legend"],bbox_to_anchor=(1.04,1), borderaxespad=0,prop=fontP)        
     
     x_axis_max = 1.1 * max(x_data)
     
