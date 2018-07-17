@@ -273,49 +273,71 @@ def quick_look(pickle_file_name):
         print 'files closed'
 
        
-def func_graphics_dispatch_mix_1scenario (input_data):    
+def func_graphics_dispatch_mix_1scenario (input_data, hours_to_avg = None, start_hour = None, end_hour = None ):
+
+    # Note hours_to_average is assumed to be an integer    
     
     # -------------------------------------------------------------------------
     # Get the input data
     
-    demand = input_data["demand"]
-    results_matrix_dispatch = input_data["results_matrix_dispatch"]
-    results_matrix_demand = input_data["results_matrix_demand"]
+    demand0 = input_data["demand"]
+    results_matrix_dispatch0 = input_data["results_matrix_dispatch"]
+    results_matrix_demand0 = input_data["results_matrix_demand"]
     pdf_each = input_data["pdf_each"]
     legend_list_dispatch = input_data["legend_list_dispatch"]
     legend_list_demand = input_data["legend_list_demand"]
     case_name = input_data["case_name"]
+
+    #NOTE: Averaging should occur before time subsetting
+    avg_label = ''
+    if hours_to_avg != None:
+        if hours_to_avg > 1:
+            avg_label = ' ' + str(hours_to_avg) + ' hr moving avg'
+            for i in xrange(results_matrix_dispatch0.shape[1]):
+                results_matrix_dispatch0 [:,i] = func_time_conversion(results_matrix_dispatch0[:,i],hours_to_avg)
     
+            for i in xrange(results_matrix_demand0.shape[1]):
+                results_matrix_demand0 [:,i] = func_time_conversion(results_matrix_demand0[:,i],hours_to_avg)
+
+            demand0 = func_time_conversion(demand0,hours_to_avg)
+            
+    if start_hour == None:
+        start_hour = 0
+    if end_hour == None:
+        end_hour = len(demand0)-1
+
     # -------------------------------------------------------------------------    
     # -------------------------------------------------------------------------
     # Define the plotting style
-    
+    plt.close() # Just make sure nothing is open ...
+    regular_font = 8
+    small_font = 6
     #plt.style.use('default')
-    plt.style.use('ggplot')
+    plt.style.use('default')
     # plt.style.use('bmh')
     # plt.style.use('fivethirtyeight')
     # plt.style.use('seaborn-white')
-#    plt.rcParams['font.family'] = 'serif'
-#    plt.rcParams['font.serif'] =  'Helvetica ' #'Palatino' # 'Ubuntu'
-#    plt.rcParams['font.monospace'] = 'Helvetica Mono' #'Palatino Mono' # 'Ubuntu'
-#    plt.rcParams['font.size'] = 16
-#    plt.rcParams['axes.labelsize'] = 16
-#    plt.rcParams['axes.labelweight'] = 'bold'
-#    plt.rcParams['axes.titlesize'] = 16
-#    plt.rcParams['xtick.labelsize'] = 16
-#    plt.rcParams['ytick.labelsize'] = 16
-#    plt.rcParams['legend.fontsize'] = 14
-#    plt.rcParams['figure.titlesize'] = 16
-#    plt.rcParams['lines.linewidth'] = 2.0
-#    plt.rcParams['grid.color'] = 'k'
-#    plt.rcParams['grid.linestyle'] = ':'
-#    plt.rcParams['grid.linewidth'] = 0.5
-#    plt.rcParams['xtick.major.width'] = 2
-#    plt.rcParams['xtick.major.size'] = 6
-#    plt.rcParams['xtick.direction'] = 'in'
-#    plt.rcParams['ytick.major.width'] = 2
-#    plt.rcParams['ytick.major.size'] = 6
-#    plt.rcParams['ytick.direction'] = 'in'
+    plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.serif'] =  'Helvetica ' #'Palatino' # 'Ubuntu'
+    plt.rcParams['font.monospace'] = 'Helvetica Mono' #'Palatino Mono' # 'Ubuntu'
+    plt.rcParams['font.size'] = regular_font
+    plt.rcParams['axes.labelsize'] = regular_font
+    plt.rcParams['axes.labelweight'] = 'normal'
+    plt.rcParams['axes.titlesize'] = regular_font
+    plt.rcParams['xtick.labelsize'] = regular_font
+    plt.rcParams['ytick.labelsize'] = regular_font
+    plt.rcParams['legend.fontsize'] = small_font
+    plt.rcParams['figure.titlesize'] = regular_font
+    plt.rcParams['lines.linewidth'] = 0.5
+    plt.rcParams['grid.color'] = 'k'
+    plt.rcParams['grid.linestyle'] = ':'
+    plt.rcParams['grid.linewidth'] = 0.5
+    plt.rcParams['xtick.major.width'] = 0.5
+    plt.rcParams['xtick.major.size'] = 3
+    plt.rcParams['xtick.direction'] = 'in'
+    plt.rcParams['ytick.major.width'] = 0.5
+    plt.rcParams['ytick.major.size'] = 3
+    plt.rcParams['ytick.direction'] = 'in'
 #    
     figsize_oneplot = (8,6)
     
@@ -327,7 +349,7 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     # -------------
     
     
-    optimization_time_steps = demand.size
+    optimization_time_steps = demand0.size
     x_data = np.arange(0, optimization_time_steps)
     
     # -------------
@@ -336,19 +358,19 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     ax1a = figure1a.add_subplot(2,2,1)
     
     inputs_dispatch = {
-        "x_data":           x_data, 
+        "x_data":           x_data[start_hour:end_hour], 
 #        "y_data":           results_matrix_dispatch,
-        "y_data":           results_matrix_dispatch,
-        'z_data':           demand,
+        "y_data":           results_matrix_dispatch0[start_hour:end_hour],
+        'z_data':           demand0[start_hour:end_hour],
         "ax":               ax1a,
         "x_label":          'Time (hour)',
         "y_label":          'kW',
-        "title":            case_name +': Dispatch mix',
+        "title":            case_name +' hour '+str(start_hour)+' to '+str(end_hour)+'\nDispatch mix'+avg_label,
 # If legend is not defined, no legend appears on plot
 # legend is provided by accompanying stacked area plot
 #        "legend":           legend_list_dispatch,  
 #        "legend_z":         'demand',
-        "line_width":       1,
+        "line_width":       0.5,
         "line_width_z":     0.2,
         'grid_option':      0,
         }        
@@ -380,18 +402,18 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     ax1c = figure1a.add_subplot(2,2,3)
 
     inputs_demand = {
-        "x_data":           x_data, 
-        "y_data":           results_matrix_demand,
+        "x_data":           x_data[start_hour:end_hour], 
+        "y_data":           results_matrix_demand0[start_hour:end_hour],
         #'z_data':           demand,
         "ax":               ax1c,
         "x_label":          'Time (hour)',
-#        "y_label":          'kW',
-        "title":            case_name + ': Demand mix',
+        "y_label":          'kW',
+        "title":            case_name +' hour '+str(start_hour)+' to '+str(end_hour)+'\nDemand mix'+avg_label,
         
 # Don't print legend on line plot by not having it defined in this dictionary
 #        "legend":           legend_list_demand,
         #"legend_z":         'demand',
-        "line_width":       1,
+        "line_width":       0.5,
         #"line_width_z":     0.2,
         'grid_option':      0,
         } 
@@ -409,7 +431,8 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     func_stack_plot(inputs_demand) 
 
     # -------------
-    plt.tight_layout(rect=[0,0,0.75,1])
+    plt.suptitle(input_data['page_title'])
+    plt.tight_layout(rect=[0,0.1,0.75,1])
     pdf_each.savefig(figure1a)
     #plt.close()
     
@@ -422,213 +445,6 @@ def func_graphics_dispatch_mix_1scenario (input_data):
     #pdf_each.savefig(figure1d)
     plt.close()
         
-    # -------------------------------------------------------------------------
-    
-    # Figures 2 Daily results
-    
-    # Four figures: 2 (dispatch, demand) * 2 (line plots, stack plots)
-
-    # -------------
-
-    temporal_scale = 24  # 24 hour average
-    x_data = np.arange(0, optimization_time_steps)
-    
-    results_matrix_dispatch2 = np.zeros(results_matrix_dispatch.shape)
-
-    for i in xrange(results_matrix_dispatch2.shape[1]):
-        results_matrix_dispatch2 [:,i] = func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
-
-    results_matrix_demand2 = np.zeros(results_matrix_demand.shape)
-    
-    for i in xrange(results_matrix_demand2.shape[1]):
-        results_matrix_demand2 [:,i] = func_time_conversion(results_matrix_demand[:,i],temporal_scale)
-
-    # -------------
-
-    figure2a = plt.figure(figsize=figsize_oneplot)
-    ax2a = figure2a.add_subplot(2,2,1)
-
-    inputs_dispatch = {
-        "x_data":           x_data, 
-        "y_data":           results_matrix_dispatch2,
-        "z_data":           func_time_conversion(demand,temporal_scale),
-        "z2_data":           func_time_conversion(demand/np.average(demand),temporal_scale),
-        "ax":               ax2a,
-        "x_label":          'Time (hour)',
-        "y_label":          'kW',
-        "title":            case_name+': Dispatch mix (24 hour moving avg)',
-        "line_width":       1,
-        "line_width_z":     1,
-        'grid_option':      0,
-        }
-    
-    func_lines_plot(inputs_dispatch)
-    
-    # -------------
-    
-    #figure2b = plt.figure(figsize=figsize_oneplot)
-    ax2b = figure2a.add_subplot(2,2,2)
-    inputs_dispatch['ax'] = ax2b
-    inputs_dispatch["legend"] = legend_list_dispatch
-    inputs_dispatch["legend_z"] = 'demand'
-    
-    func_stack_plot(inputs_dispatch)
-
-    print "x_data ",inputs_dispatch["x_data"].shape
-    print inputs_dispatch.keys()
-    for key in inputs_dispatch.keys():
-        print key," ",np.array(inputs_dispatch[key])
-    
-    # -------------
-
-    #figure2c = plt.figure(figsize=figsize_oneplot)
-    ax2c = figure2a.add_subplot(2,2,3)
-
-    # -------------
-
-    inputs_demand = {
-        "x_data":           x_data, 
-        "y_data":           results_matrix_demand2,
-        #"z_data":           func_time_conversion(demand,temporal_scale),
-        "ax":               ax2c,
-        "x_label":          'Time (hour)',
-        "y_label":          'kW',
-        "title":            case_name + ': Demand mix (24 hour moving avg)',
-        #"legend_z":         'demand',
-        "line_width":       1,
-        #"line_width_z":     1,
-        'grid_option':      0,
-        }
-
-    func_lines_plot(inputs_demand)
-    
-    # -------------
-
-    #figure2d = plt.figure(figsize=figsize_oneplot)
-    ax2d = figure2a.add_subplot(2,2,4)
-    inputs_demand['ax'] = ax2d
-    inputs_demand["legend"] = legend_list_demand
-    
-    func_stack_plot(inputs_demand) 
-    
-    # -------------
-    
-    plt.tight_layout(rect=[0,0,0.75,1])
-    pdf_each.savefig(figure2a)
-    #plt.close()
-    
-    #pdf_each.savefig(figure2b)
-    #plt.close()
-    
-    #pdf_each.savefig(figure2c)
-    #plt.close()
-    
-    #pdf_each.savefig(figure2d)
-    plt.close()
-
-    # -------------------------------------------------------------------------
-    # Figures 3 Weekly time series results
-
-    # Four figures: 2 (dispatch, demand) * 2 (line plots, stack plots)
-
-    # -------------
-
-    temporal_scale = 24 * 7
-    x_data = np.arange(0, optimization_time_steps)
-    
-    # --------------------
-    
-    # Note: 
-    #   (1) use floor_division to be compatiable with func_time_conversion()    
-    #   (2) force type conversion to integer for slice indices
-    
-    results_matrix_dispatch3 = np.zeros(results_matrix_dispatch.shape)
-
-    for i in xrange(results_matrix_dispatch3.shape[1]):
-        results_matrix_dispatch3 [:,i] = func_time_conversion(results_matrix_dispatch[:,i],temporal_scale)
-
-    results_matrix_demand3 = np.zeros(results_matrix_demand.shape)
-    
-    for i in xrange(results_matrix_demand3.shape[1]):
-        results_matrix_demand3 [:,i] = func_time_conversion(results_matrix_demand[:,i],temporal_scale)
-    
-    # --------------------
-
-    figure3a = plt.figure(figsize=figsize_oneplot)
-    ax3a = figure3a.add_subplot(2,2,1)
-
-    inputs_dispatch = {
-        "x_data":           x_data, 
-        "y_data":           results_matrix_dispatch3,
-        "z_data":           func_time_conversion(demand,temporal_scale),
-        "ax":               ax3a,
-        "x_label":          'Time (week in the year)',
-        "y_label":          'kW',
-        "title":            case_name + ': Dispatch mix (1 wk moving avg)',
-        "line_width":       1,
-        "line_width_z":     1,
-        'grid_option':      0,
-        }
-
-    func_lines_plot(inputs_dispatch)
-    
-    # --------------------
-    
-    #figure3b = plt.figure(figsize=figsize_oneplot)
-    ax3b = figure3a.add_subplot(2,2,2)
-    inputs_dispatch['ax'] = ax3b
-    inputs_dispatch["legend"] = legend_list_dispatch
-    inputs_dispatch["legend_z"] = 'demand'
-
-    func_stack_plot(inputs_dispatch)
-
-    # --------------------
-    
-    #figure3c = plt.figure(figsize=figsize_oneplot)
-    ax3c = figure3a.add_subplot(2,2,3)
-    
-    inputs_demand = {
-        "x_data":           x_data, 
-        "y_data":           results_matrix_demand3,
-        #"z_data":           func_time_conversion(demand,temporal_scale),
-        "ax":               ax3c,
-        "x_label":          'Time (hour)',
-        "y_label":          'kW',
-        "title":            case_name + ': Demand mix (1 wk moving avg)',
-        "line_width":       1,
-        #"line_width_z":     1,
-        'grid_option':      0,
-        }
-
-    func_lines_plot(inputs_demand)
-    
-    # --------------------
-    
-    #figure3d = plt.figure(figsize=figsize_oneplot)
-    ax3d = figure3a.add_subplot(2,2,4)
-    inputs_demand['ax'] = ax3d
-    inputs_demand["legend"] = legend_list_demand
-    #"legend_z":         'demand',
-    
-    func_stack_plot(inputs_demand)
-    
-    # --------------------
-    
-    plt.tight_layout(rect=[0,0,0.75,1])
-    pdf_each.savefig(figure3a)
-    #plt.close()
-    
-    #pdf_each.savefig(figure3b)
-    #plt.close()
-    
-    #pdf_each.savefig(figure3c)
-    #plt.close()
-    
-    #pdf_each.savefig(figure3d)
-    plt.close()
-    
-    # -------------------------------------------------------------------------
-
 
 #==============================================================================
 # func_graphics_dispatch_mix_time_selection_1scenario
@@ -821,7 +637,7 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
     # Define the plotting style
     
     #plt.style.use('default')
-    plt.style.use('ggplot')
+    plt.style.use('default')
     # plt.style.use('bmh')
     # plt.style.use('fivethirtyeight')
     # plt.style.use('seaborn-white')
@@ -1218,7 +1034,7 @@ def func_graphics_system_results_Nscenarios (input_data):
     # Define the plotting style
     
     #plt.style.use('default')
-    plt.style.use('ggplot')
+    plt.style.use('default')
     # plt.style.use('bmh')
     # plt.style.use('fivethirtyeight')
     # plt.style.use('seaborn-white')
@@ -1540,7 +1356,7 @@ def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
     # Define the plotting style
     
     #plt.style.use('default')
-    plt.style.use('ggplot')
+    plt.style.use('default')
     # plt.style.use('bmh')
     # plt.style.use('fivethirtyeight')
     # plt.style.use('seaborn-white')
@@ -1784,65 +1600,55 @@ def func_optimization_results_time_series_1scenario(input_data):
             "case_name":                    input_data["case_name"]
             }
     
-    func_graphics_dispatch_mix_1scenario(input_data_1)
+    input_data_1["page_title"] = 'raw output'
+    func_graphics_dispatch_mix_1scenario(input_data_1,1)  # basic results by hour
+    input_data_1["page_title"] = 'daily averaging'
+    func_graphics_dispatch_mix_1scenario(input_data_1,24) # basic results by day
+    input_data_1["page_title"] = 'weekly averaging'
+    func_graphics_dispatch_mix_1scenario(input_data_1,24*7) # basic results by week
     
-    # -------------------------------------------------------------------------    
-
-    # Figure group #2 dispatch mix and demand mix for selected time period
-    #   technology of interest: energy storage
-    #   using func_graphics_dispatch_mix_1scenario()
-
-    dispatch_storage = get_results_matrix_column(results_matrix_dispatch, component_index_dispatch, 'STORAGE')
-
-    technology_data = (dispatch_storage.flatten() / demand.T)
-    technology_of_interest = "storage"
-
-    input_data_2 = {
-            "window_size":                  24*7,
-            "demand":                       demand,
-            "technology_data":              technology_data,
-            "technology_of_interest":       technology_of_interest,
-            
-            "results_matrix_dispatch":      results_matrix_dispatch,
-            "results_matrix_demand":        results_matrix_demand,
-            "legend_list_dispatch":         legend_list_dispatch,
-            "legend_list_demand":           legend_list_demand,
-            
-            "pdf_each":                     input_data['pdf_each'],
-            "text_file":                    text_file,
-            "case_name":                    input_data["case_name"]
-            }
-
-    func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data_2)
     
     # -------------------------------------------------------------------------
-    
-    # Figure group #3 dispatch mix and demand mix for selected time period
-    #   technology of interest: wind and solar
-    #   using func_graphics_dispatch_mix_1scenario()
-    
-    technology_data = ((
-            results_matrix_dispatch[:, component_index_dispatch['WIND']] + 
-            results_matrix_dispatch[:, component_index_dispatch['SOLAR']]) / demand.T)
-            
-
-    input_data_3 = {
-            "window_size":                  24*7,
-            "demand":                       demand,
-            "technology_data":              technology_data,
-            "technology_of_interest":       technology_of_interest,
-            
-            "results_matrix_dispatch":    results_matrix_dispatch,
-            "results_matrix_demand":        results_matrix_demand,
-            "legend_list_dispatch":         legend_list_dispatch,
-            "legend_list_demand":           legend_list_demand,
-            
-            "pdf_each":                     input_data['pdf_each'],
-            "text_file":                    text_file,
-            "case_name":                    input_data["case_name"]
+    window_size = 24*7*2 # 2 week window
+    technology_of_interest = 'STORAGE'
+    study_variable_dict = {
+            'window_size':      window_size,
+            'data':             results_matrix_dispatch[:,component_index_dispatch[technology_of_interest]], 
+            'print_option':     0,
+            'search_option':    'max'
             }
+    
+    study_output_1 = func_find_period(study_variable_dict)    
+    start_hour = study_output_1['left_index']
+    end_hour = study_output_1['right_index']
+        
+    input_data_1["page_title"] = (
+            technology_of_interest + " met {:.0f} hrs of avg. demand during hours: {}"
+            .format(study_output_1['value'], (start_hour,end_hour))
+            )
+    func_graphics_dispatch_mix_1scenario(input_data_1,1,start_hour,end_hour)  # to storage max for 2 weeks
+   
+    # -------------------------------------------------------------------------
+    
+    window_size = 24*7*2 # 2 week window
+    technology_of_interest = 'STORAGE'
+    study_variable_dict = {
+            'window_size':      window_size,
+            'data':             results_matrix_dispatch[:,component_index_dispatch[technology_of_interest]], 
+            'print_option':     0,
+            'search_option':    'min'
+            }
+    
+    study_output_1 = func_find_period(study_variable_dict)    
+    start_hour = study_output_1['left_index']
+    end_hour = study_output_1['right_index']
+        
+    input_data_1["page_title"] = (
+            technology_of_interest + " met {:.0f} hrs of avg. demand during hours: {}"
+            .format(study_output_1['value'],  (start_hour,end_hour))
+            )
+    func_graphics_dispatch_mix_1scenario(input_data_1,1,start_hour,end_hour)  # to storage min for 2 weeks
 
-    func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data_3)
 
 
 #%%

@@ -217,7 +217,7 @@ def func_time_conversion (input_data, window_size, operation_type = 'mean'):
     
     half_size = window_size / 2.
     half_size_full = int(half_size) # number of full things for the mean
-    print half_size, half_size_full
+
     output_data = np.zeros(len(input_data))
     
     for ii in range(len(output_data)):
@@ -303,7 +303,7 @@ def func_find_period (input_data):
     
     # Get the down-scaled data
     
-    data_in_window = func_time_conversion(data, window_size, 'sum')
+    data_in_window = func_time_conversion(data, window_size, 'mean')
     
     # -------------------------------------------------------------------------
     
