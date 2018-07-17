@@ -6,18 +6,18 @@ Function: this file collects defined functions for plotting optimization results
     from one optimization run or mutilple runs
 
 Functions defined
-    func_graphics_dispatch_mix_1scenario()
-    func_graphics_dispatch_mix_time_selection_1scenario()
+    plot_results_time_series_1scenario()
+    plot_results_time_series_1scenario()
     func_graphics_dispatch_mix_technology_timeseries_1scenario()
     func_graphics_dispatch_var_Nscenarios()
     func_graphics_system_results_Nscenarios()
-    func_optimization_results_time_series_1scenario() -- directly callable
+    prepare_plot_results_time_series_1scenario() -- directly callable
     func_optimization_results_system_results_Nscenarios() -- directly callable
     func_optimization_results_dispatch_var_Nscenarios() -- directly callable
 
 History
     Jun 4-5, 2018 completely rewritten
-        func_graphics_dispatch_mix_1scenario()
+        plot_results_time_series_1scenario()
         func_graphics_dispatch_mix_time_selection()
         func_graphics_dispatch_var_Nscenarios()
                         
@@ -25,7 +25,7 @@ History
         func_graphics_system_results_Nscenarios()
 
     Jun 19, 2018
-        fixed some errors in func_graphics_dispatch_mix_1scenario()
+        fixed some errors in plot_results_time_series_1scenario()
         rewrote some function names
     Jun 20, 2018
         slight changes due to changes the definition of func_lines_2yaxes_plot()
@@ -36,20 +36,20 @@ History
     Jun 21, 2018
         fixed errors caused by using the actual division than the integer division.
         added parallel axes for some figures in 
-            func_graphics_dispatch_mix_1scenario()
-            func_graphics_dispatch_mix_time_selection_1scenario()
+            plot_results_time_series_1scenario()
+            plot_results_time_series_1scenario()
             func_graphics_time_series_results_1scenario()
             func_graphics_dispatch_var_Nscenarios()
             func_optimization_results_system_results_Nscenarios()
         changed packaging functions' names
-            func_graphics_time_series_results_1scenario -> func_optimization_results_time_series_1scenario
+            func_graphics_time_series_results_1scenario -> prepare_plot_results_time_series_1scenario
             func_optimization_results_snapshot_Nscenarios -> func_optimization_results_system_results_Nscenarios
-        changed the function func_graphics_dispatch_mix_1scenario()
+        changed the function plot_results_time_series_1scenario()
             from fixed ranges in time to dynamically select the weeks with the largest/smallest share of a technology
     Jun 22-23, 2018
         updated the following two functions
             func_optimization_results_system_results_Nscenarios()
-            func_graphics_dispatch_mix_time_selection_1scenario()
+            plot_results_time_series_1scenario()
         .. so that the selected time ranges are determined for the "extreme" weeks
         .. for a technology of interest
     Jun 23, 2018 checked the code and comments
@@ -68,6 +68,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import pickle
+import copy
 from Supporting_Functions import func_find_period
 from Supporting_Functions import func_lines_plot
 from Supporting_Functions import func_lines_2yaxes_plot
@@ -76,52 +77,7 @@ from Supporting_Functions import func_time_conversion
 from Supporting_Functions import func_load_optimization_results
 from matplotlib.backends.backend_pdf import PdfPages
 
-#%%
-#==============================================================================
-# func_graphics_dispatch_mix_1scenario
-#
-# Purpose
-#   Generate dispatch mix figures. Right now, there are N*4 figures.
-#       N=3 corresponds to different temporal resolutions: hourly, daily, weekly.
-#       4 corresponds to subplots for the same "information" (time scale).
-#
-# Input
-#   A packaging dictionary variable: input_data, which contrains the following data
-#       [1] results_matrix_dispatch:  dispatch mix for a particular scenario
-#       [2] demand
-#   the following texts
-#       [3] legend_list
-#       [4] title_text
-#   and the following controls for graphical outputs
-#       [5] SAVE_FIGURES_TO_PDF:   logical variable [0/1]
-#       [6] directory_output:      a complete directory, ending with "/"
-#       [7] graphics_file_name
-#
-#   Data dimentions
-#       results_matrix_dispatch
-#           ROW dimension: optimization time steps
-#           COLUMN dimension: technology options (that dispatched energy)
-#       demand
-#           ROW dimension: optimization time steps
-#           Column dimension: none
-#       legend list
-#           Number of STRING items: technology options (that dispatched energy)
-#
-# Output
-#   6 figures in the console window.
-#   You can choose to save them to a PDF book or not.
-#
-# History
-#   Jun 4-5, 2018 started and finished
-#   Jun 21, 2018 
-#       fixed the bug caused by using the actual division rather than the default floor division.
-#       updated the time selection from predefined to dynamically determined.
-#
-# @Fan Tong
-#
-#    Jul 9, 2018 Convert to use with the base version of the Simple Energy Model
-# @Ken Caldeira
-#
+
 #==============================================================================
 
 
@@ -247,9 +203,9 @@ def quick_look(pickle_file_name):
     # ========== CREATE PLOTS =========
   
     for input_data in input_data_list:
-        func_optimization_results_time_series_1scenario (input_data) # produce single case plots
+        prepare_plot_results_time_series_1scenario (input_data) # produce single case plots
         if verbose:
-            print 'done with func_optimization_results_time_series_1scenario for case '+input_data['case_name']
+            print 'done with prepare_plot_results_time_series_1scenario for case '+input_data['case_name']
             
             
     # ============= LOGIC FOR COMPARING CASES ==============================
@@ -261,7 +217,7 @@ def quick_look(pickle_file_name):
 #        func_optimization_results_dispatch_var_Nscenarios (input_data)
 #        if verbose:
 #            print 'func_optimization_results_dispatch_var_Nscenarios executed'
-#    func_optimization_results_time_series_1scenario() -- directly callable
+#    prepare_plot_results_time_series_1scenario() -- directly callable
 #    func_optimization_results_system_results_Nscenarios() -- directly callable
 #    func_optimization_results_dispatch_var_Nscenarios() -- directly callable
          
@@ -272,17 +228,210 @@ def quick_look(pickle_file_name):
     if verbose:
         print 'files closed'
 
+        
+        
+#%%
+# -----------------------------------------------------------------------------
+# prepare_plot_results_time_series_1scenario()
+#
+# Function: 
+#   Given the locations (directories or file paths), load the data, perform the
+#   the analysis, generate the figures, and save the figures to files.     
+# 
+# Input
+#   A DICT variable named input_data, with the following keys:
+#    optimization_results_file_path
+#    directory_output
+#    graphics_file_name_prefix
+#    graphics_file_name_root
+#    SAVE_FIGURES_TO_PDF
+#
+# Output
+#   Three groups of figures. If you choose to save the files, five files will be saved.
+#       1 dispatch mix and demand mix for all hourly data
+#       2 dispatch mix and demand mix for selected ranges of data
+#           for technology A (energy storage)
+#       3 dispatch mix and demand mix for selected ranges of data
+#           for technology B (wind and solar)
+#
+#   A text file summarizing key information from these technology-focused analyses        
+#
+# Functions called
+#   plot_results_time_series_1scenario()
+#   func_graphics_dispatch_mix_technology_timeseries_1scenario()
+#
+# History
+#   June 3, 2018 wrote the code
+#   June 19, 2018 packaged the code into this function
+#   June 20, 2018 modified the part load optimization data
+#   June 22-23, 2018 modified the part dealing with selected time periods
+#       called the function, func_graphics_dispatch_mix_technology_timeseries_1scenario()
+#        
+# -----------------------------------------------------------------------------
+def prepare_plot_results_time_series_1scenario(input_data):
+    
+    # -------------------------------------------------------------------------
+
+    # load the input assumptions
+
+
+    # -------------------------------------------------------------------------
+
+#    # load the data    
+#   
+#    temp_dict = func_load_optimization_results(optimization_results_file_path)
+#    model_inputs = temp_dict['model_inputs']
+#    model_results = temp_dict['model_results']
+    
+    # -------------------------
+    
+    demand = input_data['demand']
+    results_matrix_dispatch = input_data['results_matrix_dispatch']   
+    results_matrix_demand = input_data['results_matrix_demand']
+    
+    # -------------------------------------------------------------------------
+    
+    
+    legend_list_dispatch = input_data['legend_list_dispatch']    
+    legend_list_demand = input_data['legend_list_demand']
+    
+    component_index_dispatch = input_data['component_index_dispatch']    
+    component_index_demand = input_data['component_index_demand']
+    
+    # -------------------------------------------------------------------------
+    
+    # Output the "characteristic" time periods and their metrics
+    
+    # Representative file name
+    #   storage_scenario_dispatch_and_demand_mix_1e-2_with_NG_.txt
+    
+    text_file = input_data['text_file']  # file handle for text file
+    
+    # -------------------------------------------------------------------------
+    
+    # Figure group #1 dispatch mix and demand mix for the whole data
+    #   using plot_results_time_series_1scenario()
+    
+    # Right now, 12 figures will be generated.
+    # 2+2 (supply+demand) figures for each time resolution
+    # In total, three time resolutions (hourly, daily, weekly)
+        
+    
+    input_data_1 = {
+            "demand":                       demand,
+            "results_matrix_dispatch":      results_matrix_dispatch,
+            "results_matrix_demand":        results_matrix_demand,
+            "pdf_each":                     input_data['pdf_each'],
+            "legend_list_dispatch":         legend_list_dispatch,
+            "legend_list_demand":           legend_list_demand,
+            "case_name":                    input_data["case_name"],
+            "component_index_dispatch":     component_index_dispatch,
+            "component_index_demand":       component_index_demand,
+            }
+    
+    input_data_1["page_title"] = 'raw output'
+    plot_results_time_series_1scenario(input_data_1,1)  # basic results by hour
+    
+    input_data_1["page_title"] = 'daily averaging'
+    plot_results_time_series_1scenario(input_data_1,24) # basic results by day
+    
+    input_data_1["page_title"] = 'weekly averaging'
+    plot_results_time_series_1scenario(input_data_1,24*7) # basic results by week
+    
+    # -------------------------------------------------------------------------
+    # Find the week where storage dispatch is at its weekly max or min use
+    
+    plot_extreme_dispatch_results_time_series_1scenario(input_data_1,'STORAGE','max',24*7)
+    plot_extreme_dispatch_results_time_series_1scenario(input_data_1,'STORAGE','min',24*7)
+    
+    plot_extreme_dispatch_results_time_series_1scenario(input_data_1,'PGP_STORAGE','max',24*7)
+    plot_extreme_dispatch_results_time_series_1scenario(input_data_1,'PGP_STORAGE','min',24*7)
+   
+    # -------------------------------------------------------------------------
+
+
+def plot_extreme_dispatch_results_time_series_1scenario(input_data,component_name,search_option,window_size):
+    
+    component_index_dispatch = input_data["component_index_dispatch"]
+    component_index = component_index_dispatch[component_name]
+    
+    results_matrix_dispatch = input_data["results_matrix_dispatch"]
+    
+    study_variable_dict = {
+            'window_size':      window_size,
+            'data':             results_matrix_dispatch[:,component_index], 
+            'print_option':     0,
+            'search_option':    search_option
+            }
+    
+    study_output_1 = func_find_period(study_variable_dict)    
+    start_hour = study_output_1['left_index']
+    end_hour = study_output_1['right_index']
+        
+    input_data["page_title"] = (
+            component_name + " met {:.0f} hrs of avg. demand during hours: {}"
+            .format(study_output_1['value'],  (start_hour,end_hour))
+            )
+    plot_results_time_series_1scenario(input_data,1,start_hour,end_hour)  # to storage min for 2 weeks
+
+    
        
-def func_graphics_dispatch_mix_1scenario (input_data, hours_to_avg = None, start_hour = None, end_hour = None ):
+#%%
+#==============================================================================
+# plot_results_time_series_1scenario
+#
+# Purpose
+#   Generate dispatch mix figures. Right now, there are N*4 figures.
+#       N=3 corresponds to different temporal resolutions: hourly, daily, weekly.
+#       4 corresponds to subplots for the same "information" (time scale).
+#
+# Input
+#   A packaging dictionary variable: input_data, which contrains the following data
+#       [1] results_matrix_dispatch:  dispatch mix for a particular scenario
+#       [2] demand
+#   the following texts
+#       [3] legend_list
+#       [4] title_text
+#   and the following controls for graphical outputs
+#       [5] SAVE_FIGURES_TO_PDF:   logical variable [0/1]
+#       [6] directory_output:      a complete directory, ending with "/"
+#       [7] graphics_file_name
+#
+#   Data dimentions
+#       results_matrix_dispatch
+#           ROW dimension: optimization time steps
+#           COLUMN dimension: technology options (that dispatched energy)
+#       demand
+#           ROW dimension: optimization time steps
+#           Column dimension: none
+#       legend list
+#           Number of STRING items: technology options (that dispatched energy)
+#
+# Output
+#   6 figures in the console window.
+#   You can choose to save them to a PDF book or not.
+#
+# History
+#   Jun 4-5, 2018 started and finished
+#   Jun 21, 2018 
+#       fixed the bug caused by using the actual division rather than the default floor division.
+#       updated the time selection from predefined to dynamically determined.
+#
+# @Fan Tong
+#
+#    Jul 9, 2018 Convert to use with the base version of the Simple Energy Model
+# @Ken Caldeira
+#
+def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_hour = None, end_hour = None ):
 
     # Note hours_to_average is assumed to be an integer    
     
     # -------------------------------------------------------------------------
     # Get the input data
     
-    demand0 = input_data["demand"]
-    results_matrix_dispatch0 = input_data["results_matrix_dispatch"]
-    results_matrix_demand0 = input_data["results_matrix_demand"]
+    demand = input_data["demand"]
+    results_matrix_dispatch = copy.deepcopy(input_data["results_matrix_dispatch"])
+    results_matrix_demand = copy.deepcopy(input_data["results_matrix_demand"])
     pdf_each = input_data["pdf_each"]
     legend_list_dispatch = input_data["legend_list_dispatch"]
     legend_list_demand = input_data["legend_list_demand"]
@@ -293,18 +442,18 @@ def func_graphics_dispatch_mix_1scenario (input_data, hours_to_avg = None, start
     if hours_to_avg != None:
         if hours_to_avg > 1:
             avg_label = ' ' + str(hours_to_avg) + ' hr moving avg'
-            for i in xrange(results_matrix_dispatch0.shape[1]):
-                results_matrix_dispatch0 [:,i] = func_time_conversion(results_matrix_dispatch0[:,i],hours_to_avg)
+            for i in xrange(results_matrix_dispatch.shape[1]):
+                results_matrix_dispatch [:,i] = func_time_conversion(results_matrix_dispatch[:,i],hours_to_avg)
     
-            for i in xrange(results_matrix_demand0.shape[1]):
-                results_matrix_demand0 [:,i] = func_time_conversion(results_matrix_demand0[:,i],hours_to_avg)
+            for i in xrange(results_matrix_demand.shape[1]):
+                results_matrix_demand [:,i] = func_time_conversion(results_matrix_demand[:,i],hours_to_avg)
 
-            demand0 = func_time_conversion(demand0,hours_to_avg)
+            demand = func_time_conversion(demand,hours_to_avg)
             
     if start_hour == None:
         start_hour = 0
     if end_hour == None:
-        end_hour = len(demand0)-1
+        end_hour = len(demand)-1
 
     # -------------------------------------------------------------------------    
     # -------------------------------------------------------------------------
@@ -349,7 +498,7 @@ def func_graphics_dispatch_mix_1scenario (input_data, hours_to_avg = None, start
     # -------------
     
     
-    optimization_time_steps = demand0.size
+    optimization_time_steps = demand.size
     x_data = np.arange(0, optimization_time_steps)
     
     # -------------
@@ -360,8 +509,8 @@ def func_graphics_dispatch_mix_1scenario (input_data, hours_to_avg = None, start
     inputs_dispatch = {
         "x_data":           x_data[start_hour:end_hour], 
 #        "y_data":           results_matrix_dispatch,
-        "y_data":           results_matrix_dispatch0[start_hour:end_hour],
-        'z_data':           demand0[start_hour:end_hour],
+        "y_data":           results_matrix_dispatch[start_hour:end_hour],
+        'z_data':           demand[start_hour:end_hour],
         "ax":               ax1a,
         "x_label":          'Time (hour)',
         "y_label":          'kW',
@@ -403,7 +552,7 @@ def func_graphics_dispatch_mix_1scenario (input_data, hours_to_avg = None, start
 
     inputs_demand = {
         "x_data":           x_data[start_hour:end_hour], 
-        "y_data":           results_matrix_demand0[start_hour:end_hour],
+        "y_data":           results_matrix_demand[start_hour:end_hour],
         #'z_data':           demand,
         "ax":               ax1c,
         "x_label":          'Time (hour)',
@@ -447,7 +596,7 @@ def func_graphics_dispatch_mix_1scenario (input_data, hours_to_avg = None, start
         
 
 #==============================================================================
-# func_graphics_dispatch_mix_time_selection_1scenario
+# plot_results_time_series_1scenario
 #
 # Purpose
 #   Generate two time series figures (line plots and stack plots) 
@@ -489,94 +638,315 @@ def func_graphics_dispatch_mix_1scenario (input_data, hours_to_avg = None, start
 #
 # @Fan Tong
 #==============================================================================
+#
+#def plot_results_dispatch_time_series_1scenario (input_data):
+#    
+#    # -------------------------------------------------------------------------
+#    # Get the input data
+#    
+#    demand = input_data["demand"]
+#    mix_matrix = input_data["mix_matrix"]
+#    time_range = input_data["time_range"]
+#    
+#    legend_list = input_data["legend_list"]
+#    title_text = input_data["title_text"]
+#    
+#    # -------------------------------------------------------------------------
+#    
+#    figsize_oneplot = (8, 6)
+#    
+#    # -------------------------------------------------------------------------
+#    # Figures 1-2 Hourly time series results
+#    
+#    optimization_time_steps = mix_matrix.shape[0]
+#    x_data = np.arange(0, optimization_time_steps)    
+#
+#    # -------------------------------------------------------------------------
+#
+#    figure1 = plt.figure(figsize=figsize_oneplot)
+#    ax1 = figure1.add_subplot(2,2,1)
+#
+#    input_data_1 = {
+#        "x_data_range":     time_range,
+#        "x_data":           x_data, 
+#        "y_data":           mix_matrix,
+#        "ax":               ax1,
+#        "x_label":          'Time (hour)',
+#        "y_label":          'kW',
+#        "title":            title_text,
+#        "legend":           legend_list,
+#        "line_width":       1,
+#        'grid_option':      0,
+#        }
+#    func_lines_plot(input_data_1)
+#    
+#    # -------------------------
+#    
+#    #figure2 = plt.figure(figsize=figsize_oneplot)
+#    ax2 = figure1.add_subplot(2,2,2)
+#    
+#    input_data_2 = {
+#        "x_data_range":     time_range,
+#        "x_data":           x_data, 
+#        "y_data":           mix_matrix,
+#        "ax":               ax2,
+#        "x_label":          'Time (hour)',
+#        "y_label":          'kW',
+#        "title":            title_text,
+#        "legend":           legend_list,
+#        "line_width":       1,
+#        'grid_option':      0,
+#        }
+#    
+#    if "demand_line_for_dispatch_figure" in input_data.keys():       
+#        
+#        # line_width_z = 1/np.log(optimization_time_steps)*np.log(6)
+#        
+#        if (time_range[1] - time_range[0]) < 200:
+#            line_width_z = 2
+#        elif (time_range[1] - time_range[0]) < 1000:
+#            line_width_z = 1.5
+#        else:
+#            line_width_z = 1
+#        
+#        input_data_2['z_data'] = demand
+#        input_data_2['legend_z'] = 'demand'
+#        input_data_2['line_width_z'] = line_width_z   
+#
+#    func_stack_plot(input_data_2)    
+#
+#    # -------------------------
+#
+#    pdf_each = input_data["pdf_each"]
+#
+#    
+#    plt.tight_layout(rect=[0,0,0.75,1])
+#    pdf_each.savefig(figure1)
+#    #plt.close()
+#    
+#    #pdf_each.savefig(figure2)
+#    plt.close()
+#
+#
 
-def func_graphics_dispatch_mix_time_selection_1scenario (input_data):
+#%%
+# -----------------------------------------------------------------------------
+# func_graphics_dispatch_mix_technology_timeseries_1scenario()
+#
+# Function: 
+#   For a technology, find the week in which the share of demand met by this
+#       technology is at maximum or minimum. Then produce 2*2 figures for each
+#       such week.
+# 
+# Input
+#   A DICT variable named input_data, with the following keys:
+#    demand  -- for editing axes
+#   [choice about study scopes]        
+#    window_size
+#    technology_data   -- the share of demand met by this technology
+#    technology_of_interest -- the textual name of this technology
+#   [system-level data]
+#    results_matrix_dispatch <np.ndarray>
+#    results_matrix_demand <np.ndarray>
+#    legend_list_dispatch
+#    legend_list_demand
+#   [options for controling graphical output]      
+#    directory_output
+#    SAVE_FIGURES_TO_PDF
+#    graphics_file_name_prefix
+#    graphics_file_name_root
+#   [output file]
+#    text_file <file> -- an open file stream for outputs
+# 
+#   dimensions: results_matrix_dispatch, results_matrix_demand
+#       row: time_steps
+#       column: technology  options or demand types
+#        
+# Output    
+#   2*2 time series figures (line plot, stack plot) * (dispatch mix, demand mix)
+#   If you choose to save the files, five files will be saved.
+#
+# Functions called
+#   plot_results_time_series_1scenario()
+#
+# History
+#   June 22-23, 2018 drafted the function
+#
+# @ Fan Tong
+# -----------------------------------------------------------------------------
+
+def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
+
+    # -------------------------------------------------------------------------
+    
+    # load the data
+    
+    demand = input_data['demand']
+    
+    window_size = input_data['window_size']    
+    technology_data = input_data['technology_data']
+    technology_of_interest = input_data['technology_of_interest']
+    
+    results_matrix_dispatch = input_data['results_matrix_dispatch']
+    legend_list_dispatch = input_data['legend_list_dispatch']
+    results_matrix_demand = input_data['results_matrix_demand']
+    legend_list_demand = input_data['legend_list_demand']    
+    
+    pdf_each = input_data['pdf_each']  # file handle for pdf output    
+    text_file = input_data['text_file'] # file handle for text output
+    case_name = input_data['case_name']
+
+    # -------------------------------------------------------------------------
+    # Define the plotting style
+    
+    #plt.style.use('default')
+    plt.style.use('default')
+    # plt.style.use('bmh')
+    # plt.style.use('fivethirtyeight')
+    # plt.style.use('seaborn-white')
+#    plt.rcParams['font.family'] = 'serif'
+#    plt.rcParams['font.serif'] =  'Helvetica ' #'Palatino' # 'Ubuntu'
+#    plt.rcParams['font.monospace'] = 'Helvetica Mono' #'Palatino Mono' # 'Ubuntu'
+#    plt.rcParams['font.size'] = 16
+#    plt.rcParams['axes.labelsize'] = 16
+#    plt.rcParams['axes.labelweight'] = 'bold'
+#    plt.rcParams['axes.titlesize'] = 16
+#    plt.rcParams['xtick.labelsize'] = 16
+#    plt.rcParams['ytick.labelsize'] = 16
+#    plt.rcParams['legend.fontsize'] = 14
+#    plt.rcParams['figure.titlesize'] = 16
+#    plt.rcParams['lines.linewidth'] = 2.0
+#    plt.rcParams['grid.color'] = 'k'
+#    plt.rcParams['grid.linestyle'] = ':'
+#    plt.rcParams['grid.linewidth'] = 0.5
+#    plt.rcParams['xtick.major.width'] = 2
+#    plt.rcParams['xtick.major.size'] = 6
+#    plt.rcParams['xtick.direction'] = 'in'
+#    plt.rcParams['ytick.major.width'] = 2
+#    plt.rcParams['ytick.major.size'] = 6
+#    plt.rcParams['ytick.direction'] = 'in'
     
     # -------------------------------------------------------------------------
-    # Get the input data
     
-    demand = input_data["demand"]
-    mix_matrix = input_data["mix_matrix"]
-    time_range = input_data["time_range"]
-    
-    legend_list = input_data["legend_list"]
-    title_text = input_data["title_text"]
+    text_file.write(technology_of_interest)
+    text_file.write("\n")
     
     # -------------------------------------------------------------------------
     
-    figsize_oneplot = (8, 6)
+    # Time period #1 and #2: maximum and minmum                
     
-    # -------------------------------------------------------------------------
-    # Figures 1-2 Hourly time series results
+    study_variable_dict = {
+            'window_size':      window_size,
+            'data':             technology_data, 
+            'print_option':     0,
+            }
     
-    optimization_time_steps = mix_matrix.shape[0]
-    x_data = np.arange(0, optimization_time_steps)    
-
-    # -------------------------------------------------------------------------
-
-    figure1 = plt.figure(figsize=figsize_oneplot)
-    ax1 = figure1.add_subplot(2,2,1)
-
-    input_data_1 = {
-        "x_data_range":     time_range,
-        "x_data":           x_data, 
-        "y_data":           mix_matrix,
-        "ax":               ax1,
-        "x_label":          'Time (hour)',
-        "y_label":          'kW',
-        "title":            title_text,
-        "legend":           legend_list,
-        "line_width":       1,
-        'grid_option':      0,
-        }
-    func_lines_plot(input_data_1)
-    
-    # -------------------------
-    
-    #figure2 = plt.figure(figsize=figsize_oneplot)
-    ax2 = figure1.add_subplot(2,2,2)
-    
-    input_data_2 = {
-        "x_data_range":     time_range,
-        "x_data":           x_data, 
-        "y_data":           mix_matrix,
-        "ax":               ax2,
-        "x_label":          'Time (hour)',
-        "y_label":          'kW',
-        "title":            title_text,
-        "legend":           legend_list,
-        "line_width":       1,
-        'grid_option':      0,
-        }
-    
-    if "demand_line_for_dispatch_figure" in input_data.keys():       
+    study_variable_dict['search_option'] = 'max'
+    study_output_1 = func_find_period(study_variable_dict)    
+    time_range_1 = (study_output_1['left_index'], study_output_1['right_index'])
         
-        # line_width_z = 1/np.log(optimization_time_steps)*np.log(6)
-        
-        if (time_range[1] - time_range[0]) < 200:
-            line_width_z = 2
-        elif (time_range[1] - time_range[0]) < 1000:
-            line_width_z = 1.5
-        else:
-            line_width_z = 1
-        
-        input_data_2['z_data'] = demand
-        input_data_2['legend_z'] = 'demand'
-        input_data_2['line_width_z'] = line_width_z   
+    title_info_1 = (
+            technology_of_interest + " met {:.0f} hrs of avg. demand during hours: {}"
+            .format(study_output_1['value'], time_range_1)
+            )
 
-    func_stack_plot(input_data_2)    
+    text_file.write(
+            "{}, {}, {:.1f}\n".format(
+                    study_output_1['left_index'], 
+                    study_output_1['right_index'],
+                    study_output_1['value'])
+            )
 
-    # -------------------------
-
-    pdf_each = input_data["pdf_each"]
-
+    # ------------------------------------
     
-    plt.tight_layout(rect=[0,0,0.75,1])
-    pdf_each.savefig(figure1)
-    #plt.close()
+    study_variable_dict['search_option'] = 'min'
+    study_output_2 = func_find_period(study_variable_dict)
+    time_range_2 = (study_output_2['left_index'], study_output_2['right_index'])
+
+    title_info_2 = (
+            technology_of_interest + " met {:.0f} hrs of avg. demand during hours: {}"
+            .format(study_output_2['value'], time_range_2)
+            )
     
-    #pdf_each.savefig(figure2)
-    plt.close()
+    text_file.write(
+            "{}, {}, {:.1f}\n".format(
+                    study_output_2['left_index'], 
+                    study_output_2['right_index'],
+                    study_output_2['value'])
+            )
+    
+    # -------------------------------------------------------------------------
+    
+    # Generate graphics - time period #1
+        
+    # ----------------------------------
+    
+    # Call the functions to do the work
+    
+    input_data_1a = {
+            "time_range":                   time_range_1,
+            "demand_line_for_dispatch_figure":  1,
+            "demand":                       demand,
+            "mix_matrix":                   results_matrix_dispatch,
+            "pdf_each":                    pdf_each,
+            "title_text":                   case_name + ": Dispatch mix\n" + title_info_1,
+            "legend_list":                  legend_list_dispatch,        
+            }
+    
+    plot_results_time_series_1scenario(input_data_1a)    
+    
+    input_data_1b = {
+            "time_range":                   time_range_1,
+            "demand":                       demand,            
+            "mix_matrix":                   results_matrix_demand,
+            "pdf_each":                    pdf_each,
+            "title_text":                   case_name + ": Demand mix\n" + title_info_1,
+            "legend_list":                  legend_list_demand,        
+            }
+    
+    plot_results_time_series_1scenario(input_data_1b)    
+    
+    
+    # -------------------------------------------------------------------------
+    
+    # Generate graphics - time period #2
+           
+    
+    # ----------------------------------
+    
+    # Call the functions to do the work    
+    
+    input_data_2a = {
+            "time_range":                   time_range_2,
+            "demand":                       demand,
+            "demand_line_for_dispatch_figure":      1,
+            "mix_matrix":                   results_matrix_dispatch,
+            "pdf_each":                     pdf_each,
+            "title_text":                   case_name + ": Dispatch mix\n" + title_info_2,
+            "legend_list":                  legend_list_dispatch,        
+            }
+    
+    plot_results_time_series_1scenario(input_data_2a)    
+    
+    input_data_2b = {
+            "demand":                       demand,
+            "time_range":                   time_range_2,        
+            "mix_matrix":                   results_matrix_demand,
+            "pdf_each":                     pdf_each,
+            "title_text":                   case_name + ": Demand mix\n" + title_info_2,
+            "legend_list":                  legend_list_demand, 
+            }
+    
+    plot_results_time_series_1scenario(input_data_2b)
+
+    # -------------------------------------------------------------------------
+    
+def get_results_matrix_column(results_matrix,component_list_index_dic,component):
+    return results_matrix[:,component_list_index_dic[component]] 
+
+          
+
+
    
 #%%
 #==============================================================================
@@ -1283,372 +1653,6 @@ def func_graphics_system_results_Nscenarios (input_data):
     
     # -------------------------------------------------------------------------
     
-
-
-#%%
-# -----------------------------------------------------------------------------
-# func_graphics_dispatch_mix_technology_timeseries_1scenario()
-#
-# Function: 
-#   For a technology, find the week in which the share of demand met by this
-#       technology is at maximum or minimum. Then produce 2*2 figures for each
-#       such week.
-# 
-# Input
-#   A DICT variable named input_data, with the following keys:
-#    demand  -- for editing axes
-#   [choice about study scopes]        
-#    window_size
-#    technology_data   -- the share of demand met by this technology
-#    technology_of_interest -- the textual name of this technology
-#   [system-level data]
-#    results_matrix_dispatch <np.ndarray>
-#    results_matrix_demand <np.ndarray>
-#    legend_list_dispatch
-#    legend_list_demand
-#   [options for controling graphical output]      
-#    directory_output
-#    SAVE_FIGURES_TO_PDF
-#    graphics_file_name_prefix
-#    graphics_file_name_root
-#   [output file]
-#    text_file <file> -- an open file stream for outputs
-# 
-#   dimensions: results_matrix_dispatch, results_matrix_demand
-#       row: time_steps
-#       column: technology  options or demand types
-#        
-# Output    
-#   2*2 time series figures (line plot, stack plot) * (dispatch mix, demand mix)
-#   If you choose to save the files, five files will be saved.
-#
-# Functions called
-#   func_graphics_dispatch_mix_time_selection_1scenario()
-#
-# History
-#   June 22-23, 2018 drafted the function
-#
-# @ Fan Tong
-# -----------------------------------------------------------------------------
-
-def func_graphics_dispatch_mix_technology_timeseries_1scenario(input_data):
-
-    # -------------------------------------------------------------------------
-    
-    # load the data
-    
-    demand = input_data['demand']
-    
-    window_size = input_data['window_size']    
-    technology_data = input_data['technology_data']
-    technology_of_interest = input_data['technology_of_interest']
-    
-    results_matrix_dispatch = input_data['results_matrix_dispatch']
-    legend_list_dispatch = input_data['legend_list_dispatch']
-    results_matrix_demand = input_data['results_matrix_demand']
-    legend_list_demand = input_data['legend_list_demand']    
-    
-    pdf_each = input_data['pdf_each']  # file handle for pdf output    
-    text_file = input_data['text_file'] # file handle for text output
-    case_name = input_data['case_name']
-
-    # -------------------------------------------------------------------------
-    # Define the plotting style
-    
-    #plt.style.use('default')
-    plt.style.use('default')
-    # plt.style.use('bmh')
-    # plt.style.use('fivethirtyeight')
-    # plt.style.use('seaborn-white')
-#    plt.rcParams['font.family'] = 'serif'
-#    plt.rcParams['font.serif'] =  'Helvetica ' #'Palatino' # 'Ubuntu'
-#    plt.rcParams['font.monospace'] = 'Helvetica Mono' #'Palatino Mono' # 'Ubuntu'
-#    plt.rcParams['font.size'] = 16
-#    plt.rcParams['axes.labelsize'] = 16
-#    plt.rcParams['axes.labelweight'] = 'bold'
-#    plt.rcParams['axes.titlesize'] = 16
-#    plt.rcParams['xtick.labelsize'] = 16
-#    plt.rcParams['ytick.labelsize'] = 16
-#    plt.rcParams['legend.fontsize'] = 14
-#    plt.rcParams['figure.titlesize'] = 16
-#    plt.rcParams['lines.linewidth'] = 2.0
-#    plt.rcParams['grid.color'] = 'k'
-#    plt.rcParams['grid.linestyle'] = ':'
-#    plt.rcParams['grid.linewidth'] = 0.5
-#    plt.rcParams['xtick.major.width'] = 2
-#    plt.rcParams['xtick.major.size'] = 6
-#    plt.rcParams['xtick.direction'] = 'in'
-#    plt.rcParams['ytick.major.width'] = 2
-#    plt.rcParams['ytick.major.size'] = 6
-#    plt.rcParams['ytick.direction'] = 'in'
-    
-    # -------------------------------------------------------------------------
-    
-    text_file.write(technology_of_interest)
-    text_file.write("\n")
-    
-    # -------------------------------------------------------------------------
-    
-    # Time period #1 and #2: maximum and minmum                
-    
-    study_variable_dict = {
-            'window_size':      window_size,
-            'data':             technology_data, 
-            'print_option':     0,
-            }
-    
-    study_variable_dict['search_option'] = 'max'
-    study_output_1 = func_find_period(study_variable_dict)    
-    time_range_1 = (study_output_1['left_index'], study_output_1['right_index'])
-        
-    title_info_1 = (
-            technology_of_interest + " met {:.0f} hrs of avg. demand during hours: {}"
-            .format(study_output_1['value'], time_range_1)
-            )
-
-    text_file.write(
-            "{}, {}, {:.1f}\n".format(
-                    study_output_1['left_index'], 
-                    study_output_1['right_index'],
-                    study_output_1['value'])
-            )
-
-    # ------------------------------------
-    
-    study_variable_dict['search_option'] = 'min'
-    study_output_2 = func_find_period(study_variable_dict)
-    time_range_2 = (study_output_2['left_index'], study_output_2['right_index'])
-
-    title_info_2 = (
-            technology_of_interest + " met {:.0f} hrs of avg. demand during hours: {}"
-            .format(study_output_2['value'], time_range_2)
-            )
-    
-    text_file.write(
-            "{}, {}, {:.1f}\n".format(
-                    study_output_2['left_index'], 
-                    study_output_2['right_index'],
-                    study_output_2['value'])
-            )
-    
-    # -------------------------------------------------------------------------
-    
-    # Generate graphics - time period #1
-        
-    # ----------------------------------
-    
-    # Call the functions to do the work
-    
-    input_data_1a = {
-            "time_range":                   time_range_1,
-            "demand_line_for_dispatch_figure":  1,
-            "demand":                       demand,
-            "mix_matrix":                   results_matrix_dispatch,
-            "pdf_each":                    pdf_each,
-            "title_text":                   case_name + ": Dispatch mix\n" + title_info_1,
-            "legend_list":                  legend_list_dispatch,        
-            }
-    
-    func_graphics_dispatch_mix_time_selection_1scenario(input_data_1a)    
-    
-    input_data_1b = {
-            "time_range":                   time_range_1,
-            "demand":                       demand,            
-            "mix_matrix":                   results_matrix_demand,
-            "pdf_each":                    pdf_each,
-            "title_text":                   case_name + ": Demand mix\n" + title_info_1,
-            "legend_list":                  legend_list_demand,        
-            }
-    
-    func_graphics_dispatch_mix_time_selection_1scenario(input_data_1b)    
-    
-    
-    # -------------------------------------------------------------------------
-    
-    # Generate graphics - time period #2
-           
-    
-    # ----------------------------------
-    
-    # Call the functions to do the work    
-    
-    input_data_2a = {
-            "time_range":                   time_range_2,
-            "demand":                       demand,
-            "demand_line_for_dispatch_figure":      1,
-            "mix_matrix":                   results_matrix_dispatch,
-            "pdf_each":                     pdf_each,
-            "title_text":                   case_name + ": Dispatch mix\n" + title_info_2,
-            "legend_list":                  legend_list_dispatch,        
-            }
-    
-    func_graphics_dispatch_mix_time_selection_1scenario(input_data_2a)    
-    
-    input_data_2b = {
-            "demand":                       demand,
-            "time_range":                   time_range_2,        
-            "mix_matrix":                   results_matrix_demand,
-            "pdf_each":                     pdf_each,
-            "title_text":                   case_name + ": Demand mix\n" + title_info_2,
-            "legend_list":                  legend_list_demand, 
-            }
-    
-    func_graphics_dispatch_mix_time_selection_1scenario(input_data_2b)
-
-    # -------------------------------------------------------------------------
-    
-def get_results_matrix_column(results_matrix,component_list_index_dic,component):
-    return results_matrix[:,component_list_index_dic[component]] 
-
-          
-        
-        
-#%%
-# -----------------------------------------------------------------------------
-# func_optimization_results_time_series_1scenario()
-#
-# Function: 
-#   Given the locations (directories or file paths), load the data, perform the
-#   the analysis, generate the figures, and save the figures to files.     
-# 
-# Input
-#   A DICT variable named input_data, with the following keys:
-#    optimization_results_file_path
-#    directory_output
-#    graphics_file_name_prefix
-#    graphics_file_name_root
-#    SAVE_FIGURES_TO_PDF
-#
-# Output
-#   Three groups of figures. If you choose to save the files, five files will be saved.
-#       1 dispatch mix and demand mix for all hourly data
-#       2 dispatch mix and demand mix for selected ranges of data
-#           for technology A (energy storage)
-#       3 dispatch mix and demand mix for selected ranges of data
-#           for technology B (wind and solar)
-#
-#   A text file summarizing key information from these technology-focused analyses        
-#
-# Functions called
-#   func_graphics_dispatch_mix_1scenario()
-#   func_graphics_dispatch_mix_technology_timeseries_1scenario()
-#
-# History
-#   June 3, 2018 wrote the code
-#   June 19, 2018 packaged the code into this function
-#   June 20, 2018 modified the part load optimization data
-#   June 22-23, 2018 modified the part dealing with selected time periods
-#       called the function, func_graphics_dispatch_mix_technology_timeseries_1scenario()
-#        
-# -----------------------------------------------------------------------------
-def func_optimization_results_time_series_1scenario(input_data):
-    
-    # -------------------------------------------------------------------------
-
-    # load the input assumptions
-
-
-    # -------------------------------------------------------------------------
-
-#    # load the data    
-#   
-#    temp_dict = func_load_optimization_results(optimization_results_file_path)
-#    model_inputs = temp_dict['model_inputs']
-#    model_results = temp_dict['model_results']
-    
-    # -------------------------
-    
-    demand = input_data['demand']
-    results_matrix_dispatch = input_data['results_matrix_dispatch']   
-    results_matrix_demand = input_data['results_matrix_demand']
-    
-    # -------------------------------------------------------------------------
-    
-    
-    legend_list_dispatch = input_data['legend_list_dispatch']    
-    legend_list_demand = input_data['legend_list_demand']
-    
-    component_index_dispatch = input_data['component_index_dispatch']    
-    component_index_demand = input_data['component_index_demand']
-    
-    # -------------------------------------------------------------------------
-    
-    # Output the "characteristic" time periods and their metrics
-    
-    # Representative file name
-    #   storage_scenario_dispatch_and_demand_mix_1e-2_with_NG_.txt
-    
-    text_file = input_data['text_file']  # file handle for text file
-    
-    # -------------------------------------------------------------------------
-    
-    # Figure group #1 dispatch mix and demand mix for the whole data
-    #   using func_graphics_dispatch_mix_1scenario()
-    
-    # Right now, 12 figures will be generated.
-    # 2+2 (supply+demand) figures for each time resolution
-    # In total, three time resolutions (hourly, daily, weekly)
-        
-    
-    input_data_1 = {
-            "demand":                       demand,
-            "results_matrix_dispatch":      results_matrix_dispatch,
-            "results_matrix_demand":        results_matrix_demand,
-            "pdf_each":                     input_data['pdf_each'],
-            "legend_list_dispatch":         legend_list_dispatch,
-            "legend_list_demand":           legend_list_demand,
-            "case_name":                    input_data["case_name"]
-            }
-    
-    input_data_1["page_title"] = 'raw output'
-    func_graphics_dispatch_mix_1scenario(input_data_1,1)  # basic results by hour
-    input_data_1["page_title"] = 'daily averaging'
-    func_graphics_dispatch_mix_1scenario(input_data_1,24) # basic results by day
-    input_data_1["page_title"] = 'weekly averaging'
-    func_graphics_dispatch_mix_1scenario(input_data_1,24*7) # basic results by week
-    
-    
-    # -------------------------------------------------------------------------
-    window_size = 24*7*2 # 2 week window
-    technology_of_interest = 'STORAGE'
-    study_variable_dict = {
-            'window_size':      window_size,
-            'data':             results_matrix_dispatch[:,component_index_dispatch[technology_of_interest]], 
-            'print_option':     0,
-            'search_option':    'max'
-            }
-    
-    study_output_1 = func_find_period(study_variable_dict)    
-    start_hour = study_output_1['left_index']
-    end_hour = study_output_1['right_index']
-        
-    input_data_1["page_title"] = (
-            technology_of_interest + " met {:.0f} hrs of avg. demand during hours: {}"
-            .format(study_output_1['value'], (start_hour,end_hour))
-            )
-    func_graphics_dispatch_mix_1scenario(input_data_1,1,start_hour,end_hour)  # to storage max for 2 weeks
-   
-    # -------------------------------------------------------------------------
-    
-    window_size = 24*7*2 # 2 week window
-    technology_of_interest = 'STORAGE'
-    study_variable_dict = {
-            'window_size':      window_size,
-            'data':             results_matrix_dispatch[:,component_index_dispatch[technology_of_interest]], 
-            'print_option':     0,
-            'search_option':    'min'
-            }
-    
-    study_output_1 = func_find_period(study_variable_dict)    
-    start_hour = study_output_1['left_index']
-    end_hour = study_output_1['right_index']
-        
-    input_data_1["page_title"] = (
-            technology_of_interest + " met {:.0f} hrs of avg. demand during hours: {}"
-            .format(study_output_1['value'],  (start_hour,end_hour))
-            )
-    func_graphics_dispatch_mix_1scenario(input_data_1,1,start_hour,end_hour)  # to storage min for 2 weeks
-
 
 
 #%%

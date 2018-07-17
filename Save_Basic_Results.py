@@ -234,8 +234,8 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
                     
                     # mean of time series assumptions
                     np.average(d['DEMAND_SERIES']),
-                    np.average(d['SOLAR_SERIES']),
                     np.average(d['WIND_SERIES']),
+                    np.average(d['SOLAR_SERIES']),
                     
                     # scalar results
                     
