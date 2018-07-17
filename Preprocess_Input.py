@@ -1,65 +1,79 @@
 # -*- codiNatgas: utf-8 -*-
 """
-This code reads a file called 'case_input.csv' which is assumed to exist in the directory in which the code is running.
+File name: Preprocess_Input.py
+    This code reads a file called 'case_input.csv' which is assumed to exist in the directory in which the code is running.
+    It generates a result containing <assumption_list>. <assumption_list> is a list of dictionaries. 
+    Each element in that list corresponds to a different case to be run.
 
-It generates a result containing <global_dic> and <case_dic_list>
+Each dictionary in <assumption_list> ALWAYS contains:
+    
+    'system_components' -- list of components, choices are: WIND, SOLAR, NATGAS, NUCLEAR, STORAGE, PGP_STORAGE, UNMET_DEMAND
+    'root_path' -- path to data files
+    'demand_series' -- time series of demand data
+    'output_directory' -- string containing name of output directory
+    
+Each dictionary in <assumption_list> OPTIONALLY contains:
+    
+            'CAPACITY_COST_NATGAS' -- scalar
+            'CAPACITY_COST_NUCLEAR' -- scalar
+            'CAPACITY_COST_WIND' -- scalar
+            'CAPACITY_COST_SOLAR' -- scalar
+            'CAPACITY_COST_STORAGE' -- scalar
+            'CAPACITY_COST_PGP_STORAGE' -- scalar
+            'CAPACITY_COST_PGP_FUEL_CELL' -- scalar
 
-<global_dic> is a dictionary of values applied to all cases
-    
-<global_dic> contains:
-    
-    
-<case_dic_list> is a list of dictionaries. Each element in that list corresponds to a different case to be run.
+            'DISPATCH_COST_NATGAS' -- scalar
+            'DISPATCH_COST_NUCLEAR' -- scalar
+            'DISPATCH_COST_WIND' -- scalar
+            'DISPATCH_COST_SOLAR' -- scalar
+            'DISPATCH_COST_STORAGE' -- scalar
+            'DISPATCH_COST_TO_STORAGE' -- scalar
+            'DISPATCH_COST_FROM_STORAGE' -- scalar
+            'DISPATCH_COST_PGP_TO_STORAGE' -- scalar
+            'DISPATCH_COST_PGP_FROM_STORAGE' -- scalar
+            'DISPATCH_COST_UNMET_DEMAND' -- scalar
+            
+            'STORAGE_CHARGING_TIME' -- scalar
+            'STORAGE_CHARGING_EFFICIENCY' -- scalar
+            'PGP_STORAGE_CHARGING_EFFICIENCY' -- scalar
 
-    'ROOT_PATH' -- PATH TO DATA FILES
-    'OUTPUT_DIRECTORY' -- STRING CONTAINING NAME OF OUTPUT DIRECTORY
+            'WIND_CAPACITY_FILE' -- time series of wind capacity data
+            'SOLAR_CAPACITY_FILE' -- time series of solar capacity data
+            
+Current version: my180627
+    Modified from SEM-1-master for nuclear vs. renewables analysis.
 
-Each dictionary in <case_dic_list> ALWAYS contains:
-    
-    'SYSTEM_COMPONENTS' -- LIST OF COMPONENTS, CHOICES ARE: 'WIND','SOLAR', 'NATGAS','NUCLEAR','STORAGE', 'PGP_STORAGE', 'UNMET'
-    'DEMAND_SERIES' -- TIME SERIES OF DEMAND DATA
-    
-Each dictionary in <case_dic_list> OPTIONALLY contains:
-    
-           ["NUMERICS_COST_SCALING","NUMERICS_DEMAND_SCALING",
-             "END_DAY","END_HOUR","END_MONTH",
-            "END_YEAR","CAPACITY_COST_NATGAS","CAPACITY_COST_SOLAR","CAPACITY_COST_WIND",
-            "CAPACITY_COST_NUCLEAR","CAPACITY_COST_STORAGE",
-            "START_DAY","START_HOUR","START_MONTH",
-            "START_YEAR","STORAGE_CHARGING_EFFICIENCY",
-            "DISPATCH_COST_STORAGE","DISPATCH_COST_TO_STORAGE",
-            "DISPATCH_COST_NATGAS","DISPATCH_COST_SOLAR","STORAGE_DECAY_RATE",
-            "DISPATCH_COST_WIND","DISPATCH_COST_NUCLEAR","DISPATCH_COST_UNMET_DEMAND",
-            "STORAGE_CHARGING_TIME",
-            "CAPACITY_COST_PGP_STORAGE",
-            "CAPACITY_COST_TO_PGP_STORAGE","CAPACITY_COST_FROM_PGP_STORAGE",
-            "DISPATCH_COST_TO_PGP_STORAGE","DISPATCH_COST_FROM_PGP_STORAGE",
-            "PGP_STORAGE_CHARGING_EFFICIENCY"]
+Updates:
+    (a) cleaned up script (formatting, comments, etc.)
 
 """
 
+#%% import modules 
+
 import csv
+import sys
 import numpy as np
+import pickle
 
-
-#%%
-def import_case_input(case_input_path_filename):
-    # Import case_input.csv file from local directory.
+#%% read in input parameters and assumptions
+    # import case_input.csv file from local directory
     # return 2 objects: param_list, and case_list
     # <param_list> contains information that is true for all cases in the set of runs
     # <case_list> contains information that is true for a particular case
+
+def import_case_input(case_input_path_filename):
     
     # first open the file and define the reader
     f = open(case_input_path_filename)
     rdr = csv.reader(f)
     
-    #Throw away all lines up to and include the line that has "BEGIN_GLOBAL_DATA" in the first cell of the line
+    # throw away all lines up to and include the line that has "BEGIN_GLOBAL_DATA" in the first cell of the line
     while True:
         line = rdr.next()
         if line[0] == "BEGIN_GLOBAL_DATA":
             break
     
-    # Now take all non-blank lines until "BEGIN_ALL_CASES_DATA" or "BEGIN_CASE_DATA"
+    # now take all non-blank lines until "BEGIN_ALL_CASES_DATA" or "BEGIN_CASE_DATA"
     global_data = []
     while True:
         line = rdr.next()
@@ -68,7 +82,7 @@ def import_case_input(case_input_path_filename):
         if line[0] != "":
             global_data.append(line[0:2])
             
-    # Now take all non-blank lines until "BEGIN_CASE_DATA"
+    # now take all non-blank lines until "BEGIN_CASE_DATA"
     all_cases_data = []
     if line[0] == 'BEGIN_ALL_CASES_DATA':
         while True:
@@ -78,7 +92,7 @@ def import_case_input(case_input_path_filename):
             if line[0] != "":
                 all_cases_data.append(line[0:2])
             
-    # Now take all non-blank lines until "END_DATA"
+    # now take all non-blank lines until "END_DATA"
     case_data = []
     while True:
         line = rdr.next()
@@ -89,12 +103,14 @@ def import_case_input(case_input_path_filename):
             
     return global_data,all_cases_data,case_data
 
+#%% reformat input dates for reading in time-series data
+    # turn dates into yyyymmddhh format for comparison
+    # assumes all datasets are on the same time step and are not missing any data
+
 def read_csv_dated_data_file(start_year,start_month,start_day,start_hour,
                              end_year,end_month,end_day,end_hour,
                              data_path, data_filename):
     
-    # turn dates into yyyymmddhh format for comparison.
-    # Assumes all datasets are on the same time step and are not missing any data.
     start_hour = start_hour + 100 * (start_day + 100 * (start_month + 100* start_year)) 
     end_hour = end_hour + 100 * (end_day + 100 * (end_month + 100* end_year)) 
       
@@ -102,18 +118,20 @@ def read_csv_dated_data_file(start_year,start_month,start_day,start_hour,
     
     data = []
     with open(path_filename) as fin:
+        
         # read to keyword "BEGIN_DATA" and then one more line (header line)
         data_reader = csv.reader(fin)
         
-        #Throw away all lines up to and include the line that has "BEGIN_GLOBAL_DATA" in the first cell of the line
+        # throw away all lines up to and include the line that has "BEGIN_GLOBAL_DATA" in the first cell of the line
         while True:
             line = data_reader.next()
             if line[0] == "BEGIN_DATA":
                 break
-        # Now take the header row
+            
+        # now take the header row
         line = data_reader.next()
         
-        # Now take all non-blank lines
+        # now take all non-blank lines
         data = []
         while True:
             try:
@@ -128,20 +146,32 @@ def read_csv_dated_data_file(start_year,start_month,start_day,start_hour,
     
     hour_num = data_array[:,3] + 100 * (data_array[:,2] + 100 * (data_array[:,1] + 100* data_array[:,0]))   
     
-
     series = [item[1] for item in zip(hour_num,data_array[:,4]) if item[0]>= start_hour and item[0] <= end_hour]
     
     return series    
 
+#%% read in case input file and generate assumption list
+    # this is the highest level function that reads in the case input file
+    # and generates <assumption_list> from this input
+
+# definitions
+    # capacity cost -- cost per hour of capacity that must be incurred whether or 
+    # not a facility is actually generating electricity
+        # for generation technologies, units are $/h per kW capacity
+        # for storage technologies, units are $/h per kWh capacity
+    
+    # dispatch cost -- incremental cost per kWh of electricity generation from 
+    # a technology that represents the difference in cost between dispatching 
+    # and curtailing generation
+        # for generation and storage, units are in $ per kWh
+
 def preprocess_input(case_input_path_filename):
-    # This is the highest level function that reads in the case input file
-    # and generated <case_dic_list> from this input.
         
-    # -----------------------------------------------------------------------------
-    # Recognized keywords in case_input.csv file
+    # -------------------------------------------------------------------------
+    # recognized keywords in case_input.csv file
     
     keywords_logical = map(str.upper,
-            ["VERBOSE","POSTPROCESS","QUICK_LOOK","NORMALIZE_DEMAND_TO_ONE"]
+            ["VERBOSE","POSTPROCESS"]
             )
 
     keywords_str = map(str.upper,
@@ -162,41 +192,27 @@ def preprocess_input(case_input_path_filename):
             "DISPATCH_COST_WIND","DISPATCH_COST_NUCLEAR","DISPATCH_COST_UNMET_DEMAND",
             "STORAGE_CHARGING_TIME",
             "CAPACITY_COST_PGP_STORAGE",
-            "CAPACITY_COST_TO_PGP_STORAGE","CAPACITY_COST_FROM_PGP_STORAGE",
+            "CAPACITY_COST_PGP_FUEL_CELL",
             "DISPATCH_COST_TO_PGP_STORAGE","DISPATCH_COST_FROM_PGP_STORAGE",
             "PGP_STORAGE_CHARGING_EFFICIENCY"]
             )
     
-    #Capacity cost -- Cost per hour of capacity that must be incurred whether or 
-    #  not a facility is actually generating electricity. 
-    #  For generation technologies, units are $/h per kW capacity
-    
-    #Dispatch cost -- Incremental cost per kWh of electricity generation from 
-    #  a technology that represents the difference in cost between dispatching 
-    #  and curtailing generation. For generation, units are in $ per kWh
-    
-    # -----------------------------------------------------------------------------
-    # Read in case data file
-    
-    # <import_case_input> reads in the file from the csv file, but does not parse
-    # this data.
+    # -------------------------------------------------------------------------
+    # read in case data file
+        # <import_case_input> reads in the file from the csv file, but does not 
+        # parse this data
     global_data, all_cases_data, case_data = import_case_input(case_input_path_filename)
 
-    # -----------------------------------------------------------------------------
-    # the basic logic here is that if a keyword appears in the "global"
-    # section, then it is used for all cases if it is used in the "case" section
-    # then it applies to that particular case.
+    # -------------------------------------------------------------------------
+    # basic logic here:
+    # if a keyword appears in the "global" section, then it is used for all cases
+    # if it is used in the "case" section, then it applies to that particular case
         
-    # Parse global data
+    # parse global data
     global_dic = {}
-    #------DEFAULT VALUES ---------
-    # For now, default for quicklook output is FALSE
-    global_dic["QUICK_LOOK"] = False
-    global_dic["NORMALIZE_DEMAND_TO_ONE"] = False # If True, normalize mean demand to 1.0
     # default global values to help with numerical issues
-    global_dic["NUMERICS_COST_SCALING"] = 1e+12 # multiplies all costs by a factor and then divides at end
-    global_dic["NUMERICS_DEMAND_SCALING"] = 1e+12 # multiplies demand by a factor and then divides all costs and capacities at end
-    #------convert file input to dictionary of global data ---------
+    global_dic["NUMERICS_COST_SCALING"] = 1e+12     # multiplies all costs by a factor and then divides at end
+    global_dic["NUMERICS_DEMAND_SCALING"] = 1e+12   # multiplies demand by a factor and then divides all costs and capacities at end
     for list_item in global_data:
         test_key = str.upper(list_item[0])
         test_value = list_item[1]
@@ -212,7 +228,7 @@ def preprocess_input(case_input_path_filename):
     if verbose:
         print "Preprocess_Input.py: Preparing case input"
         
-    # Parse all_cases_dic data
+    # parse all_cases_dic data
     all_cases_dic = {}
     for list_item in all_cases_data:
         test_key = str.upper(list_item[0])
@@ -223,14 +239,16 @@ def preprocess_input(case_input_path_filename):
             all_cases_dic[test_key] = float(test_value)
         elif test_key in keywords_logical:
             all_cases_dic[test_key] = bool(test_value)
-    
+
 #    print all_cases_data
 #    print all_cases_dic        
-    case_transpose = map(list,zip(*case_data)) # transpose list of lists.
-    # Note that the above line could cause problems if not all numbers are
-    # entered uniformly in the case input file.
+
+    # transpose list of lists
+        # note that this line could cause problems if not all numbers are
+        # entered uniformly in the case input file
+    case_transpose = map(list,zip(*case_data))  
         
-    # Now each element of case_transpose is the potential keyword followed by data
+    # now each element of case_transpose is the potential keyword followed by data
     case_list_dic = {}
     for list_item in case_transpose:
         test_key = str.upper(list_item[0])
@@ -245,29 +263,27 @@ def preprocess_input(case_input_path_filename):
 #    print case_data
 #    print 'before adding ', case_list_dic
     
-    # Number of cases to run is number of rows in case input file.
-    # Num cases and verbose are the only non-case specific inputs in case_list_dic.
-    num_cases = len(case_data) - 1 # the 1 is for the keyword row
+    # number of cases to run is number of rows in case input file
+    # number of cases and verbose are the only non-case specific inputs in case_list_dic
+    num_cases = len(case_data) - 1  # the 1 is for the keyword row
     global_dic['NUM_CASES'] = num_cases
     
     # now add global variables to case_list_dic
     for keyword in all_cases_dic.keys():
         if keyword not in case_list_dic.keys():  # make sure that the specific cases override global
-            case_list_dic[keyword] = [all_cases_dic[keyword] for i in range(num_cases)] # replicate values
+            case_list_dic[keyword] = [all_cases_dic[keyword] for i in range(num_cases)]     # replicate values
 
     # define all keywords in dictionary, but set to -1 if not present    
     dummy = [-1 for i in range(num_cases)]
     for keyword in list(set(keywords_real).difference(case_list_dic.keys())):
         case_list_dic[keyword] = dummy
     
-    # ok, now we have everything from the case_input file in case_list_dic.
-    # Let's add the other things we need. First, we will see what system components
-    # are used in each case.
-    
+    # -------------------------------------------------------------------------
+    # ok, now we have everything from the case_input file in case_list_dic
+    # let's add the other things we need
+    # first, we will see what system components are used in each case
     # for wind, solar, and demand, we also need to get the relevant demand files
-    
-
-    
+        
     have_keys = case_list_dic.keys()
 
     solar_series_list = []
@@ -276,7 +292,7 @@ def preprocess_input(case_input_path_filename):
 
     for case_index in range(num_cases):
         if verbose:
-            print 'Preprocess_Input.py: time series for ',case_list_dic['CASE_NAME'][case_index]
+            print 'Preprocess_Input.py: Time series for ',case_list_dic['CASE_NAME'][case_index]
                 
         # first read in demand series (which must exist)
         demand_series_list.append(
@@ -295,7 +311,7 @@ def preprocess_input(case_input_path_filename):
             )
             
         # check on each technology one by one
-
+            
         if 'CAPACITY_COST_SOLAR' in have_keys:
             if case_list_dic['CAPACITY_COST_SOLAR'][case_index] >= 0:
                 solar_series_list.append(
@@ -338,22 +354,23 @@ def preprocess_input(case_input_path_filename):
         else:
             wind_series_list.append([])
         
-    if global_dic['NORMALIZE_DEMAND_TO_ONE']:
-        case_list_dic['DEMAND_SERIES'] =demand_series_list / np.average(demand_series_list)
-    else:
-        case_list_dic['DEMAND_SERIES'] = demand_series_list
+    case_list_dic['DEMAND_SERIES'] = demand_series_list
     case_list_dic['WIND_SERIES'] = wind_series_list
     case_list_dic['SOLAR_SERIES'] = solar_series_list
-                                                
-    # Now develop list of component lists
-    # If any of the cost variables for a technology is negative, that technology is assumed 
-    # not to be in the mix.
+                                          
+    # -------------------------------------------------------------------------
+    # now develop list of component lists
+    # if any of the cost variables for a technology is negative, that technology is assumed 
+    # not to be in the mix
     
     list_of_component_lists = []
+    
     for case_index in range(num_cases):
         if verbose:
-            print 'Preprocess_Input.py:Components for ',case_list_dic['CASE_NAME'][case_index]
+            print 'Preprocess_Input.py: Components for ',case_list_dic['CASE_NAME'][case_index]
+            
         component_list = []
+
         if 'CAPACITY_COST_NUCLEAR' in have_keys:
             if case_list_dic['CAPACITY_COST_NUCLEAR'][case_index] >= 0 and case_list_dic['DISPATCH_COST_NUCLEAR'][case_index] >= 0 :
                 component_list.append('NUCLEAR')
@@ -371,7 +388,7 @@ def preprocess_input(case_input_path_filename):
                 component_list.append('SOLAR')
                                                 
         if 'CAPACITY_COST_STORAGE' in have_keys:
-            if case_list_dic['CAPACITY_COST_STORAGE'][case_index] >= 0 and case_list_dic['DISPATCH_COST_TO_STORAGE'][case_index] >= 0  and case_list_dic['DISPATCH_COST_FROM_STORAGE'][case_index] >= 0 :
+            if case_list_dic['CAPACITY_COST_STORAGE'][case_index] >= 0 and case_list_dic['DISPATCH_COST_FROM_STORAGE'][case_index] >= 0  and case_list_dic['DISPATCH_COST_TO_STORAGE'][case_index] >= 0 :
                 component_list.append('STORAGE')
                 
         if 'CAPACITY_COST_PGP_STORAGE' in have_keys:
@@ -384,16 +401,18 @@ def preprocess_input(case_input_path_filename):
                 component_list.append('UNMET_DEMAND')
                                 
         list_of_component_lists.append(component_list)
+        
     case_list_dic['SYSTEM_COMPONENTS'] = list_of_component_lists
     
-    #Now case_dic is a dictionary of lists. We want to turn it into a list
-    # of dictionaries.  The method for doing this is taken from:
+    # -------------------------------------------------------------------------
+    # now case_dic is a dictionary of lists
+    # we want to turn it into a list of dictionaries
+    # the method for doing this is taken from:
     # https://stackoverflow.com/questions/5558418/list-of-dicts-to-from-dict-of-lists
     
     # case_dic_list = [dict(zip(case_list_dic,t)) for t in zip(*case_list_dic.values())]
     
-    # The fancy thing didn't work for me so I will brute force it.
-    #
+    # the fancy thing didn't work for me so I will brute force it
     keywords = case_list_dic.keys()
     case_dic_list = [ {} for  case in range(num_cases)]
     for i in range(num_cases):
@@ -403,5 +422,4 @@ def preprocess_input(case_input_path_filename):
         case_dic_list[i] = dic
     
     return global_dic,case_dic_list
-
              

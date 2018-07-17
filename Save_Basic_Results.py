@@ -2,15 +2,21 @@
 # -*- coding: utf-8 -*-
 
 """
+File name: Save_Basic_Results.py
+    Save basic results from Core_Model as pickle and .csv files.
 
-Save_Basic_Results.py
+Current version: my180628-const-nuc-A
+    Modified from SEM-1-my180627 for nuclear vs. renewables analysis.
+    Nuclear, wind, and solar represented by Formulation A (previously Formulation 2A') with nonzero curtailment (generic equations).
+    Note: This version is the same as SEM-1-my180628 but renamed to avoid confusion.
 
-save basic results for the simple energy model
+Updates (from SEM-1-my180628):
+    (a) separated curtailment of solar, wind, and nuclear
+        - checked results against -my180627, system cost and total curtailment in agreement
     
 """
 
-# -----------------------------------------------------------------------------
-
+#%% import modules
 
 import os
 import numpy as np
@@ -19,17 +25,35 @@ import datetime
 import contextlib
 import pickle
 
-# Core function
-#   Linear programming
-#   Output postprocessing
+#%% merge two dictionaries
+def merge_two_dicts(x, y):
+    z = x.copy()   # start with x's keys and values
+    z.update(y)    # modifies z with y's keys and values & returns none
+    return z
 
-#    case_dic = { 
-#            'input_folder':input_folder, 
-#            'output_folder':output_folder, 
-#            'output_file_name':base_case_switch + "_" + case_switch+".csv",
-#            'base_case_switch':base_case_switch,
-#            'case_switch':case_switch
-#            }
+#%% save results in pickle and .csv files
+def save_basic_results(global_dic, case_dic_list, result_list ):
+    
+    verbose = global_dic['VERBOSE']
+    if verbose:
+        print 'Save_Basic_Results.py: Pickling raw results'
+    # save results in pickle file
+    pickle_raw_results(global_dic, case_dic_list, result_list )
+    
+    if verbose:
+        print 'Save_Basic_Results.py: Saving vector results'
+    # save time-series results in series of .csv files
+    save_vector_results_as_csv(global_dic, case_dic_list, result_list )
+    
+    if verbose:
+        print 'Save_Basic_Results.py: Saving key scalar results'
+    # save key results in summary .csv file (time-series results are averaged)
+    scalar_names,scalar_table = postprocess_key_scalar_results(global_dic, case_dic_list, result_list )
+    
+    return scalar_names,scalar_table
+
+#%% save results in pickle file
+
 def pickle_raw_results( global_dic, case_dic_list, result_list ):
     
     output_path = global_dic['OUTPUT_PATH']
@@ -43,31 +67,7 @@ def pickle_raw_results( global_dic, case_dic_list, result_list ):
     with open(output_folder + "/" + output_file_name, 'wb') as db:
         pickle.dump([global_dic,case_dic_list,result_list], db, protocol=pickle.HIGHEST_PROTOCOL)
 
-def merge_two_dicts(x, y):
-    z = x.copy()   # start with x's keys and values
-    z.update(y)    # modifies z with y's keys and values & returns None
-    return z
-
-def save_basic_results(global_dic, case_dic_list, result_list ):
-    
-    verbose = global_dic['VERBOSE']
-    if verbose:
-        print 'Save_Basic_Results.py: Pickling raw results'
-    # put raw results in file for later analysis
-    pickle_raw_results(global_dic, case_dic_list, result_list )
-    
-    if verbose:
-        print 'Save_Basic_Results.py: saving vector results'
-    # Do the most basic scalar analysis
-    save_vector_results_as_csv(global_dic, case_dic_list, result_list )
-    
-    if verbose:
-        print 'Save_Basic_Results.py: saving key scalar results'
-    # Do the most basic scalar analysis
-    scalar_names,scalar_table = postprocess_key_scalar_results(global_dic, case_dic_list, result_list )
-    
-    return scalar_names,scalar_table
-
+#%% save time-series results in series of .csv files
 
 def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
     
@@ -94,46 +94,52 @@ def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
         header_list += ['demand (kW)']
         series_list.append( case_dic['DEMAND_SERIES'] )
         
-        header_list += ['solar capacity factor (kW)']
+        header_list += ['solar (kW)']   # input solar capacity factors
         series_list.append( np.array(case_dic['SOLAR_SERIES'])*result['CAPACITY_SOLAR'] )
+
+        header_list += ['wind (kW)']    # input wind capacity factors
+        series_list.append( np.array(case_dic['WIND_SERIES'])*result['CAPACITY_WIND'] )
         
-        header_list += ['dispatch_solar (kW per unit deployed)']
+        header_list += ['dispatch solar (kW)']
         series_list.append( result['DISPATCH_SOLAR'].flatten() )     
         
-        header_list += ['wind capacity factor (kW per unit deployed)']
-        series_list.append( np.array(case_dic['WIND_SERIES'])*result['CAPACITY_WIND'] )
-
         header_list += ['dispatch wind (kW)']
         series_list.append( result['DISPATCH_WIND'].flatten() )
         
-        header_list += ['dispatch_natgas (kW)']
+        header_list += ['dispatch natgas (kW)']
         series_list.append( result['DISPATCH_NATGAS'].flatten() )
         
-        header_list += ['dispatch_nuclear (kW)']
+        header_list += ['dispatch nuclear (kW)']
         series_list.append( result['DISPATCH_NUCLEAR'].flatten() )
         
-        header_list += ['dispatch_to_storage (kW)']
+        header_list += ['dispatch to storage (kW)']
         series_list.append( result['DISPATCH_TO_STORAGE'].flatten() )
         
-        header_list += ['dispatch_from_storage (kW)']
-        series_list.append( result['DISPATCH_FROM_STORAGE'].flatten() )  # THere is no FROM in dispatch results
+        header_list += ['dispatch from storage (kW)']
+        series_list.append( result['DISPATCH_FROM_STORAGE'].flatten() )
 
         header_list += ['energy storage (kWh)']
         series_list.append( result['ENERGY_STORAGE'].flatten() )
       
-        header_list += ['dispatch_to_pgp_storage (kW)']
+        header_list += ['dispatch to PGP storage (kW)']
         series_list.append( result['DISPATCH_TO_PGP_STORAGE'].flatten() )
         
-        header_list += ['dispatch_pgp_storage (kW)']
+        header_list += ['dispatch from PGP storage (kW)']
         series_list.append( result['DISPATCH_FROM_PGP_STORAGE'].flatten() )
 
-        header_list += ['energy pgp storage (kWh)']
+        header_list += ['energy PGP storage (kWh)']
         series_list.append( result['ENERGY_PGP_STORAGE'].flatten() )
         
-        header_list += ['dispatch_curtailment (kW)']
-        series_list.append( result['DISPATCH_CURTAILMENT'].flatten() )
+        header_list += ['curtailment solar (kW)']
+        series_list.append( result['CURTAILMENT_SOLAR'].flatten() )
         
-        header_list += ['dispatch_unmet_demand (kW)']
+        header_list += ['curtailment wind (kW)']
+        series_list.append( result['CURTAILMENT_WIND'].flatten() )
+
+        header_list += ['curtailment nuclear (kW)']
+        series_list.append( result['CURTAILMENT_NUCLEAR'].flatten() )
+        
+        header_list += ['dispatch unmet demand (kW)']
         series_list.append( result['DISPATCH_UNMET_DEMAND'].flatten() )
          
         output_file_name = case_dic['CASE_NAME']
@@ -143,7 +149,9 @@ def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
             writer.writerow(header_list)
             writer.writerows((np.asarray(series_list)).transpose())
             output_file.close()
-   
+
+#%% save key results in summary .csv file (time-series results are averaged)
+
 def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
     
     verbose = global_dic['VERBOSE']
@@ -151,65 +159,72 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
     combined_dic = map(merge_two_dicts,case_dic_list,result_list)
     
     scalar_names = [
+    
             'case name',
-            'capacity_cost_natgas ($/kW/h)',
-            'capacity_cost_solar ($/kW/h)',
-            'capacity_cost_wind ($/kW/h)',
-            'capacity_cost_nuclear ($/kW/h)',
-            'capacity_cost_storage (($/h)/kWh)',
-            'capacity_cost_pgp_storage (($/h)/kWh)',
             
-            'dispatch_cost_natgas ($/kWh)',
-            'dispatch_cost_solar ($/kWh)',
-            'dispatch_cost_wind ($/kWh)',
-            'dispatch_cost_nuclear ($/kWh)',
-            'dispatch_cost_to_storage ($/kWh)',
-            'dispatch_cost_storage ($/kWh)',
-            'dispatch_cost_to_pgp_storage ($/kWh)',
-            'dispatch_cost_pgp_storage ($/kWh)',
-            'dispatch_cost_unmet_demand ($/kWh)',
+            # assumptions: capacity costs
+            'capacity cost natgas ($/kW/h)',
+            'capacity cost solar ($/kW/h)',
+            'capacity cost wind ($/kW/h)',
+            'capacity cost nuclear ($/kW/h)',
+            'capacity cost storage ($/kWh/h)',
+            'capacity cost pgp storage ($/kWh/h)',
             
-            'storage_charging_efficiency',
-            'storage_charging_time (h)',
-            'storage_decay_rate (1/h)',
-            'pgp_storage_charging_efficiency',
+            # assumptions: dispatch costs
+            'dispatch cost natgas ($/kWh)',
+            'dispatch cost solar ($/kWh)',
+            'dispatch cost wind ($/kWh)',
+            'dispatch cost nuclear ($/kWh)',
+            'dispatch cost to storage ($/kWh)',
+            'dispatch cost from storage ($/kWh)',
+            'dispatch cost to pgp storage ($/kWh)',
+            'dispatch cost from pgp storage ($/kWh)',
+            'dispatch cost unmet demand ($/kWh)',
             
-            'mean demand (kW)',
-            'capacity factor wind series (kW)',
-            'capacity factor solar series (kW)',
+            # assumptions: storage efficiencies
+            'storage charging efficiency',
+            'storage charging time (h)',
+            'storage decay rate (1/h)',
+            'pgp storage charging efficiency',
             
-            'capacity_natgas (kW)',
-            'capacity_solar (kW)',
-            'capacity_wind (kW)',
-            'capacity_nuclear (kW)',
-            'capacity_storage (kWh)',
-            'capacity_pgp_storage (kWh)',
-            'capacity_to_pgp_storage (kW)',
-            'capacity_from_pgp_storage (kW)',
-            'system_cost ($/kW/h)', # assuming demand normalized to 1 kW
-            'problem_status',
+            # inputs: averaged demand and wind and solar capacity factors
+            'demand (kW)',
+            'solar capacity (kW)',
+            'wind capacity (kW)',
             
-            'dispatch_natgas (kW)',
-            'dispatch_solar (kW)',
-            'dispatch_wind (kW)',
-            'dispatch_nuclear (kW)',
-            'dispatch_to_storage (kW)',
-            'dispatch_from_storage (kW)',
-            'energy_storage (kWh)',
-            'dispatch_to_pgp_storage (kW)',
-            'dispatch_pgp_storage (kW)',
-            'energy_pgp_storage (kWh)',
-            'dispatch_curtailment (kW)',
-            'dispatch_unmet_demand (kW)'
+            # results: capacity, system cost, problem status
+            'capacity natgas (kW)',
+            'capacity solar (kW)',
+            'capacity wind (kW)',
+            'capacity nuclear (kW)',
+            'capacity storage (kWh)',
+            'capacity pgp storage (kWh)',
+            'capacity pgp fuel cell (kW)',
+            'system cost ($/kW/h)',     # assuming demand normalized to 1 kW
+            'problem status',
             
+            # results: averaged dispatch and curtailment
+            'dispatch natgas (kW)',
+            'dispatch solar (kW)',
+            'dispatch wind (kW)',
+            'dispatch nuclear (kW)',
+            'dispatch to storage (kW)',
+            'dispatch from storage (kW)',
+            'energy storage (kWh)',
+            'dispatch to pgp storage (kW)',
+            'dispatch from pgp storage (kW)',
+            'energy pgp storage (kWh)',
+            'curtailment solar (kW)',
+            'curtailment wind (kW)',
+            'curtailment nuclear (kW)',
+            'dispatch unmet demand (kW)'
             
             ]
 
     scalar_table = [
             [       d['CASE_NAME'],
              
-                    # assumptions
-                    
+                    # assumptions: capacity costs                    
                     d['CAPACITY_COST_NATGAS'],
                     d['CAPACITY_COST_SOLAR'],
                     d['CAPACITY_COST_WIND'],
@@ -217,6 +232,7 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
                     d['CAPACITY_COST_STORAGE'],
                     d['CAPACITY_COST_PGP_STORAGE'],
                     
+                    # assumptions: dispatch costs
                     d['DISPATCH_COST_NATGAS'],
                     d['DISPATCH_COST_SOLAR'],
                     d['DISPATCH_COST_WIND'],
@@ -227,31 +243,29 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
                     d['DISPATCH_COST_FROM_PGP_STORAGE'],
                     d['DISPATCH_COST_UNMET_DEMAND'],
                     
+                    # assumptions: storage efficiencies
                     d['STORAGE_CHARGING_EFFICIENCY'],
                     d['STORAGE_CHARGING_TIME'],
                     d['STORAGE_DECAY_RATE'],
                     d['PGP_STORAGE_CHARGING_EFFICIENCY'],
                     
-                    # mean of time series assumptions
+                    # inputs: averaged demand and wind and solar capacity factors
                     np.average(d['DEMAND_SERIES']),
-                    np.average(d['WIND_SERIES']),
                     np.average(d['SOLAR_SERIES']),
+                    np.average(d['WIND_SERIES']),
                     
-                    # scalar results
-                    
+                    # results: capacity, system cost, problem status
                     d['CAPACITY_NATGAS'],
                     d['CAPACITY_SOLAR'],
                     d['CAPACITY_WIND'],
                     d['CAPACITY_NUCLEAR'],
                     d['CAPACITY_STORAGE'],
                     d['CAPACITY_PGP_STORAGE'],
-                    d['CAPACITY_TO_PGP_STORAGE'],
-                    d['CAPACITY_FROM_PGP_STORAGE'],
+                    d['CAPACITY_PGP_FUEL_CELL'],
                     d['SYSTEM_COST'],
                     d['PROBLEM_STATUS'],
                     
-                    # mean of time series results                
-                                
+                    # results: averaged dispatch
                     np.average(d['DISPATCH_NATGAS']),
                     np.average(d['DISPATCH_SOLAR']),
                     np.average(d['DISPATCH_WIND']),
@@ -262,11 +276,12 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
                     np.average(d['DISPATCH_TO_PGP_STORAGE']),
                     np.average(d['DISPATCH_FROM_PGP_STORAGE']),
                     np.average(d['ENERGY_PGP_STORAGE']),
-                    np.average(d['DISPATCH_CURTAILMENT']),
+                    np.average(d['CURTAILMENT_SOLAR']),
+                    np.average(d['CURTAILMENT_WIND']),
+                    np.average(d['CURTAILMENT_NUCLEAR']),
                     np.average(d['DISPATCH_UNMET_DEMAND'])
-                    
-                    
              ]
+             
             for d in combined_dic
             ]
             
@@ -291,20 +306,4 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
         print 'file written: ' + output_file_name + '.csv'
     
     return scalar_names,scalar_table
-    
-def out_csv(output_folder,output_file_name,names,table,verbose):
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
         
-    with contextlib.closing(open(output_folder + "/" + output_file_name +'.csv', 'wb')) as output_file:
-        writer = csv.writer(output_file)
-        writer.writerow(names)
-        writer.writerows(table)
-        output_file.close()
-        
-    if verbose: 
-        print 'file written: ' + output_file_name + '.csv'
-    
-
-
-    
