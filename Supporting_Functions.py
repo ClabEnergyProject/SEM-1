@@ -45,8 +45,9 @@ History
 from __future__ import division
 import os
 import sys
+import copy
 import numpy as np
-from matplotlib.font_manager import FontProperties
+
 
 # -----------------------------------------------------------------------------
 # func_load_optimization_results()
@@ -295,6 +296,9 @@ def func_change_in_period (input_data, window_size):
 def func_find_period (input_data):
     
     window_size = input_data['window_size']
+    eff_window_size = copy.deepcopy(window_size) # If even go up to next odd number
+    if eff_window_size == 2 * int (eff_window_size /2 ):  # check if even
+        eff_window_size = eff_window_size + 1             # if so, add 1
     data = input_data['data']
     search_option = input_data['search_option']
     print_option = input_data['print_option']
@@ -303,26 +307,31 @@ def func_find_period (input_data):
     
     # Get the down-scaled data
     
-    data_in_window = func_time_conversion(data, window_size, 'mean')
+    data_in_window = func_time_conversion(data, eff_window_size, 'mean')
     
     # -------------------------------------------------------------------------
     
     if search_option == 'max':
         
-        center_index = np.argmax(data_in_window)
+        center_index = int(np.argmax(data_in_window))
         value = np.max(data_in_window)
         
     elif search_option == 'min':
 
-        center_index = np.argmin(data_in_window)
+        center_index = int(np.argmin(data_in_window))
         value = np.min(data_in_window)
 
     # -------------------------------------------------------------------------
+    # If interval would go over boundary, then move inteval
+    if center_index < int(eff_window_size/2):
+        center_index = int(eff_window_size/2)
+    if center_index > len(data)- int(eff_window_size/2) - 1:
+        center_index = len(data) - 1 - int(eff_window_size/2)
 
     # The same algorithm as in func_time_conversion()
 
-    left_index = max(0, int(center_index - window_size/2))
-    right_index = min(len(data), int(center_index + window_size/2 + 1))
+    left_index = center_index - int(eff_window_size/2)
+    right_index = center_index + int(eff_window_size/2)
 
     # -------------------------------------------------------------------------
 
@@ -477,11 +486,7 @@ def func_lines_plot(input_data):
         ax.set_title(input_data["title"])
 
     if "legend" in input_data.keys():
-        from matplotlib.font_manager import FontProperties
-
-        fontP = FontProperties()
-        fontP.set_size('small')
-        ax.legend(input_data["legend"],bbox_to_anchor=(1.04,1), borderaxespad=0,prop=fontP)    
+        ax.legend(input_data["legend"],bbox_to_anchor=(1.04,1),loc=2, borderaxespad=0)    
 
     if grid_option:
         ax.grid()
@@ -580,9 +585,7 @@ def func_lines_2yaxes_plot (input_data):
         ax1.set_title(input_data["title"])
 
     if "legend" in input_data.keys():
-        fontP = FontProperties()
-        fontP.set_size('small')
-        ax1.legend(input_data["legend"],bbox_to_anchor=(1.04,1), borderaxespad=0,prop=fontP)
+        ax1.legend(input_data["legend"],bbox_to_anchor=(1.04,1),loc=2, borderaxespad=0)
     
     return [ax1, ax2]
 
@@ -743,9 +746,7 @@ def func_stack_plot (input_data):
 
     if "legend" in input_data.keys():
 #        ax.legend(legend, loc='best')    
-        fontP = FontProperties()
-        fontP.set_size('small')
-        ax.legend(legend,bbox_to_anchor=(1.04,1), borderaxespad=0,prop=fontP)   # put legend to right of figure  
+        ax.legend(legend,bbox_to_anchor=(1.04,1),loc=2, borderaxespad=0)   # put legend to right of figure  
 
     if grid_option:
         ax.grid()
@@ -833,9 +834,7 @@ def func_PMF_plot(input_data):
         ax.set_title(input_data["title"])
 
     if "legend" in input_data.keys():
-        fontP = FontProperties()
-        fontP.set_size('small')
-        ax.legend(input_data["legend"],bbox_to_anchor=(1.04,1), borderaxespad=0,prop=fontP)        
+        ax.legend(input_data["legend"],bbox_to_anchor=(1.04,1),loc=2, borderaxespad=0)        
     
     x_axis_max = 1.1 * max(x_data)
     
