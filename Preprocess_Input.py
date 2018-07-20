@@ -42,6 +42,7 @@ import csv
 import numpy as np
 
 
+
 #%%
 def import_case_input(case_input_path_filename):
     # Import case_input.csv file from local directory.
@@ -131,7 +132,14 @@ def read_csv_dated_data_file(start_year,start_month,start_day,start_hour,
 
     series = [item[1] for item in zip(hour_num,data_array[:,4]) if item[0]>= start_hour and item[0] <= end_hour]
     
-    return series    
+    return series 
+
+def literal_to_boolean(text):
+    if text[:4]=='True' or text[:4]=='true' or text[:4]=='TRUE':
+        answer = True
+    else:
+        answer = False
+    return answer
 
 def preprocess_input(case_input_path_filename):
     # This is the highest level function that reads in the case input file
@@ -205,7 +213,7 @@ def preprocess_input(case_input_path_filename):
         elif test_key in keywords_real:
             global_dic[test_key] = float(test_value)
         elif test_key in keywords_logical:
-            global_dic[test_key] = bool(test_value)
+            global_dic[test_key] = literal_to_boolean(test_value)
     
     verbose = global_dic['VERBOSE']
 #    print global_dic
@@ -222,7 +230,7 @@ def preprocess_input(case_input_path_filename):
         elif test_key in keywords_real:
             all_cases_dic[test_key] = float(test_value)
         elif test_key in keywords_logical:
-            all_cases_dic[test_key] = bool(test_value)
+            all_cases_dic[test_key] = literal_to_boolean(test_value)
     
 #    print all_cases_data
 #    print all_cases_dic        
@@ -249,7 +257,8 @@ def preprocess_input(case_input_path_filename):
     # Num cases and verbose are the only non-case specific inputs in case_list_dic.
     num_cases = len(case_data) - 1 # the 1 is for the keyword row
     global_dic['NUM_CASES'] = num_cases
-    
+    print "POSTPROCESS = ",global_dic["POSTPROCESS"]
+        
     # now add global variables to case_list_dic
     for keyword in all_cases_dic.keys():
         if keyword not in case_list_dic.keys():  # make sure that the specific cases override global
