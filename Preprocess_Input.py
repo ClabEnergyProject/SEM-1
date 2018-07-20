@@ -135,7 +135,7 @@ def read_csv_dated_data_file(start_year,start_month,start_day,start_hour,
     return series 
 
 def literal_to_boolean(text):
-    if text[:4]=='True' or text[:4]=='true' or text[:4]=='TRUE':
+    if (text.strip())[0]=='T' or (text.strip())[0]=='t':  # if first non-space character is T or t, then True, else False
         answer = True
     else:
         answer = False
