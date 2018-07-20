@@ -68,7 +68,7 @@ def save_basic_results(global_dic, case_dic_list, result_list ):
     
     return scalar_names,scalar_table
 
-
+# save results by case
 def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
     
     output_path = global_dic['OUTPUT_PATH']
@@ -90,6 +90,9 @@ def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
         
         header_list = []
         series_list = []
+        
+        header_list += ['Time (hr)']
+        series_list.append( np.arange(len(case_dic['DEMAND_SERIES'])))
         
         header_list += ['demand (kW)']
         series_list.append( case_dic['DEMAND_SERIES'] )
@@ -143,7 +146,8 @@ def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
             writer.writerow(header_list)
             writer.writerows((np.asarray(series_list)).transpose())
             output_file.close()
-   
+ 
+# save scalar results for all cases
 def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
     
     verbose = global_dic['VERBOSE']
