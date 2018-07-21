@@ -134,6 +134,7 @@ def quick_look(pickle_file_name):
         if verbose:
             print 'preparing case ',case_idx,' ', case_dic['CASE_NAME']
         result_dic = result_list[case_idx] # get the results data for case in question
+        
         input_data = {} # Dictionary of input data for 1scenario graphics fucntion
         input_data["case_name"] = case_dic["CASE_NAME"]
         input_data["demand"] = np.array(case_dic["DEMAND_SERIES"])
@@ -171,6 +172,7 @@ def quick_look(pickle_file_name):
         input_data["component_index_dispatch"] = component_index_dispatch
         input_data["color_list_dispatch"] = color_list_dispatch
 
+        #----------------------------------------------------------------------
         # Now build the array of demand components to be plotted for this case
         # NOTE: this should  check that all these options are in the scenario
         # The next set of things gets electricity from the grid
@@ -195,7 +197,29 @@ def quick_look(pickle_file_name):
         input_data["legend_list_demand"] = legend_list_demand
         input_data["component_index_demand"] = component_index_demand
         input_data["color_list_demand"] = color_list_demand
+
+        #----------------------------------------------------------------------
+        # Now build the array of curtailment components to be plotted for this case
         
+        curtailment_dic = compute_curtailment(case_dic, result_dic)
+        
+        results_matrix_curtailment = []
+        legend_list_curtailment = []
+        color_list_curtailment = []
+        component_index_curtailment = {}
+        
+        for component in curtailment_dic.keys():
+            results_matrix_curtailment.append(curtailment_dic[component])
+            legend_list_curtailment.append(component + ' (kW)')
+            color_list_curtailment.append(eval('color_' + component))
+            component_index_curtailment[component] = len(results_matrix_curtailment)-1
+            
+        input_data["results_matrix_curtailment"] = np.transpose(np.array(results_matrix_curtailment))
+        input_data["legend_list_curtailment"] = legend_list_curtailment
+        input_data["component_index_curtailment"] = component_index_curtailment
+        input_data["color_list_curtailment"] = color_list_curtailment
+        
+        #----------------------------------------------------------------------
         input_data_list.append(input_data)
     if verbose:
         print 'input_data dictionaries created for plotting programs'
@@ -290,20 +314,26 @@ def prepare_plot_results_time_series_1scenario(input_data):
     demand = input_data['demand']
     results_matrix_dispatch = input_data['results_matrix_dispatch']   
     results_matrix_demand = input_data['results_matrix_demand']
+    results_matrix_curtailment = input_data['results_matrix_curtailment']
     
     # -------------------------------------------------------------------------
     
     
     legend_list_dispatch = input_data['legend_list_dispatch']    
     legend_list_demand = input_data['legend_list_demand']
+    legend_list_curtailment = input_data['legend_list_curtailment']
     
     color_list_dispatch = input_data['color_list_dispatch']    
     color_list_demand = input_data['color_list_demand']
+    color_list_curtailment = input_data['color_list_curtailment']
     
     component_index_dispatch = input_data['component_index_dispatch']    
     component_index_demand = input_data['component_index_demand']
+    component_index_curtailment = input_data['component_index_curtailment']
     
-    component_name_dispatch = {v: k for k, v in component_index_dispatch.iteritems()}
+    component_index_demand = input_data['component_index_demand']
+    
+    component_name_dispatch = {v: k for k, v in component_index_dispatch.items()}
     
     # -------------------------------------------------------------------------
     
@@ -328,14 +358,18 @@ def prepare_plot_results_time_series_1scenario(input_data):
             "demand":                       demand,
             "results_matrix_dispatch":      results_matrix_dispatch,
             "results_matrix_demand":        results_matrix_demand,
+            "results_matrix_curtailment":   results_matrix_curtailment,
             "pdf_each":                     input_data['pdf_each'],
             "legend_list_dispatch":         legend_list_dispatch,
             "legend_list_demand":           legend_list_demand,
+            "legend_list_curtailment":      legend_list_curtailment,
             "case_name":                    input_data["case_name"],
             "component_index_dispatch":     component_index_dispatch,
             "component_index_demand":       component_index_demand,
+            "component_index_curtailment":  component_index_curtailment,
             "color_list_dispatch":          color_list_dispatch,
             "color_list_demand":            color_list_demand,
+            "color_list_curtailment":       color_list_curtailment,
             }
     
     input_data_1["page_title"] = 'raw output'
@@ -344,8 +378,8 @@ def prepare_plot_results_time_series_1scenario(input_data):
     input_data_1["page_title"] = 'daily averaging'
     plot_results_time_series_1scenario(input_data_1,24) # basic results by day
     
-    input_data_1["page_title"] = 'weekly averaging'
-    plot_results_time_series_1scenario(input_data_1,24*7) # basic results by week
+    input_data_1["page_title"] = '10-day averaging'
+    plot_results_time_series_1scenario(input_data_1,24*10) # basic results by week
     
     # -------------------------------------------------------------------------
     # Find the week where storage dispatch is at its weekly max or min use
@@ -438,11 +472,14 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
     demand = input_data["demand"]
     results_matrix_dispatch = copy.deepcopy(input_data["results_matrix_dispatch"])
     results_matrix_demand = copy.deepcopy(input_data["results_matrix_demand"])
+    results_matrix_curtailment = copy.deepcopy(input_data["results_matrix_curtailment"])
     pdf_each = input_data["pdf_each"]
     legend_list_dispatch = input_data["legend_list_dispatch"]
     legend_list_demand = input_data["legend_list_demand"]
+    legend_list_curtailment = input_data["legend_list_curtailment"]
     color_list_dispatch = input_data["color_list_dispatch"]
     color_list_demand = input_data["color_list_demand"]
+    color_list_curtailment = input_data["color_list_curtailment"]
     case_name = input_data["case_name"]
 
     #NOTE: Averaging should occur before time subsetting
@@ -455,6 +492,9 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
     
             for i in xrange(results_matrix_demand.shape[1]):
                 results_matrix_demand [:,i] = func_time_conversion(results_matrix_demand[:,i],hours_to_avg)
+    
+            for i in xrange(results_matrix_curtailment.shape[1]):
+                results_matrix_curtailment [:,i] = func_time_conversion(results_matrix_curtailment[:,i],hours_to_avg)
 
             demand = func_time_conversion(demand,hours_to_avg)
             
@@ -467,8 +507,8 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
     # -------------------------------------------------------------------------
     # Define the plotting style
     plt.close() # Just make sure nothing is open ...
-    regular_font = 6
-    small_font = 5
+    regular_font = 5
+    small_font = 4
     #plt.style.use('default')
     plt.style.use('default')
     # plt.style.use('bmh')
@@ -497,7 +537,7 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
     plt.rcParams['ytick.major.size'] = 3
     plt.rcParams['ytick.direction'] = 'in'
 #    
-    figsize_oneplot = (8,6)
+    figsize_oneplot = (6.5,9)
     
     # -------------------------------------------------------------------------
     # Figures 1 Hourly time series results
@@ -513,7 +553,7 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
     # -------------
     
     figure1a = plt.figure(figsize=figsize_oneplot)
-    ax1a = figure1a.add_subplot(2,2,1)
+    ax1a = figure1a.add_subplot(3,2,1)
     ax1a.set_prop_cycle(cycler('color', color_list_dispatch))
     
     inputs_dispatch = {
@@ -524,7 +564,7 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
         "ax":               ax1a,
         "x_label":          'Time (hour)',
         "y_label":          'kW',
-        "title":            case_name +' hour '+str(start_hour)+' to '+str(end_hour)+'\nTo Grid '+avg_label,
+        "title":            case_name +' hour '+str(start_hour)+' to '+str(end_hour)+'\nElectricity sources '+avg_label,
 # If legend is not defined, no legend appears on plot
 # legend is provided by accompanying stacked area plot
 #        "legend":           legend_list_dispatch,  
@@ -545,7 +585,7 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
     # Now add legend for stack plot
     
     #figure1b = plt.figure(figsize=figsize_oneplot)
-    ax1b = figure1a.add_subplot(2,2,2)
+    ax1b = figure1a.add_subplot(3,2,2)
     ax1b.set_prop_cycle(cycler('color', color_list_dispatch))
     
     inputs_dispatch["ax"] = ax1b
@@ -559,7 +599,7 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
     # -------------  NOW DO DEMAND ---------------------
 
     #figure1c = plt.figure(figsize=figsize_oneplot)
-    ax1c = figure1a.add_subplot(2,2,3)
+    ax1c = figure1a.add_subplot(3,2,3)
     ax1c.set_prop_cycle(cycler('color', color_list_demand))
 
     inputs_demand = {
@@ -569,7 +609,7 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
         "ax":               ax1c,
         "x_label":          'Time (hour)',
         "y_label":          'kW',
-        "title":            case_name +' hour '+str(start_hour)+' to '+str(end_hour)+'\nFrom Grid '+avg_label,
+        "title":            case_name +' hour '+str(start_hour)+' to '+str(end_hour)+'\nElectricity sinks '+avg_label,
         
 # Don't print legend on line plot by not having it defined in this dictionary
 #        "legend":           legend_list_demand,
@@ -584,7 +624,7 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
     # -------------
     
     #figure1d = plt.figure(figsize=figsize_oneplot)
-    ax1d = figure1a.add_subplot(2,2,4)
+    ax1d = figure1a.add_subplot(3,2,4)
     ax1d.set_color_cycle(color_list_demand)
     ax1d.set_prop_cycle(cycler('color', color_list_demand))
 
@@ -592,6 +632,43 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
     inputs_demand["legend"] = legend_list_demand
     
     func_stack_plot(inputs_demand) 
+    
+    # -------------  NOW DO CURTAILMENT ---------------------
+
+    #figure1c = plt.figure(figsize=figsize_oneplot)
+    ax1e = figure1a.add_subplot(3,2,5)
+    ax1e.set_prop_cycle(cycler('color', color_list_curtailment))
+
+    inputs_curtailment = {
+        "x_data":           x_data[start_hour:end_hour], 
+        "y_data":           results_matrix_curtailment[start_hour:end_hour],
+        #'z_data':           demand,
+        "ax":               ax1e,
+        "x_label":          'Time (hour)',
+        "y_label":          'kW',
+        "title":            case_name +' hour '+str(start_hour)+' to '+str(end_hour)+'\nCurtailment '+avg_label,
+        
+# Don't print legend on line plot by not having it defined in this dictionary
+#        "legend":           legend_list_demand,
+        #"legend_z":         'demand',
+        "line_width":       0.5,
+        #"line_width_z":     0.2,
+        'grid_option':      0,
+        } 
+          
+    func_lines_plot(inputs_curtailment)
+    
+    # -------------
+    
+    #figure1d = plt.figure(figsize=figsize_oneplot)
+    ax1f = figure1a.add_subplot(3,2,6)
+    ax1f.set_color_cycle(color_list_curtailment)
+    ax1f.set_prop_cycle(cycler('color', color_list_curtailment))
+
+    inputs_curtailment["ax"] = ax1f
+    inputs_curtailment["legend"] = legend_list_curtailment
+    
+    func_stack_plot(inputs_curtailment) 
 
     # -------------
     plt.suptitle(input_data['page_title'])
@@ -1560,3 +1637,55 @@ def func_optimization_results_dispatch_var_Nscenarios(input_data):
     # call the function
     
     func_graphics_dispatch_var_Nscenarios(input_data_1)    
+                
+#=======================>>>> COMPUTE CURTAILMENT <<<<======================
+#
+#  Result of compute_curtailment is a dictionary of vectors where the keys
+#  are component (i.e., technology) names
+#
+#
+def compute_curtailment(case_dic, result_dic):
+    
+    system_components = case_dic["SYSTEM_COMPONENTS"]        
+    curtailment_dic = {}
+    
+    for component in system_components:
+        
+        if component == 'WIND':
+            wind_series = np.array(case_dic['WIND_SERIES'])
+            capacity_wind = np.array(result_dic['CAPACITY_WIND'])
+            dispatch_wind = np.array(result_dic['DISPATCH_WIND'])
+            curtailment_dic['WIND'] = wind_series * capacity_wind - dispatch_wind
+        
+        elif component == 'SOLAR':
+            solar_series = np.array(case_dic['SOLAR_SERIES'])
+            capacity_solar = np.array(result_dic['CAPACITY_SOLAR'])
+            dispatch_solar = np.array(result_dic['DISPATCH_SOLAR'])
+            curtailment_dic['SOLAR'] = solar_series * capacity_solar - dispatch_solar
+            
+        elif component == 'NATGAS':
+            curtailment_dic['NATGAS'] = np.array(result_dic['CAPACITY_NATGAS']) - np.array(result_dic['DISPATCH_NATGAS'])
+            
+        elif component == 'NUCLEAR':
+            curtailment_dic['NUCLEAR'] = np.array(result_dic['CAPACITY_NUCLEAR']) - np.array(result_dic['DISPATCH_NUCLEAR'])
+        
+    return curtailment_dic
+                
+                
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
