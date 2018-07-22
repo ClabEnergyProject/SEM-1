@@ -198,8 +198,8 @@ def preprocess_input(case_input_path_filename):
     # Parse global data
     global_dic = {}
     #------DEFAULT VALUES ---------
-    # For now, default for quicklook output is FALSE
-    global_dic["QUICK_LOOK"] = False
+    # For now, default for quicklook output is True
+    global_dic["QUICK_LOOK"] = True
     global_dic["NORMALIZE_DEMAND_TO_ONE"] = False # If True, normalize mean demand to 1.0
     # default global values to help with numerical issues
     global_dic["NUMERICS_COST_SCALING"] = 1e+12 # multiplies all costs by a factor and then divides at end

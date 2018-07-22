@@ -166,6 +166,10 @@ def quick_look(pickle_file_name):
         results_matrix_dispatch.append(result_dic["DISPATCH_CURTAILMENT"])
         color_list_dispatch.append(color_CURTAILMENT)
         component_index_dispatch["CURTAILMENT"] = len(results_matrix_dispatch)-1
+
+        max_dispatch = np.max([sum(i) for i in zip(*results_matrix_dispatch)])
+        input_data["max_dispatch"] = max_dispatch
+        print input_data["max_dispatch"]
         
         input_data["results_matrix_dispatch"] = np.transpose(np.array(results_matrix_dispatch))
         input_data["legend_list_dispatch"] = legend_list_dispatch
@@ -355,15 +359,16 @@ def prepare_plot_results_time_series_1scenario(input_data):
         
     
     input_data_1 = {
+            "pdf_each":                     input_data['pdf_each'],
+            "case_name":                    input_data["case_name"],
+            "max_dispatch":                 input_data["max_dispatch"],
             "demand":                       demand,
             "results_matrix_dispatch":      results_matrix_dispatch,
             "results_matrix_demand":        results_matrix_demand,
             "results_matrix_curtailment":   results_matrix_curtailment,
-            "pdf_each":                     input_data['pdf_each'],
             "legend_list_dispatch":         legend_list_dispatch,
             "legend_list_demand":           legend_list_demand,
             "legend_list_curtailment":      legend_list_curtailment,
-            "case_name":                    input_data["case_name"],
             "component_index_dispatch":     component_index_dispatch,
             "component_index_demand":       component_index_demand,
             "component_index_curtailment":  component_index_curtailment,
@@ -536,6 +541,7 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
     plt.rcParams['ytick.major.width'] = 0.5
     plt.rcParams['ytick.major.size'] = 3
     plt.rcParams['ytick.direction'] = 'in'
+        
 #    
     figsize_oneplot = (6.5,9)
     
@@ -574,6 +580,8 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
         'grid_option':      0,
         }        
 
+    ax1a.set_ylim([0, input_data["max_dispatch"]])
+    
     func_lines_plot(inputs_dispatch)
     
     # -------------
@@ -592,6 +600,8 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
  
     inputs_dispatch["legend"] = legend_list_dispatch 
     inputs_dispatch["legend_z"] = 'demand' 
+
+    ax1b.set_ylim([0, input_data["max_dispatch"]])
 
     func_stack_plot(inputs_dispatch)
     
@@ -619,6 +629,8 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
         'grid_option':      0,
         } 
           
+    ax1c.set_ylim([0, input_data["max_dispatch"]])
+
     func_lines_plot(inputs_demand)
     
     # -------------
@@ -630,6 +642,8 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
 
     inputs_demand["ax"] = ax1d
     inputs_demand["legend"] = legend_list_demand
+
+    ax1d.set_ylim([0, input_data["max_dispatch"]])
     
     func_stack_plot(inputs_demand) 
     
@@ -656,6 +670,8 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
         'grid_option':      0,
         } 
           
+    ax1e.set_ylim([0, input_data["max_dispatch"]])
+
     func_lines_plot(inputs_curtailment)
     
     # -------------
@@ -668,11 +684,13 @@ def plot_results_time_series_1scenario (input_data, hours_to_avg = None, start_h
     inputs_curtailment["ax"] = ax1f
     inputs_curtailment["legend"] = legend_list_curtailment
     
+    ax1f.set_ylim([0, input_data["max_dispatch"]])
+
     func_stack_plot(inputs_curtailment) 
 
     # -------------
     plt.suptitle(input_data['page_title'])
-    plt.tight_layout(rect=[0,0,0.75,0.95])
+    plt.tight_layout(rect=[0,0,0.75,0.975])
     pdf_each.savefig(figure1a)
     #plt.close()
     
@@ -771,6 +789,8 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
             'grid_option':   1,
             }        
             
+    ax1.set_ylim([0, input_data["max_dispatch"]])
+    
     func_lines_plot(inputs)
     
     pdf_all.savefig(figure1)
@@ -838,6 +858,8 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
             'grid_option':   0,
             }
     
+    ax2.set_ylim([0, input_data["max_dispatch"]])
+    
     func_lines_plot(inputs)
     
     pdf_all.savefig(figure2)
@@ -902,10 +924,12 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
             "legend":       legend_list,
             "line_width":    1,
             'grid_option':   0,
-            }        
+            }       
+    
+    ax3.set_ylim([0, input_data["max_dispatch"]])
             
     func_lines_plot(inputs)
-    
+
     pdf_all.savefig(figure3)
     #plt.close()
     
@@ -980,6 +1004,8 @@ def func_graphics_dispatch_var_Nscenarios (input_data):
             'grid_option':   0,
             }        
             
+    ax4.set_ylim([0, input_data["max_dispatch"]])
+
     func_lines_plot(inputs)
     
     pdf_all.savefig(figure4)
