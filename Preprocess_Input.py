@@ -1,5 +1,5 @@
 # -*- codiNatgas: utf-8 -*-
-"""
+'''
 This code reads a file called 'case_input.csv' which is assumed to exist in the directory in which the code is running.
 
 It generates a result containing <global_dic> and <case_dic_list>
@@ -21,22 +21,22 @@ Each dictionary in <case_dic_list> ALWAYS contains:
     
 Each dictionary in <case_dic_list> OPTIONALLY contains:
     
-           ["NUMERICS_COST_SCALING","NUMERICS_DEMAND_SCALING",
-             "END_DAY","END_HOUR","END_MONTH",
-            "END_YEAR","CAPACITY_COST_NATGAS","CAPACITY_COST_SOLAR","CAPACITY_COST_WIND",
-            "CAPACITY_COST_NUCLEAR","CAPACITY_COST_STORAGE",
-            "START_DAY","START_HOUR","START_MONTH",
-            "START_YEAR","STORAGE_CHARGING_EFFICIENCY",
-            "DISPATCH_COST_STORAGE","DISPATCH_COST_TO_STORAGE",
-            "DISPATCH_COST_NATGAS","DISPATCH_COST_SOLAR","STORAGE_DECAY_RATE",
-            "DISPATCH_COST_WIND","DISPATCH_COST_NUCLEAR","DISPATCH_COST_UNMET_DEMAND",
-            "STORAGE_CHARGING_TIME",
-            "CAPACITY_COST_PGP_STORAGE",
-            "CAPACITY_COST_TO_PGP_STORAGE","CAPACITY_COST_FROM_PGP_STORAGE",
-            "DISPATCH_COST_TO_PGP_STORAGE","DISPATCH_COST_FROM_PGP_STORAGE",
-            "PGP_STORAGE_CHARGING_EFFICIENCY"]
+           ['NUMERICS_COST_SCALING','NUMERICS_DEMAND_SCALING',
+             'END_DAY','END_HOUR','END_MONTH',
+            'END_YEAR','CAPACITY_COST_NATGAS','CAPACITY_COST_SOLAR','CAPACITY_COST_WIND',
+            'CAPACITY_COST_NUCLEAR','CAPACITY_COST_STORAGE',
+            'START_DAY','START_HOUR','START_MONTH',
+            'START_YEAR','STORAGE_CHARGING_EFFICIENCY',
+            'DISPATCH_COST_STORAGE','DISPATCH_COST_TO_STORAGE',
+            'DISPATCH_COST_NATGAS','DISPATCH_COST_SOLAR','STORAGE_DECAY_RATE',
+            'DISPATCH_COST_WIND','DISPATCH_COST_NUCLEAR','DISPATCH_COST_UNMET_DEMAND',
+            'STORAGE_CHARGING_TIME',
+            'CAPACITY_COST_PGP_STORAGE',
+            'CAPACITY_COST_TO_PGP_STORAGE','CAPACITY_COST_FROM_PGP_STORAGE',
+            'DISPATCH_COST_TO_PGP_STORAGE','DISPATCH_COST_FROM_PGP_STORAGE',
+            'PGP_STORAGE_CHARGING_EFFICIENCY']
 
-"""
+'''
 
 import csv
 import numpy as np
@@ -54,38 +54,38 @@ def import_case_input(case_input_path_filename):
     f = open(case_input_path_filename)
     rdr = csv.reader(f)
     
-    #Throw away all lines up to and include the line that has "BEGIN_GLOBAL_DATA" in the first cell of the line
+    #Throw away all lines up to and include the line that has 'BEGIN_GLOBAL_DATA' in the first cell of the line
     while True:
         line = rdr.next()
-        if line[0] == "BEGIN_GLOBAL_DATA":
+        if line[0] == 'BEGIN_GLOBAL_DATA':
             break
     
-    # Now take all non-blank lines until "BEGIN_ALL_CASES_DATA" or "BEGIN_CASE_DATA"
+    # Now take all non-blank lines until 'BEGIN_ALL_CASES_DATA' or 'BEGIN_CASE_DATA'
     global_data = []
     while True:
         line = rdr.next()
-        if line[0] == "BEGIN_ALL_CASES_DATA" or line[0] == 'BEGIN_CASE_DATA':
+        if line[0] == 'BEGIN_ALL_CASES_DATA' or line[0] == 'BEGIN_CASE_DATA':
             break
-        if line[0] != "":
+        if line[0] != '':
             global_data.append(line[0:2])
             
-    # Now take all non-blank lines until "BEGIN_CASE_DATA"
+    # Now take all non-blank lines until 'BEGIN_CASE_DATA'
     all_cases_data = []
     if line[0] == 'BEGIN_ALL_CASES_DATA':
         while True:
             line = rdr.next()
-            if line[0] == "BEGIN_CASE_DATA":
+            if line[0] == 'BEGIN_CASE_DATA':
                 break
-            if line[0] != "":
+            if line[0] != '':
                 all_cases_data.append(line[0:2])
             
-    # Now take all non-blank lines until "END_DATA"
+    # Now take all non-blank lines until 'END_DATA'
     case_data = []
     while True:
         line = rdr.next()
-        if line[0] == "END_DATA":
+        if line[0] == 'END_DATA':
             break
-        if line[0] != "":
+        if line[0] != '':
             case_data.append(line)
             
     return global_data,all_cases_data,case_data
@@ -103,13 +103,13 @@ def read_csv_dated_data_file(start_year,start_month,start_day,start_hour,
     
     data = []
     with open(path_filename) as fin:
-        # read to keyword "BEGIN_DATA" and then one more line (header line)
+        # read to keyword 'BEGIN_DATA' and then one more line (header line)
         data_reader = csv.reader(fin)
         
-        #Throw away all lines up to and include the line that has "BEGIN_GLOBAL_DATA" in the first cell of the line
+        #Throw away all lines up to and include the line that has 'BEGIN_GLOBAL_DATA' in the first cell of the line
         while True:
             line = data_reader.next()
-            if line[0] == "BEGIN_DATA":
+            if line[0] == 'BEGIN_DATA':
                 break
         # Now take the header row
         line = data_reader.next()
@@ -149,30 +149,30 @@ def preprocess_input(case_input_path_filename):
     # Recognized keywords in case_input.csv file
     
     keywords_logical = map(str.upper,
-            ["VERBOSE","POSTPROCESS","QUICK_LOOK","NORMALIZE_DEMAND_TO_ONE"]
+            ['VERBOSE','POSTPROCESS','QUICK_LOOK','NORMALIZE_DEMAND_TO_ONE']
             )
 
     keywords_str = map(str.upper,
-            ["DATA_PATH","DEMAND_FILE",
-             "SOLAR_CAPACITY_FILE","WIND_CAPACITY_FILE","OUTPUT_PATH",
-             "CASE_NAME","GLOBAL_NAME"]
+            ['DATA_PATH','DEMAND_FILE',
+             'SOLAR_CAPACITY_FILE','WIND_CAPACITY_FILE','OUTPUT_PATH',
+             'CASE_NAME','GLOBAL_NAME']
             )
     
     keywords_real = map(str.upper,
-            ["NUMERICS_COST_SCALING","NUMERICS_DEMAND_SCALING",
-             "END_DAY","END_HOUR","END_MONTH",
-            "END_YEAR","CAPACITY_COST_NATGAS","CAPACITY_COST_SOLAR","CAPACITY_COST_WIND",
-            "CAPACITY_COST_NUCLEAR","CAPACITY_COST_STORAGE",
-            "START_DAY","START_HOUR","START_MONTH",
-            "START_YEAR","STORAGE_CHARGING_EFFICIENCY",
-            "DISPATCH_COST_FROM_STORAGE","DISPATCH_COST_TO_STORAGE",
-            "DISPATCH_COST_NATGAS","DISPATCH_COST_SOLAR","STORAGE_DECAY_RATE",
-            "DISPATCH_COST_WIND","DISPATCH_COST_NUCLEAR","DISPATCH_COST_UNMET_DEMAND",
-            "STORAGE_CHARGING_TIME",
-            "CAPACITY_COST_PGP_STORAGE",
-            "CAPACITY_COST_TO_PGP_STORAGE","CAPACITY_COST_FROM_PGP_STORAGE",
-            "DISPATCH_COST_TO_PGP_STORAGE","DISPATCH_COST_FROM_PGP_STORAGE",
-            "PGP_STORAGE_CHARGING_EFFICIENCY"]
+            ['NUMERICS_COST_SCALING','NUMERICS_DEMAND_SCALING',
+             'END_DAY','END_HOUR','END_MONTH',
+            'END_YEAR','CAPACITY_COST_NATGAS','CAPACITY_COST_SOLAR','CAPACITY_COST_WIND',
+            'CAPACITY_COST_NUCLEAR','CAPACITY_COST_STORAGE',
+            'START_DAY','START_HOUR','START_MONTH',
+            'START_YEAR','STORAGE_CHARGING_EFFICIENCY',
+            'DISPATCH_COST_FROM_STORAGE','DISPATCH_COST_TO_STORAGE',
+            'DISPATCH_COST_NATGAS','DISPATCH_COST_SOLAR','STORAGE_DECAY_RATE',
+            'DISPATCH_COST_WIND','DISPATCH_COST_NUCLEAR','DISPATCH_COST_UNMET_DEMAND',
+            'STORAGE_CHARGING_TIME',
+            'CAPACITY_COST_PGP_STORAGE',
+            'CAPACITY_COST_TO_PGP_STORAGE','CAPACITY_COST_FROM_PGP_STORAGE',
+            'DISPATCH_COST_TO_PGP_STORAGE','DISPATCH_COST_FROM_PGP_STORAGE',
+            'PGP_STORAGE_CHARGING_EFFICIENCY']
             )
     
     #Capacity cost -- Cost per hour of capacity that must be incurred whether or 
@@ -191,19 +191,19 @@ def preprocess_input(case_input_path_filename):
     global_data, all_cases_data, case_data = import_case_input(case_input_path_filename)
 
     # -----------------------------------------------------------------------------
-    # the basic logic here is that if a keyword appears in the "global"
-    # section, then it is used for all cases if it is used in the "case" section
+    # the basic logic here is that if a keyword appears in the 'global'
+    # section, then it is used for all cases if it is used in the 'case' section
     # then it applies to that particular case.
         
     # Parse global data
     global_dic = {}
     #------DEFAULT VALUES ---------
     # For now, default for quicklook output is True
-    global_dic["QUICK_LOOK"] = True
-    global_dic["NORMALIZE_DEMAND_TO_ONE"] = False # If True, normalize mean demand to 1.0
+    global_dic['QUICK_LOOK'] = True
+    global_dic['NORMALIZE_DEMAND_TO_ONE'] = False # If True, normalize mean demand to 1.0
     # default global values to help with numerical issues
-    global_dic["NUMERICS_COST_SCALING"] = 1e+12 # multiplies all costs by a factor and then divides at end
-    global_dic["NUMERICS_DEMAND_SCALING"] = 1e+12 # multiplies demand by a factor and then divides all costs and capacities at end
+    global_dic['NUMERICS_COST_SCALING'] = 1e+12 # multiplies all costs by a factor and then divides at end
+    global_dic['NUMERICS_DEMAND_SCALING'] = 1e+12 # multiplies demand by a factor and then divides all costs and capacities at end
     #------convert file input to dictionary of global data ---------
     for list_item in global_data:
         test_key = str.upper(list_item[0])
@@ -218,7 +218,7 @@ def preprocess_input(case_input_path_filename):
     verbose = global_dic['VERBOSE']
 #    print global_dic
     if verbose:
-        print "Preprocess_Input.py: Preparing case input"
+        print 'Preprocess_Input.py: Preparing case input'
         
     # Parse all_cases_dic data
     all_cases_dic = {}
@@ -257,7 +257,7 @@ def preprocess_input(case_input_path_filename):
     # Num cases and verbose are the only non-case specific inputs in case_list_dic.
     num_cases = len(case_data) - 1 # the 1 is for the keyword row
     global_dic['NUM_CASES'] = num_cases
-    print "POSTPROCESS = ",global_dic["POSTPROCESS"]
+    print 'POSTPROCESS = ',global_dic['POSTPROCESS']
         
     # now add global variables to case_list_dic
     for keyword in all_cases_dic.keys():

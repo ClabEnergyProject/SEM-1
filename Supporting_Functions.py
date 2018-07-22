@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+'''
 Created on Fri Dec 01 16:31:28 2017
 
 File name: Supporting_Functions.py
@@ -40,7 +40,7 @@ History
     Jul 12, 2018 removed parallel axes for plots (KC)
 
 @author: Fan Tong
-"""
+'''
 
 from __future__ import division
 import os
@@ -79,7 +79,7 @@ def func_load_optimization_results(optimization_results_file_path):
 
     # print optimization_results_data_type
 
-    if optimization_results_data_type == ".npz":
+    if optimization_results_data_type == '.npz':
     
         # How was the files generated?        
         # The file ABC.npz was created using the SAVEZ function of the numpy package.
@@ -106,7 +106,7 @@ def func_load_optimization_results(optimization_results_file_path):
     
         # ---------------------------------------------------------------------
     
-    elif optimization_results_data_type == ".pkl":
+    elif optimization_results_data_type == '.pkl':
         
         import pickle
         
@@ -119,8 +119,8 @@ def func_load_optimization_results(optimization_results_file_path):
     # -------------------------------------------------------------------------
 
     output_data = {
-            "model_inputs":     model_inputs,
-            "model_results":    model_results,
+            'model_inputs':     model_inputs,
+            'model_results':    model_results,
             }
 
     return output_data
@@ -136,7 +136,7 @@ def func_load_optimization_results(optimization_results_file_path):
 #   input_data [one dimentional] data to be downscaled.
 #   window_size <scalar> downscale size, e.g. 24 (a day)
 #   operation_type <string> there are a number of downscale operations (namely,
-#       how to select a "representative/aggregate" from a set of data)
+#       how to select a 'representative/aggregate' from a set of data)
 #
 # Output
 #   output_data [one dimentional] data that is downscaled. Note the length has
@@ -168,7 +168,7 @@ def func_load_optimization_results(optimization_results_file_path):
 #   input_data [one dimentional]
 #   window_size [scalar] the length/size of the moving window
 #   operation_type <string> there are a number of downscale operations (namely,
-#       how to select a "representative/aggregate" from a set of data)
+#       how to select a 'representative/aggregate' from a set of data)
 #
 # Output
 #   output_data [one dimentional] data that consists of key statistics calculated
@@ -353,6 +353,97 @@ def func_find_period (input_data):
 
 #%%
 # -----------------------------------------------------------------------------
+# func_bar_plot()
+#
+# Function
+#   draw bar plots; each bar is independent from each other
+#
+# Input
+#   input_data, a DICT variable
+#   actual data:
+#       x_data [one dimensional] data for determining the x-axis indices
+#       y_data <np.ndarray> data for line plots. Each column is a (independent) line.
+#   figure handle:
+#       ax <figure>. It is usually generated this way
+#           fig = plt.figure(figsize=(8,8))
+#           ax = fig.add_subplot(111)
+#   plotting controls:
+#       line_width
+#       grid_option
+#       x_label
+#       y_label
+#       title
+#       legend
+#
+# Output
+#   ax <figure> subplot figure handle
+#
+# Usage
+#   plotting basic case information
+#
+# History
+#   Jun 22 2018 copied from Fang Tong code
+#
+# @ Ken Caldeira   
+# -----------------------------------------------------------------------------
+
+def func_bar_plot(input_data):
+    
+    x_data = input_data['x_data'] # should be character strings
+    y_data = input_data['y_data'] # should be numbers
+    ax = input_data['ax'] # should be axis handle from matplotlib
+    
+    # -------------------------------------------------------------------------
+    
+    # setting out the default values, if not provided
+    
+    if 'line_width' not in input_data.keys():
+         line_width  = 1
+    else:
+        line_width = input_data['line_width']
+        
+    if 'grid_option' not in input_data.keys():
+         grid_option = 0
+    else:
+         grid_option = input_data['grid_option']
+
+    # -------------------------------------------------------------------------
+
+    # each column is an (independent) bar
+    
+    idx = np.arange(len(x_data))
+    ax.xticks(idx,x_data)
+    ax.bar(idx, y_data)  
+    
+    str_val = ['{}%'.format(y_datum) for y_datum in y_data]
+    for i in n:
+        ax.text(i,child.get_bbox().y_data[i]*1.05,str_val[i], horizontalalignment ='center')
+ 
+    # -------------------------------------------------------------------------
+
+    # add the plotting styles when needed
+
+    if 'x_label' in input_data.keys():
+        ax.set_xlabel(input_data['x_label'])
+
+    if 'y_label' in input_data.keys():
+        ax.set_ylabel(input_data['y_label'])
+
+    # ----------------------------
+    
+    if 'title' in input_data.keys():
+        ax.set_title(input_data['title'])
+
+    if 'legend' in input_data.keys():
+        ax.legend(input_data['legend'],bbox_to_anchor=(1.04,1),loc=2, borderaxespad=0)    
+
+    if grid_option:
+        ax.grid()
+
+    return ax
+
+#%%
+# -----------------------------------------------------------------------------
 # func_lines_plot()
 #
 # Function
@@ -365,7 +456,7 @@ def func_find_period (input_data):
 #       y_data <np.ndarray> data for line plots. Each column is a (independent) line.
 #       y2_data <np.ndarray> data for line plots. Each column is a (independent) line.    
 #       x_data_range <tuple> determining the range to draw the plots. While its
-#           name includes "x_data", this variable applies to both x_data and y_data.
+#           name includes 'x_data', this variable applies to both x_data and y_data.
 #   figure handle:
 #       ax <figure>. It is usually generated this way
 #           fig = plt.figure(figsize=(8,8))
@@ -395,30 +486,30 @@ def func_find_period (input_data):
 
 def func_lines_plot(input_data):
     
-    x_data = input_data["x_data"]
-    y_data = input_data["y_data"]
-    ax = input_data["ax"]
+    x_data = input_data['x_data']
+    y_data = input_data['y_data']
+    ax = input_data['ax']
     
     # -------------------------------------------------------------------------
     
     # setting out the default values, if not provided
     
-    if "line_width" not in input_data.keys():
+    if 'line_width' not in input_data.keys():
          line_width  = 1
     else:
-        line_width = input_data["line_width"]
+        line_width = input_data['line_width']
         
-    if "grid_option" not in input_data.keys():
+    if 'grid_option' not in input_data.keys():
          grid_option = 0
     else:
-         grid_option = input_data["grid_option"]
+         grid_option = input_data['grid_option']
 
     # -------------------------------------------------------------------------
 
     # determining the plotting range, and then plot accordingly
 
     if 'x_data_range' in input_data.keys():
-        x_data_range = input_data["x_data_range"]
+        x_data_range = input_data['x_data_range']
     else:
         x_data_range = [0, x_data.size]
 
@@ -441,9 +532,9 @@ def func_lines_plot(input_data):
     # If a parallel (2nd) y-axis is needed ...
     # I think the code works best when the two axes are scalers of each other.
 
-    if "y2_data" in input_data.keys():
+    if 'y2_data' in input_data.keys():
         ax2 = ax.twinx()
-        y2_data = input_data["y2_data"]
+        y2_data = input_data['y2_data']
     
             # each column is a (independent) line
         if len(y_data.shape) > 1: 
@@ -458,17 +549,17 @@ def func_lines_plot(input_data):
                     y2_data[x_data_range[0]:x_data_range[1]], 
                     linewidth = line_width)
 
-        ax2.set_ylabel(input_data["y2_label"])
+        ax2.set_ylabel(input_data['y2_label'])
 
     # -------------------------------------------------------------------------
 
     # add the plotting styles when needed
 
-    if "x_label" in input_data.keys():
-        ax.set_xlabel(input_data["x_label"])
+    if 'x_label' in input_data.keys():
+        ax.set_xlabel(input_data['x_label'])
 
-    if "y_label" in input_data.keys():
-        ax.set_ylabel(input_data["y_label"])
+    if 'y_label' in input_data.keys():
+        ax.set_ylabel(input_data['y_label'])
         
     # ----------------------------
     # axis tickes
@@ -482,11 +573,11 @@ def func_lines_plot(input_data):
 
     # ----------------------------
     
-    if "title" in input_data.keys():
-        ax.set_title(input_data["title"])
+    if 'title' in input_data.keys():
+        ax.set_title(input_data['title'])
 
-    if "legend" in input_data.keys():
-        ax.legend(input_data["legend"],bbox_to_anchor=(1.04,1),loc=2, borderaxespad=0)    
+    if 'legend' in input_data.keys():
+        ax.legend(input_data['legend'],bbox_to_anchor=(1.04,1),loc=2, borderaxespad=0)    
 
     if grid_option:
         ax.grid()
@@ -563,29 +654,29 @@ def func_lines_2yaxes_plot (input_data):
     # -------------------------------------------------------------------------
     # decoration
     
-#    if "x_axis_log" in input_data.keys():
-#        ax1.set_xscale("log", nonposx='clip')
+#    if 'x_axis_log' in input_data.keys():
+#        ax1.set_xscale('log', nonposx='clip')
 #        
-#    if "y1_axis_log" in input_data.keys():       
-#        ax1.set_yscale("log", nonposx='clip')
+#    if 'y1_axis_log' in input_data.keys():       
+#        ax1.set_yscale('log', nonposx='clip')
 #        
-#    if "y2_axis_log" in input_data.keys():
-#        ax2.set_yscale("log", nonposx='clip')
+#    if 'y2_axis_log' in input_data.keys():
+#        ax2.set_yscale('log', nonposx='clip')
     
-    if "x_label" in input_data.keys():
-        ax1.set_xlabel(input_data["x_label"])
+    if 'x_label' in input_data.keys():
+        ax1.set_xlabel(input_data['x_label'])
 
-    if "y1_label" in input_data.keys():
-        ax1.set_ylabel(input_data["y1_label"], color='b')
+    if 'y1_label' in input_data.keys():
+        ax1.set_ylabel(input_data['y1_label'], color='b')
         
-    if "y2_label" in input_data.keys():
-        ax2.set_ylabel(input_data["y2_label"], color='r')
+    if 'y2_label' in input_data.keys():
+        ax2.set_ylabel(input_data['y2_label'], color='r')
     
-    if "title" in input_data.keys():
-        ax1.set_title(input_data["title"])
+    if 'title' in input_data.keys():
+        ax1.set_title(input_data['title'])
 
-    if "legend" in input_data.keys():
-        ax1.legend(input_data["legend"],bbox_to_anchor=(1.04,1),loc=2, borderaxespad=0)
+    if 'legend' in input_data.keys():
+        ax1.legend(input_data['legend'],bbox_to_anchor=(1.04,1),loc=2, borderaxespad=0)
     
     return [ax1, ax2]
 
@@ -603,7 +694,7 @@ def func_lines_2yaxes_plot (input_data):
 #       y_data <np.ndarray> data for line plots. Each column is a (independent) line.
 #       y2_data <np.ndarray> data for line plots. Each column is a (independent) line.     
 #       x_data_range <tuple> determining the range to draw the plots. While its
-#           name includes "x_data", this variable applies to both x_data and y_data.
+#           name includes 'x_data', this variable applies to both x_data and y_data.
 #   figure handle:
 #       ax <figure>. It is usually generated this way
 #           fig = plt.figure(figsize=(8,8))
@@ -638,36 +729,36 @@ def func_lines_2yaxes_plot (input_data):
 
 def func_stack_plot (input_data):
     
-    x_data = input_data["x_data"]
-    y_data = input_data["y_data"]
-    ax = input_data["ax"]
+    x_data = input_data['x_data']
+    y_data = input_data['y_data']
+    ax = input_data['ax']
     
     # -------------------------------------------------------------------------
     
     # setting out the default values, if not provided
     
-    if "line_width" not in input_data.keys():
+    if 'line_width' not in input_data.keys():
          line_width  = 1
     else:
-        line_width = input_data["line_width"]
+        line_width = input_data['line_width']
     
-    if "legend" not in input_data.keys():
+    if 'legend' not in input_data.keys():
         legend  = []
     else:
-        legend = input_data["legend"]
+        legend = input_data['legend']
 
     
-    if "grid_option" not in input_data.keys():
+    if 'grid_option' not in input_data.keys():
          grid_option = 0
     else:
-         grid_option = input_data["grid_option"]    
+         grid_option = input_data['grid_option']    
 
     # -----------------------------------------------------------------------
 
     # determining the plotting range, and then plot accordingly
 
     if 'x_data_range' in input_data.keys():
-        x_data_range = input_data["x_data_range"]
+        x_data_range = input_data['x_data_range']
     else:
         x_data_range = [0, x_data.size]        
         
@@ -681,41 +772,41 @@ def func_stack_plot (input_data):
     # If a parallel (2nd) y-axis is needed ...
     # I think the code works best when the two axes are scalers of each other.
 
-    if "y2_data" in input_data.keys():
+    if 'y2_data' in input_data.keys():
         
         ax2 = ax.twinx()
-        y2_data = input_data["y2_data"]
+        y2_data = input_data['y2_data']
     
         ax2.stackplot(
                 x_data[x_data_range[0]:x_data_range[1]], 
                 np.array(y2_data[x_data_range[0]:x_data_range[1], :].T),
                 linewidth = line_width)
     
-        ax2.set_ylabel(input_data["y2_label"])
+        ax2.set_ylabel(input_data['y2_label'])
 
     # -------------------------------------------------------------------------
 
-    # the use of "z_data" is to show the DEMAND line on the stacked plot (dispatch mix)
+    # the use of 'z_data' is to show the DEMAND line on the stacked plot (dispatch mix)
     # this is not the cleanest way, but bear with it
 
     if 'z_data' in input_data.keys():
         
-        # print "z plotting"
+        # print 'z plotting'
         
         ax.plot(
                 x_data[x_data_range[0]:x_data_range[1]], 
-                input_data["z_data"][x_data_range[0]:x_data_range[1]], 
+                input_data['z_data'][x_data_range[0]:x_data_range[1]], 
                 color='k', 
-                linewidth = input_data["line_width_z"])
+                linewidth = input_data['line_width_z'])
         
 #        ax2.plot(
 #                x_data[x_data_range[0]:x_data_range[1]], 
-#                input_data["z2_data"][x_data_range[0]:x_data_range[1]], 
+#                input_data['z2_data'][x_data_range[0]:x_data_range[1]], 
 #                color='k', 
-#                linewidth = input_data["line_width_z"])
+#                linewidth = input_data['line_width_z'])
         
-        # add "legend_z" at the beginning because this way could work
-        legend = np.concatenate(([input_data["legend_z"]], legend))
+        # add 'legend_z' at the beginning because this way could work
+        legend = np.concatenate(([input_data['legend_z']], legend))
         
         # print legend
 
@@ -723,11 +814,11 @@ def func_stack_plot (input_data):
 
     # add the plotting styles when needed
 
-    if "x_label" in input_data.keys():
-        ax.set_xlabel(input_data["x_label"])
+    if 'x_label' in input_data.keys():
+        ax.set_xlabel(input_data['x_label'])
 
-    if "y_label" in input_data.keys():
-        ax.set_ylabel(input_data["y_label"]) 
+    if 'y_label' in input_data.keys():
+        ax.set_ylabel(input_data['y_label']) 
 
     # ----------------------------
     # axis tickes
@@ -741,10 +832,10 @@ def func_stack_plot (input_data):
 
     # ----------------------------
 
-    if "title" in input_data.keys():
-        ax.set_title(input_data["title"])
+    if 'title' in input_data.keys():
+        ax.set_title(input_data['title'])
 
-    if "legend" in input_data.keys():
+    if 'legend' in input_data.keys():
 #        ax.legend(legend, loc='best')    
         ax.legend(legend,bbox_to_anchor=(1.04,1),loc=2, borderaxespad=0)   # put legend to right of figure  
 
@@ -770,7 +861,7 @@ def func_stack_plot (input_data):
 #       x_data [one dimensional] data for determining the x-axis indices
 #       y_data <np.ndarray> data for line plots. Each column is a (independent) line.
 #       x_data_range <tuple> determining the range to draw the plots. While its
-#           name includes "x_data", this variable applies to both x_data and y_data.
+#           name includes 'x_data', this variable applies to both x_data and y_data.
 #   figure handle:
 #       ax <figure>. It is usually generated this way
 #           fig = plt.figure(figsize=(8,8))
@@ -802,9 +893,9 @@ def func_stack_plot (input_data):
 
 def func_PMF_plot(input_data):
     
-    x_data = input_data["x_data"]    
-    num_bins = input_data["num_bins"]
-    ax = input_data["ax"]    
+    x_data = input_data['x_data']    
+    num_bins = input_data['num_bins']
+    ax = input_data['ax']    
     
     # -------------------------------------------------------------------------
     
@@ -816,7 +907,7 @@ def func_PMF_plot(input_data):
             x_data, 
             bins=num_bins, 
             weights = hist_weights, 
-            # color="blue",
+            # color='blue',
             alpha=0.5,                  # transparency setting
             normed=False) 
 
@@ -824,26 +915,26 @@ def func_PMF_plot(input_data):
 
     # add the plotting styles when needed
 
-    if "x_label" in input_data.keys():
-        ax.set_xlabel(input_data["x_label"])
+    if 'x_label' in input_data.keys():
+        ax.set_xlabel(input_data['x_label'])
 
-    if "y_label" in input_data.keys():
-        ax.set_ylabel(input_data["y_label"])
+    if 'y_label' in input_data.keys():
+        ax.set_ylabel(input_data['y_label'])
     
-    if "title" in input_data.keys():
-        ax.set_title(input_data["title"])
+    if 'title' in input_data.keys():
+        ax.set_title(input_data['title'])
 
-    if "legend" in input_data.keys():
-        ax.legend(input_data["legend"],bbox_to_anchor=(1.04,1),loc=2, borderaxespad=0)        
+    if 'legend' in input_data.keys():
+        ax.legend(input_data['legend'],bbox_to_anchor=(1.04,1),loc=2, borderaxespad=0)        
     
     x_axis_max = 1.1 * max(x_data)
     
-    if "zero_one_range" in input_data.keys():
+    if 'zero_one_range' in input_data.keys():
         ax.set_xlim(0, min(1, x_axis_max))
     else:    
         ax.set_xlim(0, x_axis_max)
     
-#    if "zero_one_range" in input_data.keys():
+#    if 'zero_one_range' in input_data.keys():
 #        ax.set_xlim(0, min(1,10**np.ceil(np.log10(np.max(x_data)+1e-8))))
 #    else:    
 #        ax.set_xlim(0, 10**np.ceil(np.log10(np.max(x_data)+1e-8)))

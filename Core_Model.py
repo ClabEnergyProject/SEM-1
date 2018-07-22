@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-"""
+'''
 
 File name: Core_Model.py
 
@@ -25,7 +25,7 @@ Time
     Dec 1, 4-8, 11, 19, 22
     Jan 2-4, 24-27
     
-"""
+'''
 
 # -----------------------------------------------------------------------------
 
@@ -44,7 +44,7 @@ import numpy as np
 def core_model_loop (global_dic, case_dic_list):
     verbose = global_dic['VERBOSE']
     if verbose:
-        print "Core_Model.py: Entering core model loop"
+        print 'Core_Model.py: Entering core model loop'
     num_cases = len(case_dic_list)
     
     result_list = [dict() for x in range(num_cases)]
@@ -66,7 +66,7 @@ def core_model (global_dic, case_dic):
     numerics_cost_scaling = global_dic['NUMERICS_COST_SCALING']
     numerics_demand_scaling = global_dic['NUMERICS_DEMAND_SCALING']
     if verbose:
-        print "Core_Model.py: processing case ",case_dic['CASE_NAME']
+        print 'Core_Model.py: processing case ',case_dic['CASE_NAME']
     demand_series = np.array(case_dic['DEMAND_SERIES'])*numerics_demand_scaling 
     solar_series = case_dic['SOLAR_SERIES'] # Assumed to be normalized per kW capacity
     wind_series = case_dic['WIND_SERIES'] # Assumed to be normalized per kW capacity
