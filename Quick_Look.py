@@ -370,12 +370,12 @@ def plot_results_bar_1scenario (input_data):
     figsize_oneplot = (6.5,9)
     
     # Figures are: 
-    #  UL:fixed costs (inputs)
-    #  ML: variable costs (inputs)
-    #  LL: fixed and variable costs (results)
+    #  UL:fixed and variables [capacity and dispatch] costs (inputs) [power]
+    #  Ml: generation capacity and mean generation (results)
+    #  LL:fixed and variable costs (results)
     
-    # UR: generation capacity and mean generation (results)
-    # MR: storage amount
+    # UR: storage capacity [energy]
+    # MR: demand, energy to storage/PGPstorage (results)
     # LR: storage cycles per year
     
     # -------------------------------------------------------------------------

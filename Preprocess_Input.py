@@ -197,6 +197,12 @@ def preprocess_input(case_input_path_filename):
         
     # Parse global data
     global_dic = {}
+    
+    # Number of cases to run is number of rows in case input file.
+    # Num cases and verbose are the only non-case specific inputs in case_list_dic.
+    num_cases = len(case_data) - 1 # the 1 is for the keyword row
+    global_dic['NUM_CASES'] = num_cases
+
     #------DEFAULT VALUES ---------
     # For now, default for quicklook output is True
     global_dic['QUICK_LOOK'] = True
@@ -240,29 +246,22 @@ def preprocess_input(case_input_path_filename):
         
     # Now each element of case_transpose is the potential keyword followed by data
     case_list_dic = {}
+            
+    # now add global variables to case_list_dic
+    for keyword in all_cases_dic.keys():
+        case_list_dic[keyword] = [all_cases_dic[keyword] for i in range(num_cases)] # replicate values
+            
     for list_item in case_transpose:
         test_key = str.upper(list_item[0])
         test_values = list_item[1:]
         if test_key in keywords_str:
             case_list_dic[test_key] = test_values
         elif test_key in keywords_real:
-            case_list_dic[test_key] = map(float,test_values)
+            setNegToM1 = case_list_dic[test_key] * np.array(map(float,test_values))
+            setNegToM1[setNegToM1 < 0] = -1
+            case_list_dic[test_key] = setNegToM1
         elif test_key in keywords_logical:
             case_list_dic[test_key] = map(bool,test_values)
- 
-#    print case_data
-#    print 'before adding ', case_list_dic
-    
-    # Number of cases to run is number of rows in case input file.
-    # Num cases and verbose are the only non-case specific inputs in case_list_dic.
-    num_cases = len(case_data) - 1 # the 1 is for the keyword row
-    global_dic['NUM_CASES'] = num_cases
-    print 'POSTPROCESS = ',global_dic['POSTPROCESS']
-        
-    # now add global variables to case_list_dic
-    for keyword in all_cases_dic.keys():
-        if keyword not in case_list_dic.keys():  # make sure that the specific cases override global
-            case_list_dic[keyword] = [all_cases_dic[keyword] for i in range(num_cases)] # replicate values
 
     # define all keywords in dictionary, but set to -1 if not present    
     dummy = [-1 for i in range(num_cases)]
