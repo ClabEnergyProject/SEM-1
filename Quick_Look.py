@@ -61,9 +61,9 @@ History
 @author: Fan Tong
 '''
 
-from __future__ import division  # Allows an integer divided by an integer to return a real.
+#from __future__ import division  # Allows an integer divided by an integer to return a real.
 #   NOTE:  THE ABOVE SEEMS TO ME TO BE BAD FORM, AS THIS IS NOT USED UNIVERSALLY.
-import sys
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
