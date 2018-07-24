@@ -309,25 +309,12 @@ def core_model (global_dic, case_dic):
     
     if verbose:
         print 'system cost ',prob.value
-        
-    #--------------- curtailment
-    dispatch_curtailment = np.zeros(num_time_periods)
-    if 'WIND' in system_components :
-        dispatch_curtailment = dispatch_curtailment + capacity_wind.value.flatten() * wind_series - dispatch_wind.value.flatten()
-    if 'SOLAR' in system_components:
-        dispatch_curtailment = dispatch_curtailment + capacity_solar.value.flatten() * solar_series - dispatch_solar.value.flatten()
-    if 'NUCLEAR' in system_components:
-        dispatch_curtailment = dispatch_curtailment + capacity_nuclear.value.flatten()  - dispatch_nuclear.value.flatten()
- 
-        
-        
-    dispatch_curtailment = np.array(dispatch_curtailment).flatten()
+                
     # -----------------------------------------------------------------------------
     
     result={
             'SYSTEM_COST':prob.value/(numerics_cost_scaling * numerics_demand_scaling),
-            'PROBLEM_STATUS':prob.status,
-            'DISPATCH_CURTAILMENT':dispatch_curtailment / numerics_demand_scaling
+            'PROBLEM_STATUS':prob.status
             }
     
     if 'NATGAS' in system_components:

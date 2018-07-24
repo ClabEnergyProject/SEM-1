@@ -160,11 +160,6 @@ def quick_look(pickle_file_name):
             color_list_dispatch.append(eval('color_' + component))
             component_index_dispatch[component] = len(results_matrix_dispatch)-1 # row index for each component
         
-        legend_list_dispatch.append('curtailment (kW)')
-        results_matrix_dispatch.append(result_dic['DISPATCH_CURTAILMENT'])
-        color_list_dispatch.append(color_CURTAILMENT)
-        component_index_dispatch['CURTAILMENT'] = len(results_matrix_dispatch)-1
-
         max_dispatch = np.max([sum(i) for i in zip(*results_matrix_dispatch)])
         input_data['max_dispatch'] = max_dispatch
         
@@ -392,6 +387,9 @@ def plot_results_bar_1scenario (input_data):
     # -------------
     
     figure1a = plt.figure(figsize=figsize_oneplot)
+    
+    # first panel is bar chart of capacity and dispatch costs
+    
     ax1a = figure1a.add_subplot(3,2,1)
     ax1a.set_prop_cycle(cycler('color', color_list_dispatch))
     
@@ -1735,10 +1733,6 @@ def func_optimization_results_system_results_Nscenarios(input_data):
     
         cost_everything_matrix[len(component_index_dispatch)+1,scenario_idx] = (
             np.sum(model_results['unmet_demand']) * model_inputs['unmet_demand_cost']
-            / np.sum(model_inputs['demand']))
-            
-        cost_everything_matrix[len(component_index_dispatch)+2,scenario_idx] = (
-            np.sum(model_results['dispatch_curtailment']) * model_inputs['curtailment_cost']
             / np.sum(model_inputs['demand']))
         
         # ---------------------------------------------------------------------

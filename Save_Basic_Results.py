@@ -1,4 +1,3 @@
-#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 """
@@ -133,9 +132,6 @@ def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
         header_list += ['energy pgp storage (kWh)']
         series_list.append( result['ENERGY_PGP_STORAGE'].flatten() )
         
-        header_list += ['dispatch_curtailment (kW)']
-        series_list.append( result['DISPATCH_CURTAILMENT'].flatten() )
-        
         header_list += ['dispatch_unmet_demand (kW)']
         series_list.append( result['DISPATCH_UNMET_DEMAND'].flatten() )
          
@@ -203,7 +199,6 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
             'dispatch_to_pgp_storage (kW)',
             'dispatch_pgp_storage (kW)',
             'energy_pgp_storage (kWh)',
-            'dispatch_curtailment (kW)',
             'dispatch_unmet_demand (kW)'
             
             
@@ -266,7 +261,6 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
                     np.average(d['DISPATCH_TO_PGP_STORAGE']),
                     np.average(d['DISPATCH_FROM_PGP_STORAGE']),
                     np.average(d['ENERGY_PGP_STORAGE']),
-                    np.average(d['DISPATCH_CURTAILMENT']),
                     np.average(d['DISPATCH_UNMET_DEMAND'])
                     
                     
