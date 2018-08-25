@@ -23,17 +23,17 @@ Each dictionary in <case_dic_list> OPTIONALLY contains:
     
            ['NUMERICS_COST_SCALING','NUMERICS_DEMAND_SCALING',
              'END_DAY','END_HOUR','END_MONTH',
-            'END_YEAR','CAPACITY_COST_NATGAS','CAPACITY_COST_SOLAR','CAPACITY_COST_WIND',
-            'CAPACITY_COST_NUCLEAR','CAPACITY_COST_STORAGE',
+            'END_YEAR','FIXED_COST_NATGAS','FIXED_COST_SOLAR','FIXED_COST_WIND',
+            'FIXED_COST_NUCLEAR','FIXED_COST_STORAGE',
             'START_DAY','START_HOUR','START_MONTH',
             'START_YEAR','STORAGE_CHARGING_EFFICIENCY',
-            'DISPATCH_COST_STORAGE','DISPATCH_COST_TO_STORAGE',
-            'DISPATCH_COST_NATGAS','DISPATCH_COST_SOLAR','STORAGE_DECAY_RATE',
-            'DISPATCH_COST_WIND','DISPATCH_COST_NUCLEAR','DISPATCH_COST_UNMET_DEMAND',
+            'VAR_COST_STORAGE','VAR_COST_TO_STORAGE',
+            'VAR_COST_NATGAS','VAR_COST_SOLAR','STORAGE_DECAY_RATE',
+            'VAR_COST_WIND','VAR_COST_NUCLEAR','VAR_COST_UNMET_DEMAND',
             'STORAGE_CHARGING_TIME',
-            'CAPACITY_COST_PGP_STORAGE',
-            'CAPACITY_COST_TO_PGP_STORAGE','CAPACITY_COST_FROM_PGP_STORAGE',
-            'DISPATCH_COST_TO_PGP_STORAGE','DISPATCH_COST_FROM_PGP_STORAGE',
+            'FIXED_COST_PGP_STORAGE',
+            'FIXED_COST_TO_PGP_STORAGE','FIXED_COST_FROM_PGP_STORAGE',
+            'VAR_COST_TO_PGP_STORAGE','VAR_COST_FROM_PGP_STORAGE',
             'PGP_STORAGE_CHARGING_EFFICIENCY']
 
 '''
@@ -154,24 +154,24 @@ def preprocess_input(case_input_path_filename):
 
     keywords_str = map(str.upper,
             ['DATA_PATH','DEMAND_FILE',
-             'SOLAR_CAPACITY_FILE','WIND_CAPACITY_FILE','OUTPUT_PATH',
+             'SOLAR_FIXED_FILE','WIND_FIXED_FILE','OUTPUT_PATH',
              'CASE_NAME','GLOBAL_NAME']
             )
     
     keywords_real = map(str.upper,
             ['NUMERICS_COST_SCALING','NUMERICS_DEMAND_SCALING',
              'END_DAY','END_HOUR','END_MONTH',
-            'END_YEAR','CAPACITY_COST_NATGAS','CAPACITY_COST_SOLAR','CAPACITY_COST_WIND',
-            'CAPACITY_COST_NUCLEAR','CAPACITY_COST_STORAGE',
+            'END_YEAR','FIXED_COST_NATGAS','FIXED_COST_SOLAR','FIXED_COST_WIND',
+            'FIXED_COST_NUCLEAR','FIXED_COST_STORAGE',
             'START_DAY','START_HOUR','START_MONTH',
             'START_YEAR','STORAGE_CHARGING_EFFICIENCY',
-            'DISPATCH_COST_FROM_STORAGE','DISPATCH_COST_TO_STORAGE',
-            'DISPATCH_COST_NATGAS','DISPATCH_COST_SOLAR','STORAGE_DECAY_RATE',
-            'DISPATCH_COST_WIND','DISPATCH_COST_NUCLEAR','DISPATCH_COST_UNMET_DEMAND',
+            'VAR_COST_FROM_STORAGE','VAR_COST_TO_STORAGE',
+            'VAR_COST_NATGAS','VAR_COST_SOLAR','STORAGE_DECAY_RATE',
+            'VAR_COST_WIND','VAR_COST_NUCLEAR','VAR_COST_UNMET_DEMAND',
             'STORAGE_CHARGING_TIME',
-            'CAPACITY_COST_PGP_STORAGE',
-            'CAPACITY_COST_TO_PGP_STORAGE','CAPACITY_COST_FROM_PGP_STORAGE',
-            'DISPATCH_COST_TO_PGP_STORAGE','DISPATCH_COST_FROM_PGP_STORAGE',
+            'FIXED_COST_PGP_STORAGE',
+            'FIXED_COST_TO_PGP_STORAGE','FIXED_COST_FROM_PGP_STORAGE',
+            'VAR_COST_TO_PGP_STORAGE','VAR_COST_FROM_PGP_STORAGE',
             'PGP_STORAGE_CHARGING_EFFICIENCY']
             )
     
@@ -304,8 +304,8 @@ def preprocess_input(case_input_path_filename):
             
         # check on each technology one by one
 
-        if 'CAPACITY_COST_SOLAR' in have_keys:
-            if case_list_dic['CAPACITY_COST_SOLAR'][case_index] >= 0:
+        if 'FIXED_COST_SOLAR' in have_keys:
+            if case_list_dic['FIXED_COST_SOLAR'][case_index] >= 0:
                 solar_series_list.append(
                         read_csv_dated_data_file(
                                 case_list_dic['START_YEAR'][case_index],
@@ -317,7 +317,7 @@ def preprocess_input(case_input_path_filename):
                                 case_list_dic['END_DAY'][case_index],
                                 case_list_dic['END_HOUR'][case_index],
                                 global_dic['DATA_PATH'],
-                                case_list_dic['SOLAR_CAPACITY_FILE'][case_index]
+                                case_list_dic['SOLAR_FIXED_FILE'][case_index]
                                 )
                         )
             else:
@@ -325,8 +325,8 @@ def preprocess_input(case_input_path_filename):
         else:
             solar_series_list.append([])
                         
-        if 'CAPACITY_COST_WIND' in have_keys:
-            if case_list_dic['CAPACITY_COST_WIND'][case_index] >= 0:
+        if 'FIXED_COST_WIND' in have_keys:
+            if case_list_dic['FIXED_COST_WIND'][case_index] >= 0:
                 wind_series_list.append(
                         read_csv_dated_data_file(
                                 case_list_dic['START_YEAR'][case_index],
@@ -338,7 +338,7 @@ def preprocess_input(case_input_path_filename):
                                 case_list_dic['END_DAY'][case_index],
                                 case_list_dic['END_HOUR'][case_index],
                                 global_dic['DATA_PATH'],
-                                case_list_dic['WIND_CAPACITY_FILE'][case_index]
+                                case_list_dic['WIND_FIXED_FILE'][case_index]
                                 )
                         )
             else:
@@ -362,33 +362,33 @@ def preprocess_input(case_input_path_filename):
         if verbose:
             print 'Preprocess_Input.py:Components for ',case_list_dic['CASE_NAME'][case_index]
         component_list = []
-        if 'CAPACITY_COST_NUCLEAR' in have_keys:
-            if case_list_dic['CAPACITY_COST_NUCLEAR'][case_index] >= 0 and case_list_dic['DISPATCH_COST_NUCLEAR'][case_index] >= 0 :
+        if 'FIXED_COST_NUCLEAR' in have_keys:
+            if case_list_dic['FIXED_COST_NUCLEAR'][case_index] >= 0 and case_list_dic['VAR_COST_NUCLEAR'][case_index] >= 0 :
                 component_list.append('NUCLEAR')
                                                 
-        if 'CAPACITY_COST_NATGAS' in have_keys:
-            if case_list_dic['CAPACITY_COST_NATGAS'][case_index] >= 0 and case_list_dic['DISPATCH_COST_NATGAS'][case_index] >= 0 :
+        if 'FIXED_COST_NATGAS' in have_keys:
+            if case_list_dic['FIXED_COST_NATGAS'][case_index] >= 0 and case_list_dic['VAR_COST_NATGAS'][case_index] >= 0 :
                 component_list.append('NATGAS')
                                                 
-        if 'CAPACITY_COST_WIND' in have_keys:
-            if case_list_dic['CAPACITY_COST_WIND'][case_index] >= 0 and case_list_dic['DISPATCH_COST_WIND'][case_index] >= 0 :
+        if 'FIXED_COST_WIND' in have_keys:
+            if case_list_dic['FIXED_COST_WIND'][case_index] >= 0 and case_list_dic['VAR_COST_WIND'][case_index] >= 0 :
                 component_list.append('WIND')
                                                 
-        if 'CAPACITY_COST_NATGAS' in have_keys:
-            if case_list_dic['CAPACITY_COST_SOLAR'][case_index] >= 0 and case_list_dic['DISPATCH_COST_SOLAR'][case_index] >= 0 :
+        if 'FIXED_COST_NATGAS' in have_keys:
+            if case_list_dic['FIXED_COST_SOLAR'][case_index] >= 0 and case_list_dic['VAR_COST_SOLAR'][case_index] >= 0 :
                 component_list.append('SOLAR')
                                                 
-        if 'CAPACITY_COST_STORAGE' in have_keys:
-            if case_list_dic['CAPACITY_COST_STORAGE'][case_index] >= 0 and case_list_dic['DISPATCH_COST_TO_STORAGE'][case_index] >= 0  and case_list_dic['DISPATCH_COST_FROM_STORAGE'][case_index] >= 0 :
+        if 'FIXED_COST_STORAGE' in have_keys:
+            if case_list_dic['FIXED_COST_STORAGE'][case_index] >= 0 and case_list_dic['VAR_COST_TO_STORAGE'][case_index] >= 0  and case_list_dic['VAR_COST_FROM_STORAGE'][case_index] >= 0 :
                 component_list.append('STORAGE')
                 
-        if 'CAPACITY_COST_PGP_STORAGE' in have_keys:
-            if (case_list_dic['CAPACITY_COST_PGP_STORAGE'][case_index] >= 0 and case_list_dic['DISPATCH_COST_FROM_PGP_STORAGE'][case_index] >= 0  and 
-                case_list_dic['DISPATCH_COST_TO_PGP_STORAGE'][case_index] >= 0 and case_list_dic['PGP_STORAGE_CHARGING_EFFICIENCY'][case_index] >= 0):
+        if 'FIXED_COST_PGP_STORAGE' in have_keys:
+            if (case_list_dic['FIXED_COST_PGP_STORAGE'][case_index] >= 0 and case_list_dic['VAR_COST_FROM_PGP_STORAGE'][case_index] >= 0  and 
+                case_list_dic['VAR_COST_TO_PGP_STORAGE'][case_index] >= 0 and case_list_dic['PGP_STORAGE_CHARGING_EFFICIENCY'][case_index] >= 0):
                 component_list.append('PGP_STORAGE')
                 
-        if 'DISPATCH_COST_UNMET_DEMAND' in have_keys:
-            if case_list_dic['DISPATCH_COST_UNMET_DEMAND'][case_index] >= 0:
+        if 'VAR_COST_UNMET_DEMAND' in have_keys:
+            if case_list_dic['VAR_COST_UNMET_DEMAND'][case_index] >= 0:
                 component_list.append('UNMET_DEMAND')
                                 
         list_of_component_lists.append(component_list)

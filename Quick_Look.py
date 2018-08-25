@@ -155,8 +155,8 @@ def quick_look(pickle_file_name):
             addfrom = ''
             if component == 'STORAGE' or component == 'PGP_STORAGE': 
                 addfrom = 'FROM_'
-            results_matrix_dispatch.append(result_dic['DISPATCH_' + addfrom + component ])
-            legend_list_dispatch.append( 'DISPATCH_' + addfrom + component +' kW' )
+            results_matrix_dispatch.append(result_dic['VAR_' + addfrom + component ])
+            legend_list_dispatch.append( 'VAR_' + addfrom + component +' kW' )
             color_list_dispatch.append(eval('color_' + component))
             component_index_dispatch[component] = len(results_matrix_dispatch)-1 # row index for each component
         
@@ -181,13 +181,13 @@ def quick_look(pickle_file_name):
         component_list_storage = []
         for component in system_components:
             if component == 'STORAGE':
-                results_matrix_demand.append(result_dic['DISPATCH_TO_STORAGE'])
+                results_matrix_demand.append(result_dic['VAR_TO_STORAGE'])
                 legend_list_demand.append('dispatch to storage (kW)')
                 color_list_demand.append(color_STORAGE)
                 component_index_demand['STORAGE'] = len(results_matrix_demand)-1
                 component_list_storage.append('STORAGE')
             elif component == 'PGP_STORAGE': 
-                results_matrix_demand.append(result_dic['DISPATCH_TO_PGP_STORAGE'])
+                results_matrix_demand.append(result_dic['VAR_TO_PGP_STORAGE'])
                 legend_list_demand.append('dispatch to pgp storage (kW)')
                 color_list_demand.append(color_PGP_STORAGE)
                 component_index_demand['PGP_STORAGE'] = len(results_matrix_demand)-1
@@ -1882,21 +1882,21 @@ def compute_curtailment(case_dic, result_dic):
         
         if component == 'WIND':
             wind_series = np.array(case_dic['WIND_SERIES'])
-            capacity_wind = np.array(result_dic['CAPACITY_WIND'])
-            dispatch_wind = np.array(result_dic['DISPATCH_WIND'])
+            capacity_wind = np.array(result_dic['FIXED_WIND'])
+            dispatch_wind = np.array(result_dic['VAR_WIND'])
             curtailment_dic['WIND'] = wind_series * capacity_wind - dispatch_wind
         
         elif component == 'SOLAR':
             solar_series = np.array(case_dic['SOLAR_SERIES'])
-            capacity_solar = np.array(result_dic['CAPACITY_SOLAR'])
-            dispatch_solar = np.array(result_dic['DISPATCH_SOLAR'])
+            capacity_solar = np.array(result_dic['FIXED_SOLAR'])
+            dispatch_solar = np.array(result_dic['VAR_SOLAR'])
             curtailment_dic['SOLAR'] = solar_series * capacity_solar - dispatch_solar
             
         elif component == 'NATGAS':
-            curtailment_dic['NATGAS'] = np.array(result_dic['CAPACITY_NATGAS']) - np.array(result_dic['DISPATCH_NATGAS'])
+            curtailment_dic['NATGAS'] = np.array(result_dic['FIXED_NATGAS']) - np.array(result_dic['VAR_NATGAS'])
             
         elif component == 'NUCLEAR':
-            curtailment_dic['NUCLEAR'] = np.array(result_dic['CAPACITY_NUCLEAR']) - np.array(result_dic['DISPATCH_NUCLEAR'])
+            curtailment_dic['NUCLEAR'] = np.array(result_dic['FIXED_NUCLEAR']) - np.array(result_dic['VAR_NUCLEAR'])
         
     return curtailment_dic
                 
