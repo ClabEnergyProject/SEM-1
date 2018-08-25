@@ -155,7 +155,7 @@ def quick_look(pickle_file_name):
             addfrom = ''
             if component == 'STORAGE' or component == 'PGP_STORAGE': 
                 addfrom = 'FROM_'
-            results_matrix_dispatch.append(result_dic['VAR_' + addfrom + component ])
+            results_matrix_dispatch.append(result_dic['DISPATCH_' + addfrom + component ])
             legend_list_dispatch.append( 'VAR_' + addfrom + component +' kW' )
             color_list_dispatch.append(eval('color_' + component))
             component_index_dispatch[component] = len(results_matrix_dispatch)-1 # row index for each component
