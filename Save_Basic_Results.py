@@ -100,34 +100,34 @@ def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
         series_list.append( np.array(case_dic['SOLAR_SERIES']))
         
         header_list += ['dispatch_solar (kW per unit deployed)']
-        series_list.append( result['VAR_SOLAR'].flatten() )     
+        series_list.append( result['DISPATCH_SOLAR'].flatten() )     
         
         header_list += ['wind capacity factor (kW per unit deployed)']
         series_list.append( np.array(case_dic['WIND_SERIES']))
 
         header_list += ['dispatch wind (kW)']
-        series_list.append( result['VAR_WIND'].flatten() )
+        series_list.append( result['DISPATCH_WIND'].flatten() )
         
         header_list += ['dispatch_natgas (kW)']
-        series_list.append( result['VAR_NATGAS'].flatten() )
+        series_list.append( result['DISPATCH_NATGAS'].flatten() )
         
         header_list += ['dispatch_nuclear (kW)']
-        series_list.append( result['VAR_NUCLEAR'].flatten() )
+        series_list.append( result['DISPATCH_NUCLEAR'].flatten() )
         
         header_list += ['dispatch_to_storage (kW)']
-        series_list.append( result['VAR_TO_STORAGE'].flatten() )
+        series_list.append( result['DISPATCH_TO_STORAGE'].flatten() )
         
         header_list += ['dispatch_from_storage (kW)']
-        series_list.append( result['VAR_FROM_STORAGE'].flatten() )  # THere is no FROM in dispatch results
+        series_list.append( result['DISPATCH_FROM_STORAGE'].flatten() )  # THere is no FROM in dispatch results
 
         header_list += ['energy storage (kWh)']
         series_list.append( result['ENERGY_STORAGE'].flatten() )
       
         header_list += ['dispatch_to_pgp_storage (kW)']
-        series_list.append( result['VAR_TO_PGP_STORAGE'].flatten() )
+        series_list.append( result['DISPATCH_TO_PGP_STORAGE'].flatten() )
         
         header_list += ['dispatch_pgp_storage (kW)']
-        series_list.append( result['VAR_FROM_PGP_STORAGE'].flatten() )
+        series_list.append( result['DISPATCH_FROM_PGP_STORAGE'].flatten() )
 
         header_list += ['energy pgp storage (kWh)']
         series_list.append( result['ENERGY_PGP_STORAGE'].flatten() )
@@ -152,22 +152,22 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
     
     scalar_names = [
             'case name',
-            'capacity_cost_natgas ($/kW/h)',
-            'capacity_cost_solar ($/kW/h)',
-            'capacity_cost_wind ($/kW/h)',
-            'capacity_cost_nuclear ($/kW/h)',
-            'capacity_cost_storage (($/h)/kWh)',
-            'capacity_cost_pgp_storage (($/h)/kWh)',
+            'fixed_cost_natgas ($/kW/h)',
+            'fixed_cost_solar ($/kW/h)',
+            'fixed_cost_wind ($/kW/h)',
+            'fixed_cost_nuclear ($/kW/h)',
+            'fixed_cost_storage (($/h)/kWh)',
+            'fixed_cost_pgp_storage (($/h)/kWh)',
             
-            'dispatch_cost_natgas ($/kWh)',
-            'dispatch_cost_solar ($/kWh)',
-            'dispatch_cost_wind ($/kWh)',
-            'dispatch_cost_nuclear ($/kWh)',
-            'dispatch_cost_to_storage ($/kWh)',
-            'dispatch_cost_storage ($/kWh)',
-            'dispatch_cost_to_pgp_storage ($/kWh)',
-            'dispatch_cost_pgp_storage ($/kWh)',
-            'dispatch_cost_unmet_demand ($/kWh)',
+            'var_cost_natgas ($/kWh)',
+            'var_cost_solar ($/kWh)',
+            'var_cost_wind ($/kWh)',
+            'var_cost_nuclear ($/kWh)',
+            'var_cost_to_storage ($/kWh)',
+            'var_cost_storage ($/kWh)',
+            'var_cost_to_pgp_storage ($/kWh)',
+            'var_cost_pgp_storage ($/kWh)',
+            'var_cost_unmet_demand ($/kWh)',
             
             'storage_charging_efficiency',
             'storage_charging_time (h)',
@@ -238,28 +238,28 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
                     
                     # scalar results
                     
-                    d['FIXED_NATGAS'],
-                    d['FIXED_SOLAR'],
-                    d['FIXED_WIND'],
-                    d['FIXED_NUCLEAR'],
-                    d['FIXED_STORAGE'],
+                    d['CAPACITY_NATGAS'],
+                    d['CAPACITY_SOLAR'],
+                    d['CAPACITY_WIND'],
+                    d['CAPACITY_NUCLEAR'],
+                    d['CAPACITY_STORAGE'],
                     d['FIXED_PGP_STORAGE'],
-                    d['FIXED_TO_PGP_STORAGE'],
-                    d['FIXED_FROM_PGP_STORAGE'],
+                    d['CAPACITY_TO_PGP_STORAGE'],
+                    d['CAPACITY_FROM_PGP_STORAGE'],
                     d['SYSTEM_COST'],
                     d['PROBLEM_STATUS'],
                     
                     # mean of time series results                
                                 
-                    np.average(d['VAR_NATGAS']),
-                    np.average(d['VAR_SOLAR']),
-                    np.average(d['VAR_WIND']),
-                    np.average(d['VAR_NUCLEAR']),
-                    np.average(d['VAR_TO_STORAGE']),
-                    np.average(d['VAR_FROM_STORAGE']),
+                    np.average(d['DISPATCH_NATGAS']),
+                    np.average(d['DISPATCH_SOLAR']),
+                    np.average(d['DISPATCH_WIND']),
+                    np.average(d['DISPATCH_NUCLEAR']),
+                    np.average(d['DISPATCH_TO_STORAGE']),
+                    np.average(d['DISPATCH_FROM_STORAGE']),
                     np.average(d['ENERGY_STORAGE']),
-                    np.average(d['VAR_TO_PGP_STORAGE']),
-                    np.average(d['VAR_FROM_PGP_STORAGE']),
+                    np.average(d['DISPATCH_TO_PGP_STORAGE']),
+                    np.average(d['DISPATCH_FROM_PGP_STORAGE']),
                     np.average(d['ENERGY_PGP_STORAGE']),
                     np.average(d['VAR_UNMET_DEMAND'])
                     

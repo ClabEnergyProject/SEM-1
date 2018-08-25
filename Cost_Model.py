@@ -18,7 +18,7 @@ import numpy as np
 #
 #  For example, let's say you had 5 hours of operation, with dispatch of
 #     dispatch = [ 0, 1, 1, 1, 2 ]
-#  And a capacity_cost and dispatch_cost of 1 $/kWh
+#  And a fixed_cost and var_cost of 1 $/kWh
 #  The dispatch related costs would be [0, 1, 1, 1, 2]
 #
 #  But with 2 kW of capacity for 5 hours, you needed 1 kW of capacity for 4 hours, adding
@@ -29,9 +29,9 @@ import numpy as np
 #  This must be divided by kW to get cost per kWh
 #  cost_per_kWh = [0, 2.25, 2.25, 2.25, 4.125 ]
 #
-def cost_model_dispatchable(capacity_cost_in, dispatch_cost_in, dispatch_in):
-    capacity_cost = float(capacity_cost_in) # avoid integer arithmatic
-    dispatch_cost = float(dispatch_cost_in)
+def cost_model_dispatchable(fixed_cost_in, var_cost_in, dispatch_in):
+    fixed_cost = float(fixed_cost_in) # avoid integer arithmatic
+    var_cost = float(var_cost_in)
     dispatch = np.array(dispatch_in)
     num_hours = len(dispatch)
     
@@ -50,7 +50,7 @@ def cost_model_dispatchable(capacity_cost_in, dispatch_cost_in, dispatch_in):
     
     cum_incr_capacity = cum_incr_capacity_sorted[unsort_order]
     
-    cost_per_hour = dispatch_cost * dispatch + capacity_cost * num_hours * cum_incr_capacity
+    cost_per_hour = var_cost * dispatch + fixed_cost * num_hours * cum_incr_capacity
     cost_per_kWh = cost_per_hour / dispatch
     
     return cost_per_hour, cost_per_kWh # cost of generation for each hour
@@ -71,7 +71,7 @@ def cost_model_dispatchable(capacity_cost_in, dispatch_cost_in, dispatch_in):
 #  Then the amount of capacity needed for each hour is these two divide 
 #       capacity_needed = [0, 1, 1, 2, 1]
 #
-#  And a capacity_cost and dispatch_cost of 1 $/kWh
+#  And a fixed_cost and var_cost of 1 $/kWh
 #  The dispatch related costs would be [0, 1, 2, 1, 1]
 #
 #  But with 2 kW of capacity for 5 hours, you needed 1 kW of capacity for 4 hours, adding
@@ -82,9 +82,9 @@ def cost_model_dispatchable(capacity_cost_in, dispatch_cost_in, dispatch_in):
 #  This must be divided by kW to get cost per kWh
 #  cost_per_kWh = [0, 2.25, 1.125, 7.25, 2.25 ]
 #
-def cost_model_intermittent(capacity_cost_in, dispatch_cost_in, dispatch_in, capacity_in):
-    capacity_cost = float(capacity_cost_in) # avoid integer arithmatic
-    dispatch_cost = float(dispatch_cost_in)
+def cost_model_intermittent(fixed_cost_in, var_cost_in, dispatch_in, capacity_in):
+    fixed_cost = float(fixed_cost_in) # avoid integer arithmatic
+    var_cost = float(var_cost_in)
     dispatch = np.array(dispatch_in, dtype=float) # dispatch time series
     capacity = np.array(capacity_in, dtype=float) # hourly generation capacity per unit capacity installed
     capacity_needed = np.divide(dispatch, capacity, out = np.zeros_like(dispatch), where=capacity!=0)
@@ -106,7 +106,7 @@ def cost_model_intermittent(capacity_cost_in, dispatch_cost_in, dispatch_in, cap
     
     cum_incr_capacity = cum_incr_capacity_sorted[unsort_order]
     
-    cost_per_hour = dispatch_cost * dispatch + capacity_cost * num_hours * cum_incr_capacity
+    cost_per_hour = var_cost * dispatch + fixed_cost * num_hours * cum_incr_capacity
     cost_per_kWh = cost_per_hour / dispatch
     
     return cost_per_hour, cost_per_kWh # cost of generation for each hour
@@ -127,7 +127,7 @@ def cost_and_storage_calculation( global_dic, case_dic, result ):
     system_components = case_dic['SYSTEM_COMPONENTS']  
     
     if 'NATGAS' in system_components:
-        dispatch = result['VAR_NATGAS']
+        dispatch = result['DISPATCH_NATGAS']
         costPerHour = cost_model_dispatchable(
                 case_dic['FIXED_COST_NATGAS'],
                 case_dic['VAR_COST_NATGAS'],
@@ -142,7 +142,7 @@ def cost_and_storage_calculation( global_dic, case_dic, result ):
         result['COST_NATGAS_PERKWH'] = zeroVec
 
     if 'SOLAR' in system_components:
-        dispatch = result['VAR_SOLAR']
+        dispatch = result['DISPATCH_SOLAR']
         costPerHour = cost_model_dispatchable(
                 case_dic['FIXED_COST_SOLAR'],
                 case_dic['VAR_COST_SOLAR'],
@@ -157,7 +157,7 @@ def cost_and_storage_calculation( global_dic, case_dic, result ):
         result['COST_SOLAR_PERKWH'] = zeroVec
 
     if 'WIND' in system_components:
-        dispatch = result['VAR_WIND']
+        dispatch = result['DISPATCH_WIND']
         costPerHour = cost_model_dispatchable(
                 case_dic['FIXED_COST_WIND'],
                 case_dic['VAR_COST_WIND'],
@@ -172,36 +172,36 @@ def cost_and_storage_calculation( global_dic, case_dic, result ):
         result['COST_WIND_PERKWH'] = zeroVec
 
     if 'NUCLEAR' in system_components:
-        result['FIXED_NUCLEAR'] = np.asscalar(capacity_nuclear.value)/numerics_demand_scaling
-        result['VAR_NUCLEAR'] = np.array(dispatch_nuclear.value).flatten()/numerics_demand_scaling
+        result['CAPACITY_NUCLEAR'] = np.asscalar(capacity_nuclear.value)/numerics_demand_scaling
+        result['DISPATCH_NUCLEAR'] = np.array(dispatch_nuclear.value).flatten()/numerics_demand_scaling
     else:
-        result['FIXED_NUCLEAR'] = capacity_nuclear/numerics_demand_scaling
-        result['VAR_NUCLEAR'] = dispatch_nuclear/numerics_demand_scaling
+        result['CAPACITY_NUCLEAR'] = capacity_nuclear/numerics_demand_scaling
+        result['DISPATCH_NUCLEAR'] = dispatch_nuclear/numerics_demand_scaling
 
     if 'STORAGE' in system_components:
-        result['FIXED_STORAGE'] = np.asscalar(capacity_storage.value)/numerics_demand_scaling
-        result['VAR_TO_STORAGE'] = np.array(dispatch_to_storage.value).flatten()/numerics_demand_scaling
-        result['VAR_FROM_STORAGE'] = np.array(dispatch_from_storage.value).flatten()/numerics_demand_scaling
+        result['CAPACITY_STORAGE'] = np.asscalar(capacity_storage.value)/numerics_demand_scaling
+        result['DISPATCH_TO_STORAGE'] = np.array(dispatch_to_storage.value).flatten()/numerics_demand_scaling
+        result['DISPATCH_FROM_STORAGE'] = np.array(dispatch_from_storage.value).flatten()/numerics_demand_scaling
         result['ENERGY_STORAGE'] = np.array(energy_storage.value).flatten()/numerics_demand_scaling
     else:
-        result['FIXED_STORAGE'] = capacity_storage/numerics_demand_scaling
-        result['VAR_TO_STORAGE'] = dispatch_to_storage/numerics_demand_scaling
-        result['VAR_FROM_STORAGE'] = dispatch_from_storage/numerics_demand_scaling
+        result['CAPACITY_STORAGE'] = capacity_storage/numerics_demand_scaling
+        result['DISPATCH_TO_STORAGE'] = dispatch_to_storage/numerics_demand_scaling
+        result['DISPATCH_FROM_STORAGE'] = dispatch_from_storage/numerics_demand_scaling
         result['ENERGY_STORAGE'] = energy_storage/numerics_demand_scaling
         
     if 'PGP_STORAGE' in system_components:
         result['FIXED_PGP_STORAGE'] = np.asscalar(capacity_pgp_storage.value)/numerics_demand_scaling
-        result['FIXED_TO_PGP_STORAGE'] = np.asscalar(capacity_to_pgp_storage.value)/numerics_demand_scaling
-        result['FIXED_FROM_PGP_STORAGE'] = np.asscalar(capacity_from_pgp_storage.value)/numerics_demand_scaling
-        result['VAR_TO_PGP_STORAGE'] = np.array(dispatch_to_pgp_storage.value).flatten()/numerics_demand_scaling
-        result['VAR_FROM_PGP_STORAGE'] = np.array(dispatch_from_pgp_storage.value).flatten()/numerics_demand_scaling
+        result['CAPACITY_TO_PGP_STORAGE'] = np.asscalar(capacity_to_pgp_storage.value)/numerics_demand_scaling
+        result['CAPACITY_FROM_PGP_STORAGE'] = np.asscalar(capacity_from_pgp_storage.value)/numerics_demand_scaling
+        result['DISPATCH_TO_PGP_STORAGE'] = np.array(dispatch_to_pgp_storage.value).flatten()/numerics_demand_scaling
+        result['DISPATCH_FROM_PGP_STORAGE'] = np.array(dispatch_from_pgp_storage.value).flatten()/numerics_demand_scaling
         result['ENERGY_PGP_STORAGE'] = np.array(energy_pgp_storage.value).flatten()/numerics_demand_scaling
     else:
         result['FIXED_PGP_STORAGE'] = capacity_pgp_storage/numerics_demand_scaling
-        result['FIXED_TO_PGP_STORAGE'] = capacity_to_pgp_storage/numerics_demand_scaling
-        result['FIXED_FROM_PGP_STORAGE'] = capacity_from_pgp_storage/numerics_demand_scaling
-        result['VAR_TO_PGP_STORAGE'] = dispatch_to_pgp_storage/numerics_demand_scaling
-        result['VAR_FROM_PGP_STORAGE'] = dispatch_from_pgp_storage/numerics_demand_scaling
+        result['CAPACITY_TO_PGP_STORAGE'] = capacity_to_pgp_storage/numerics_demand_scaling
+        result['CAPACITY_FROM_PGP_STORAGE'] = capacity_from_pgp_storage/numerics_demand_scaling
+        result['DISPATCH_TO_PGP_STORAGE'] = dispatch_to_pgp_storage/numerics_demand_scaling
+        result['DISPATCH_FROM_PGP_STORAGE'] = dispatch_from_pgp_storage/numerics_demand_scaling
         result['ENERGY_PGP_STORAGE'] = energy_pgp_storage/numerics_demand_scaling
         
         
@@ -222,14 +222,14 @@ def cost_and_storage_calculation( global_dic, case_dic, result ):
     
     for idx in range(num_time_periods-start_point):
         idx = idx + start_point
-        tmp = tmp + VAR_TO_STORAGE[idx] - VAR_FROM_STORAGE[idx]
+        tmp = tmp + DISPATCH_TO_STORAGE[idx] - DISPATCH_FROM_STORAGE[idx]
               
-        if VAR_TO_STORAGE[idx] > 0:  # push on stack (with time moved up 1 cycle)
-            lifo_stack.append([idx-num_time_periods,VAR_TO_STORAGE[idx]*STORAGE_CHARGING_EFFICIENCY ])
-        if VAR_FROM_STORAGE[idx] > 0:
-            dispatch_remaining = VAR_FROM_STORAGE[idx]
+        if DISPATCH_TO_STORAGE[idx] > 0:  # push on stack (with time moved up 1 cycle)
+            lifo_stack.append([idx-num_time_periods,DISPATCH_TO_STORAGE[idx]*STORAGE_CHARGING_EFFICIENCY ])
+        if DISPATCH_FROM_STORAGE[idx] > 0:
+            dispatch_remaining = DISPATCH_FROM_STORAGE[idx]
             while dispatch_remaining > 0:
-                #print len(lifo_stack),VAR_FROM_STORAGE[idx],dispatch_remaining
+                #print len(lifo_stack),DISPATCH_FROM_STORAGE[idx],dispatch_remaining
                 if len(lifo_stack) != 0:
                     top_of_stack = lifo_stack.pop()
                     if top_of_stack[1] > dispatch_remaining:
@@ -251,10 +251,10 @@ def cost_and_storage_calculation( global_dic, case_dic, result ):
         max_head = 0
         mean_res = 0
         max_res = 0
-        if VAR_TO_STORAGE[idx] > 0:  # push on stack
-            lifo_stack.append([idx,VAR_TO_STORAGE[idx]*STORAGE_CHARGING_EFFICIENCY ])
-        if VAR_FROM_STORAGE[idx] > 0:
-            dispatch_remaining = VAR_FROM_STORAGE[idx]
+        if DISPATCH_TO_STORAGE[idx] > 0:  # push on stack
+            lifo_stack.append([idx,DISPATCH_TO_STORAGE[idx]*STORAGE_CHARGING_EFFICIENCY ])
+        if DISPATCH_FROM_STORAGE[idx] > 0:
+            dispatch_remaining = DISPATCH_FROM_STORAGE[idx]
             accum_time = 0
             while dispatch_remaining > 0:
                 if lifo_stack != []:
@@ -272,7 +272,7 @@ def cost_and_storage_calculation( global_dic, case_dic, result ):
                         dispatch_remaining = dispatch_remaining - top_of_stack[1]
                 else:
                     dispatch_remaining = 0 # stop while loop if stack is empty
-            mean_res = accum_time / VAR_FROM_STORAGE[idx]
+            mean_res = accum_time / DISPATCH_FROM_STORAGE[idx]
             max_res = idx - top_of_stack[0]
             # maximum headroom needed is the max of the storage between idx and top_of_stack[0]
             #    minus the amount of storage at time idx + 1
