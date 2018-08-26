@@ -206,9 +206,9 @@ def cost_and_storage_calculation( global_dic, case_dic, result ):
         
         
     if 'UNMET_DEMAND' in system_components:
-        result['DIPATCH_UNMET_DEMAND'] = np.array(dispatch_unmet_demand.value).flatten()/numerics_demand_scaling
+        result['DISPATCH_UNMET_DEMAND'] = np.array(dispatch_unmet_demand.value).flatten()/numerics_demand_scaling
     else:
-        result['DIPATCH_UNMET_DEMAND'] = dispatch_unmet_demand/numerics_demand_scaling
+        result['DISPATCH_UNMET_DEMAND'] = dispatch_unmet_demand/numerics_demand_scaling
         
 
     

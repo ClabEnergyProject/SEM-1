@@ -133,7 +133,7 @@ def save_vector_results_as_csv( global_dic, case_dic_list, result_list ):
         series_list.append( result['ENERGY_PGP_STORAGE'].flatten() )
         
         header_list += ['dispatch_unmet_demand (kW)']
-        series_list.append( result['DIPATCH_UNMET_DEMAND'].flatten() )
+        series_list.append( result['DISPATCH_UNMET_DEMAND'].flatten() )
          
         output_file_name = case_dic['CASE_NAME']
     
@@ -261,7 +261,7 @@ def postprocess_key_scalar_results( global_dic, case_dic_list, result_list ):
                     np.average(d['DISPATCH_TO_PGP_STORAGE']),
                     np.average(d['DISPATCH_FROM_PGP_STORAGE']),
                     np.average(d['ENERGY_PGP_STORAGE']),
-                    np.average(d['DIPATCH_UNMET_DEMAND'])
+                    np.average(d['DISPATCH_UNMET_DEMAND'])
                     
                     
              ]
