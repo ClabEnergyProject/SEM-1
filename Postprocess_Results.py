@@ -145,8 +145,8 @@ def prepare_scalar_variables (global_dic, case_dic_list, result_list ):
         tmp['DISPATCH_NUCLEAR']       = np.array(np.squeeze(result_list[idx]['DISPATCH_NUCLEAR']))      #/ num_time_periods
         tmp['DISPATCH_TO_STORAGE']    = np.array(np.squeeze(result_list[idx]['DISPATCH_TO_STORAGE']))   #/ num_time_periods
         tmp['DISPATCH_FROM_STORAGE']  = np.array(np.squeeze(result_list[idx]['DISPATCH_FROM_STORAGE'])) #/ num_time_periods
-        tmp['VAR_UNMET_DEMAND']  = np.array(np.squeeze(result_list[idx]['VAR_UNMET_DEMAND'])) #/ num_time_periods
-        tmp['VAR_CURTAILMENT']   = np.array(np.squeeze(result_list[idx]['VAR_CURTAILMENT']))  #/ num_time_periods
+        tmp['DIPATCH_UNMET_DEMAND']  = np.array(np.squeeze(result_list[idx]['DIPATCH_UNMET_DEMAND'])) #/ num_time_periods
+        tmp['DIPATCH_CURTAILMENT']   = np.array(np.squeeze(result_list[idx]['DIPATCH_CURTAILMENT']))  #/ num_time_periods
         tmp['ENERGY_STORAGE']         = np.array(np.squeeze(result_list[idx]['ENERGY_STORAGE']))        #/ num_time_periods
         tmp['SYSTEM_COST']    = np.array(np.squeeze(result_list[idx]['SYSTEM_COST']))  
         tmp['STORAGE_CHARGING_EFFICIENCY']    = np.array(np.squeeze(case_dic_list[idx]['STORAGE_CHARGING_EFFICIENCY']))
