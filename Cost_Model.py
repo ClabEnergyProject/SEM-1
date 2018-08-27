@@ -116,6 +116,8 @@ def cost_model_intermittent(capacity_cost_in, dispatch_cost_in, dispatch_in, cap
 #
 # This code is assumed to have in it data from an individual simulation in the
 # form of <global_dic>, a single element of <case_dic_list> and <result_list>.
+    
+# This code returns its result by updating dictionary <result> which should be a pointer.
 
 def cost_and_storage_calculation( global_dic, case_dic, result ):
     
@@ -172,114 +174,198 @@ def cost_and_storage_calculation( global_dic, case_dic, result ):
         result['COST_WIND_PERKWH'] = zeroVec
 
     if 'NUCLEAR' in system_components:
-        result['FIXED_NUCLEAR'] = np.asscalar(capacity_nuclear.value)/numerics_demand_scaling
-        result['VAR_NUCLEAR'] = np.array(dispatch_nuclear.value).flatten()/numerics_demand_scaling
+        dispatch = result['VAR_NUCLEAR']
+        costPerHour = cost_model_dispatchable(
+                case_dic['FIXED_COST_NUCLEAR'],
+                case_dic['VAR_COST_NUCLEAR'],
+                dispatch
+                )
+        result['COST_NUCLEAR_PERHOUR'] = costPerHour 
+        result['COST_NUCLEAR_PERKWH'] = costPerHour / dispatch
+        totalDispatch += dispatch
+        totalCost += costPerHour
     else:
-        result['FIXED_NUCLEAR'] = capacity_nuclear/numerics_demand_scaling
-        result['VAR_NUCLEAR'] = dispatch_nuclear/numerics_demand_scaling
-
-    if 'STORAGE' in system_components:
-        result['FIXED_STORAGE'] = np.asscalar(capacity_storage.value)/numerics_demand_scaling
-        result['VAR_TO_STORAGE'] = np.array(dispatch_to_storage.value).flatten()/numerics_demand_scaling
-        result['VAR_FROM_STORAGE'] = np.array(dispatch_from_storage.value).flatten()/numerics_demand_scaling
-        result['ENERGY_STORAGE'] = np.array(energy_storage.value).flatten()/numerics_demand_scaling
-    else:
-        result['FIXED_STORAGE'] = capacity_storage/numerics_demand_scaling
-        result['VAR_TO_STORAGE'] = dispatch_to_storage/numerics_demand_scaling
-        result['VAR_FROM_STORAGE'] = dispatch_from_storage/numerics_demand_scaling
-        result['ENERGY_STORAGE'] = energy_storage/numerics_demand_scaling
-        
-    if 'PGP_STORAGE' in system_components:
-        result['FIXED_PGP_STORAGE'] = np.asscalar(capacity_pgp_storage.value)/numerics_demand_scaling
-        result['FIXED_TO_PGP_STORAGE'] = np.asscalar(capacity_to_pgp_storage.value)/numerics_demand_scaling
-        result['FIXED_FROM_PGP_STORAGE'] = np.asscalar(capacity_from_pgp_storage.value)/numerics_demand_scaling
-        result['VAR_TO_PGP_STORAGE'] = np.array(dispatch_to_pgp_storage.value).flatten()/numerics_demand_scaling
-        result['VAR_FROM_PGP_STORAGE'] = np.array(dispatch_from_pgp_storage.value).flatten()/numerics_demand_scaling
-        result['ENERGY_PGP_STORAGE'] = np.array(energy_pgp_storage.value).flatten()/numerics_demand_scaling
-    else:
-        result['FIXED_PGP_STORAGE'] = capacity_pgp_storage/numerics_demand_scaling
-        result['FIXED_TO_PGP_STORAGE'] = capacity_to_pgp_storage/numerics_demand_scaling
-        result['FIXED_FROM_PGP_STORAGE'] = capacity_from_pgp_storage/numerics_demand_scaling
-        result['VAR_TO_PGP_STORAGE'] = dispatch_to_pgp_storage/numerics_demand_scaling
-        result['VAR_FROM_PGP_STORAGE'] = dispatch_from_pgp_storage/numerics_demand_scaling
-        result['ENERGY_PGP_STORAGE'] = energy_pgp_storage/numerics_demand_scaling
+        result['COST_NUCLEAR_PERHOUR'] = zeroVec
+        result['COST_NUCLEAR_PERKWH'] = zeroVec
         
         
     if 'UNMET_DEMAND' in system_components:
-        result['VAR_UNMET_DEMAND'] = np.array(dispatch_unmet_demand.value).flatten()/numerics_demand_scaling
+        dispatch = result['VAR_UNMET_DEMAND']
+        costPerHour = dispatch * case_dic['VAR_COST_UNMET_DEMAND'] # Assume no fixed cost to UNMET_DEMAND
+        result['COST_UNMET_DEMAND_PERHOUR'] = costPerHour 
+        result['COST_UNMET_DEMAND_PERKWH'] = costPerHour / dispatch
+        totalDispatch += dispatch
+        totalCost += costPerHour
     else:
-        result['VAR_UNMET_DEMAND'] = dispatch_unmet_demand/numerics_demand_scaling
+        result['COST_UNMET_DEMAND_PERHOUR'] = zeroVec
+        result['COST_UNMET_DEMAND_PERKWH'] = zeroVec
+
+    # first just do capacity part of storage (i.e., not dispatch costs, and not electricity costs)
+    if ('STORAGE' in system_components) or ('PGP+STORAGE' in system_components):
+        cost_and_storage_lifo_stack_analysis( global_dic, case_dic, result )
+        # storage_capacity_and_cost_analysis adds the following items to <result>
+        # result['COST_STORAGE_PERKWH']  cost of electricity from storage in $/kWh
+        
+        # result['COST_STORAGE_PERHOUR'] cost of electricity from storage per hour in $/hr (includes subcomponents listed below)
+        
+        # result['COST_TO_STORAGE_PERHOUR'] variable cost of charging (other than nelectricity cost) contribution to hourly cost of electricity from storage
+        # result['COST_ELECTRICITY_TO_STORAGE_PERHOUR'] charging electricity cost contribution to hourly cost of electricity from storage
+        # result['COST_FROM_STORAGE_PERHOUR'] variable cost of discharging contribution to hourly cost of electricity from storage
+        # result['COST_STORAGE_FIXED_COST_PERHOUR'] allocation of fixed cost of storage to cost of electricity from storage
+        # result['STORAGE_CAPACITY_NEEDED'] amount of storage capacity needed to supply the electricity needed for that hour, treating storage as a LIFO stack
+        
+        # result['COST_PGP_STORAGE_PERKWH']  cost of electricity from PGP_STORAGE in $/kWh
+        
+        # result['COST_PGP_STORAGE_PERHOUR'] cost of electricity from PGP_STORAGE per hour in $/hr (includes subcomponents listed below)
+        
+        # result['COST_TO_PGP_STORAGE_PERHOUR'] variable cost of charging (other than nelectricity cost) contribution to hourly cost of electricity from PGP_STORAGE
+        # result['COST_ELECTRICITY_TO_PGP_STORAGE_PERHOUR'] charging electricity cost contribution to hourly cost of electricity from PGP_STORAGE
+        # result['COST_FROM_PGP_STORAGE_PERHOUR'] variable cost of discharging contribution to hourly cost of electricity from PGP_STORAGE
+        # result['COST_PGP_STORAGE_FIXED_COST_PERHOUR'] allocation of fixed cost of PGP_STORAGE to cost of electricity from PGP_STORAGE
+        # result['PGP_STORAGE_CAPACITY_NEEDED'] amount of PGP_STORAGE energy capacity needed to supply the electricity needed for that hour, treating PGP_STORAGE as a LIFO stack
+    else:
+        result['COST_STORAGE_PERKWH'] =  zeroVec # cost of electricity from storage in $/kWh
+        
+        result['COST_STORAGE_PERHOUR'] =  zeroVec #  cost of electricity from storage per hour in $/hr (includes subcomponents listed below)
+        
+        result['COST_TO_STORAGE_PERHOUR'] =  zeroVec #  variable cost of charging (other than nelectricity cost) contribution to hourly cost of electricity from storage
+        result['COST_ELECTRICITY_TO_STORAGE_PERHOUR'] =  zeroVec #  charging electricity cost contribution to hourly cost of electricity from storage
+        result['COST_FROM_STORAGE_PERHOUR'] =  zeroVec #  variable cost of discharging contribution to hourly cost of electricity from storage
+        result['COST_STORAGE_FIXED_COST_PERHOUR'] =  zeroVec #  allocation of fixed cost of storage to cost of electricity from storage
+        result['STORAGE_CAPACITY_NEEDED'] =  zeroVec #  amount of storage capacity needed to supply the electricity needed for that hour, treating storage as a LIFO stack
+        
+        result['COST_PGP_STORAGE_PERKWH'] =  zeroVec #   cost of electricity from PGP_STORAGE in $/kWh
+        
+        result['COST_PGP_STORAGE_PERHOUR'] =  zeroVec #  cost of electricity from PGP_STORAGE per hour in $/hr (includes subcomponents listed below)
+        
+        result['COST_TO_PGP_STORAGE_PERHOUR'] =  zeroVec #  variable cost of charging (other than nelectricity cost) contribution to hourly cost of electricity from PGP_STORAGE
+        result['COST_ELECTRICITY_TO_PGP_STORAGE_PERHOUR'] =  zeroVec #  charging electricity cost contribution to hourly cost of electricity from PGP_STORAGE
+        result['COST_FROM_PGP_STORAGE_PERHOUR'] =  zeroVec #  variable cost of discharging contribution to hourly cost of electricity from PGP_STORAGE
+        result['COST_PGP_STORAGE_FIXED_COST_PERHOUR'] =  zeroVec #  allocation of fixed cost of PGP_STORAGE to cost of electricity from PGP_STORAGE
+        result['PGP_STORAGE_CAPACITY_NEEDED'] =  zeroVec #  amount of PGP_STORAGE energy capacity needed to supply the electricity needed for that hour, treating PGP_STORAGE as a LIFO stack
         
 
-    
-    start_point = 0.
-    for idx in range(num_time_periods):
-        if ENERGY_STORAGE[idx] == 0:
-            start_point = idx
+#%%    def cost_and_storage_lifo_stack_analysis( global_dic, case_dic, result ):
+        
+        # The basic idea of the following code is to treat battery plus PGP storage 
 
-    lifo_stack = []
-    tmp = 0.
+        # storage_capacity_and_cost_analysis adds the following items to <result>
+        # result['COST_STORAGE_PERKWH']  cost of electricity from storage in $/kWh
+        
+        # result['COST_STORAGE_PERHOUR'] cost of electricity from storage per hour in $/hr (includes subcomponents listed below)
+        
+        # result['COST_TO_STORAGE_PERHOUR'] variable cost of charging (other than nelectricity cost) contribution to hourly cost of electricity from storage
+        # result['COST_ELECTRICITY_TO_STORAGE_PERHOUR'] charging electricity cost contribution to hourly cost of electricity from storage
+        # result['COST_FROM_STORAGE_PERHOUR'] variable cost of discharging contribution to hourly cost of electricity from storage
+        # result['COST_STORAGE_FIXED_COST_PERHOUR'] allocation of fixed cost of storage to cost of electricity from storage
+        # result['STORAGE_CAPACITY_NEEDED'] amount of storage capacity needed to supply the electricity needed for that hour, treating storage as a LIFO stack
+        
+        # result['COST_PGP_STORAGE_PERKWH']  cost of electricity from PGP_STORAGE in $/kWh
+        
+        # result['COST_PGP_STORAGE_PERHOUR'] cost of electricity from PGP_STORAGE per hour in $/hr (includes subcomponents listed below)
+        
+        # result['COST_TO_PGP_STORAGE_PERHOUR'] variable cost of charging (other than nelectricity cost) contribution to hourly cost of electricity from PGP_STORAGE
+        # result['COST_ELECTRICITY_TO_PGP_STORAGE_PERHOUR'] charging electricity cost contribution to hourly cost of electricity from PGP_STORAGE
+        # result['COST_FROM_PGP_STORAGE_PERHOUR'] variable cost of discharging contribution to hourly cost of electricity from PGP_STORAGE
+        # result['COST_PGP_STORAGE_FIXED_COST_PERHOUR'] allocation of fixed cost of PGP_STORAGE to cost of electricity from PGP_STORAGE
+        # result['PGP_STORAGE_CAPACITY_NEEDED'] amount of PGP_STORAGE energy capacity needed to supply the electricity needed for that hour, treating PGP_STORAGE as a LIFO stack
+
+def cost_and_storage_lifo_stack_analysis( global_dic, case_dic, result ):
     
-    for idx in range(num_time_periods-start_point):
-        idx = idx + start_point
-        tmp = tmp + VAR_TO_STORAGE[idx] - VAR_FROM_STORAGE[idx]
-              
-        if VAR_TO_STORAGE[idx] > 0:  # push on stack (with time moved up 1 cycle)
-            lifo_stack.append([idx-num_time_periods,VAR_TO_STORAGE[idx]*STORAGE_CHARGING_EFFICIENCY ])
-        if VAR_FROM_STORAGE[idx] > 0:
-            dispatch_remaining = VAR_FROM_STORAGE[idx]
-            while dispatch_remaining > 0:
-                #print len(lifo_stack),VAR_FROM_STORAGE[idx],dispatch_remaining
-                if len(lifo_stack) != 0:
-                    top_of_stack = lifo_stack.pop()
-                    if top_of_stack[1] > dispatch_remaining:
-                        # partial removal
-                        new_top = np.copy(top_of_stack)
-                        new_top[1] = new_top[1] - dispatch_remaining
-                        lifo_stack.append(new_top)
-                        dispatch_remaining = 0
-                    else:
-                        dispatch_remaining = dispatch_remaining - top_of_stack[1]
-                else:
-                    dispatch_remaining = 0 # stop while loop if stack is empty
-    # Now we have the stack as an initial condition and can do it for real
+    # To allocate costs associated with storage, we want to allocate costs of storage capital and
+    # costs of charging and discharging the battery attributable per kWh or per hour for each hour of electricity delivery
+    
+    # This calculation treats the storage reservoirs as LIFO (Last-In First-Out) stacks where the costs and amounts of electricity are stored.
+    
+    # cost of electricity upon discharge must include the cost 
+    
+    num_time_periods = len(case_dic['DEMAND_SERIES'])
+    zeroVec = np.zeros(num_time_periods,dtype=float)
+    
+    system_components = case_dic['SYSTEM_COMPONENTS'] 
+    
+    # costOfElectricity, amountOfElectricity
+    costOfElectricityOther = (
+            result['COST_NATGAS_PERHOUR'] 
+            + result['COST_WIND_PERHOUR']
+            + result['COST_SOLAR_PERHOUR']
+            + result['COST_NUCLEAR_PERHOUR']
+            + result['COST_UNMET_DEMAND']
+            )
+    amountOfElectricityOther = (
+            result['DISPATCH_NATGAS'] 
+            + result['DISPATCH_WIND']
+            + result['DISPATCH_SOLAR']
+            + result['DISPATCH_NUCLEAR']
+            + result['DISPATCH_UNMET_DEMAND']
+            )
+    lifo_stack = []
+
+    # We need to cycle to get a good initial condition.
+    # Initially, we know the amount but not the age or cost of stored energy.
+    # So, we make the assumption that the cost was zero and the age was -1.
+    num_cycles = 3
+    
     max_headroom = np.zeros(num_time_periods)
     mean_residence_time = np.zeros(num_time_periods)
     max_residence_time = np.zeros(num_time_periods)
     
-    for idx in range(num_time_periods):
+    # energy storage at time t is the amount of energy in storage in the beginning of the time step.
+    #   constraints += [
+    #        energy_storage[(i+1) % num_time_periods] == energy_storage[i] + storage_charging_efficiency * dispatch_to_storage[i] - dispatch_from_storage[i] - energy_storage[i]*storage_decay_rate
+    #        ]
+    #
+    #   constraints += [
+    #        energy_pgp_storage[(i+1) % num_time_periods] == energy_pgp_storage[i] 
+    #        + pgp_storage_charging_efficiency * dispatch_to_pgp_storage[i] 
+    #        - dispatch_from_pgp_storage[i] 
+    #        ]
+
+    # each item on lifo stack is a list:
+    #  lifo[0] == time_idx
+    #  lifo[1] == amount of electricitity to storage
+    #  lifo[2] == cost of putting that much electricity in storage
+    
+    lifo_storage = []
+    lifo_storage.append([-1,result['ENERGY_STORAGE'][0],0.]) # dummy cost and time of placement in battery
+    
+    lifo_pgp_storage[]
+    lifo_pgp_storage.append([-1,result['ENERGY_PGP_STORAGE'][0],0.]) # dummy cost and time of placement in battery
+    
+
+    for time_idx in range(2 * num_time_periods):
         max_head = 0
         mean_res = 0
         max_res = 0
-        if VAR_TO_STORAGE[idx] > 0:  # push on stack
-            lifo_stack.append([idx,VAR_TO_STORAGE[idx]*STORAGE_CHARGING_EFFICIENCY ])
-        if VAR_FROM_STORAGE[idx] > 0:
-            dispatch_remaining = VAR_FROM_STORAGE[idx]
+        if VAR_TO_STORAGE[time_idx] > 0:  # push on stack
+            lifo_stack.append([time_idx,VAR_TO_STORAGE[time_idx % num_time_periods]*STORAGE_CHARGING_EFFICIENCY ])
+        if VAR_FROM_STORAGE[time_idx] > 0:
+            dispatch_remaining = VAR_FROM_STORAGE[time_idx % num_time_periods]
             accum_time = 0
             while dispatch_remaining > 0:
                 if lifo_stack != []:
                     top_of_stack = lifo_stack.pop()
                     if top_of_stack[1] > dispatch_remaining:
                         # partial removal
-                        accum_time = accum_time + dispatch_remaining * (idx - top_of_stack[0])
+                        accum_time = accum_time + dispatch_remaining * (time_idx - top_of_stack[0])
                         new_top = np.copy(top_of_stack)
                         new_top[1] = new_top[1] - dispatch_remaining
                         lifo_stack.append(new_top) # put back the remaining power at the old time
                         dispatch_remaining = 0
                     else: 
                         # full removal of top of stack
-                        accum_time = accum_time + top_of_stack[1] * (idx - top_of_stack[0])
+                        accum_time = accum_time + top_of_stack[1] * (time_idx - top_of_stack[0])
                         dispatch_remaining = dispatch_remaining - top_of_stack[1]
                 else:
                     dispatch_remaining = 0 # stop while loop if stack is empty
-            mean_res = accum_time / VAR_FROM_STORAGE[idx]
-            max_res = idx - top_of_stack[0]
-            # maximum headroom needed is the max of the storage between idx and top_of_stack[0]
-            #    minus the amount of storage at time idx + 1
+            mean_res = accum_time / VAR_FROM_STORAGE[time_idx % num_time_periods]
+            max_res = time_idx - top_of_stack[0]
+            # maximum headroom needed is the max of the storage between time_idx and top_of_stack[0]
+            #    minus the amount of storage at time time_idx + 1
             energy_vec = np.concatenate([ENERGY_STORAGE,ENERGY_STORAGE,ENERGY_STORAGE])
-            max_head = np.max(energy_vec[int(top_of_stack[0]+num_time_periods):int(idx + 1+num_time_periods)]) - energy_vec[int(idx + 1 + num_time_periods)]   # dl-->could be negative?
-        max_headroom[idx] = max_head
-        mean_residence_time[idx] = mean_res
-        max_residence_time[idx] = max_res
+            max_head = np.max(energy_vec[int(top_of_stack[0]+num_time_periods):int(time_idx + 1+num_time_periods)]) - energy_vec[int(time_idx + 1 + num_time_periods)]   # dl-->could be negative?
+        max_headroom[time_idx % num_time_periods] = max_head
+        mean_residence_time[time_idx % num_time_periods] = mean_res
+        max_residence_time[time_idx % num_time_periods] = max_res
     return max_headroom,mean_residence_time,max_residence_time
     

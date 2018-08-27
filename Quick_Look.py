@@ -588,14 +588,14 @@ def prepare_plot_results_time_series_1scenario(input_data):
     input_data['page_title'] = 'daily averaging'
     plot_results_time_series_1scenario(input_data,24) # basic results by day
     
-    input_data['page_title'] = '10-day averaging'
-    plot_results_time_series_1scenario(input_data,24*10) # basic results by week
+    input_data['page_title'] = '5-day averaging'
+    plot_results_time_series_1scenario(input_data,24*5) # basic results by week
     
     # -------------------------------------------------------------------------
     # Find the week where storage dispatch is at its weekly max or min use
     
     for idx in range(results_matrix_dispatch.shape[1]):
-        plot_extreme_dispatch_results_time_series_1scenario(input_data, component_name_dispatch[idx],'max',24*10)
+        plot_extreme_dispatch_results_time_series_1scenario(input_data, component_name_dispatch[idx],'max',24*5)
         
     return
    

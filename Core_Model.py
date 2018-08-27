@@ -308,7 +308,7 @@ def core_model (global_dic, case_dic):
 #    prob.solve(solver = 'GUROBI',BarConvTol = 1e-8, FeasibilityTol = 1e-6)
     
     if verbose:
-        print 'system cost ',prob.value
+        print 'system cost ',prob.value/(numerics_cost_scaling * numerics_demand_scaling)
                 
     # -----------------------------------------------------------------------------
     

@@ -154,7 +154,7 @@ def preprocess_input(case_input_path_filename):
 
     keywords_str = map(str.upper,
             ['DATA_PATH','DEMAND_FILE',
-             'SOLAR_FIXED_FILE','WIND_FIXED_FILE','OUTPUT_PATH',
+             'SOLAR_CAPACITY_FILE','WIND_CAPACITY_FILE','OUTPUT_PATH',
              'CASE_NAME','GLOBAL_NAME']
             )
     
@@ -317,7 +317,7 @@ def preprocess_input(case_input_path_filename):
                                 case_list_dic['END_DAY'][case_index],
                                 case_list_dic['END_HOUR'][case_index],
                                 global_dic['DATA_PATH'],
-                                case_list_dic['SOLAR_FIXED_FILE'][case_index]
+                                case_list_dic['SOLAR_CAPACITY_FILE'][case_index]
                                 )
                         )
             else:
@@ -338,7 +338,7 @@ def preprocess_input(case_input_path_filename):
                                 case_list_dic['END_DAY'][case_index],
                                 case_list_dic['END_HOUR'][case_index],
                                 global_dic['DATA_PATH'],
-                                case_list_dic['WIND_FIXED_FILE'][case_index]
+                                case_list_dic['WIND_CAPACITY_FILE'][case_index]
                                 )
                         )
             else:
