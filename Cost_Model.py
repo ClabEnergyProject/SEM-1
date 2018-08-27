@@ -337,10 +337,10 @@ def cost_and_storage_lifo_stack_analysis( global_dic, case_dic, result ):
         max_head = 0
         mean_res = 0
         max_res = 0
-        if VAR_TO_STORAGE[time_idx] > 0:  # push on stack
-            lifo_stack.append([time_idx,VAR_TO_STORAGE[time_idx % num_time_periods]*STORAGE_CHARGING_EFFICIENCY ])
-        if VAR_FROM_STORAGE[time_idx] > 0:
-            dispatch_remaining = VAR_FROM_STORAGE[time_idx % num_time_periods]
+        if DISPATCH_TO_STORAGE[time_idx] > 0:  # push on stack
+            lifo_stack.append([time_idx,DISPATCH_TO_STORAGE[time_idx % num_time_periods]*STORAGE_CHARGING_EFFICIENCY ])
+        if DISPATCH_FROM_STORAGE[time_idx] > 0:
+            dispatch_remaining = DISPATCH_FROM_STORAGE[time_idx % num_time_periods]
             accum_time = 0
             while dispatch_remaining > 0:
                 if lifo_stack != []:
@@ -358,7 +358,7 @@ def cost_and_storage_lifo_stack_analysis( global_dic, case_dic, result ):
                         dispatch_remaining = dispatch_remaining - top_of_stack[1]
                 else:
                     dispatch_remaining = 0 # stop while loop if stack is empty
-            mean_res = accum_time / VAR_FROM_STORAGE[time_idx % num_time_periods]
+            mean_res = accum_time / DISPATCH_FROM_STORAGE[time_idx % num_time_periods]
             max_res = time_idx - top_of_stack[0]
             # maximum headroom needed is the max of the storage between time_idx and top_of_stack[0]
             #    minus the amount of storage at time time_idx + 1
