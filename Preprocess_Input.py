@@ -40,6 +40,7 @@ Each dictionary in <case_dic_list> OPTIONALLY contains:
 
 import csv
 import numpy as np
+import itertools
 
 
 
@@ -132,7 +133,7 @@ def read_csv_dated_data_file(start_year,start_month,start_day,start_hour,
 
     series = [item[1] for item in zip(hour_num,data_array[:,4]) if item[0]>= start_hour and item[0] <= end_hour]
     
-    return series 
+    return np.array(series).flatten() # return flatten series
 
 def literal_to_boolean(text):
     if (text.strip())[0]=='T' or (text.strip())[0]=='t':  # if first non-space character is T or t, then True, else False
@@ -173,6 +174,14 @@ def preprocess_input(case_input_path_filename):
             'FIXED_COST_TO_PGP_STORAGE','FIXED_COST_FROM_PGP_STORAGE',
             'VAR_COST_TO_PGP_STORAGE','VAR_COST_FROM_PGP_STORAGE',
             'PGP_STORAGE_CHARGING_EFFICIENCY']
+            )
+    
+    keywords_real_notscaled = map(str.upper,
+            ['NUMERICS_COST_SCALING','NUMERICS_DEMAND_SCALING',
+             'END_DAY','END_HOUR','END_MONTH',
+            'END_YEAR',
+            'START_DAY','START_HOUR','START_MONTH',
+            'START_YEAR']
             )
     
     #Capacity cost -- Cost per hour of capacity that must be incurred whether or 
@@ -257,7 +266,10 @@ def preprocess_input(case_input_path_filename):
         if test_key in keywords_str:
             case_list_dic[test_key] = test_values
         elif test_key in keywords_real:
-            setNegToM1 = case_list_dic[test_key] * np.array(map(float,test_values))
+            if test_key in keywords_real_notscaled:
+                setNegToM1 = np.array(map(float,test_values))
+            else:
+                setNegToM1 = case_list_dic[test_key] * np.array(map(float,test_values))
             setNegToM1[setNegToM1 < 0] = -1
             case_list_dic[test_key] = setNegToM1
         elif test_key in keywords_logical:
@@ -287,8 +299,7 @@ def preprocess_input(case_input_path_filename):
             print 'Preprocess_Input.py: time series for ',case_list_dic['CASE_NAME'][case_index]
                 
         # first read in demand series (which must exist)
-        demand_series_list.append(
-            read_csv_dated_data_file(
+        demand_series_list_item = read_csv_dated_data_file(
                     case_list_dic['START_YEAR'][case_index],
                     case_list_dic['START_MONTH'][case_index],
                     case_list_dic['START_DAY'][case_index],
@@ -300,8 +311,13 @@ def preprocess_input(case_input_path_filename):
                     global_dic['DATA_PATH'],
                     case_list_dic['DEMAND_FILE'][case_index]
                     )
-            )
-            
+        if global_dic['NORMALIZE_DEMAND_TO_ONE']:
+            demand_series_list_item = demand_series_list_item / np.average(demand_series_list_item)
+        demand_series_list.append(demand_series_list_item)
+        
+        print case_list_dic['START_YEAR'][case_index],case_list_dic['END_YEAR'][case_index]
+        print len(demand_series_list)
+        print np.array(demand_series_list).shape
         # check on each technology one by one
 
         if 'FIXED_COST_SOLAR' in have_keys:
@@ -345,11 +361,8 @@ def preprocess_input(case_input_path_filename):
                 wind_series_list.append([])
         else:
             wind_series_list.append([])
-        
-    if global_dic['NORMALIZE_DEMAND_TO_ONE']:
-        case_list_dic['DEMAND_SERIES'] =demand_series_list / np.average(demand_series_list)
-    else:
-        case_list_dic['DEMAND_SERIES'] = demand_series_list
+    
+    case_list_dic['DEMAND_SERIES'] = demand_series_list
     case_list_dic['WIND_SERIES'] = wind_series_list
     case_list_dic['SOLAR_SERIES'] = solar_series_list
                                                 
