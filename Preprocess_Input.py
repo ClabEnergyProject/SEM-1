@@ -315,9 +315,6 @@ def preprocess_input(case_input_path_filename):
             demand_series_list_item = demand_series_list_item / np.average(demand_series_list_item)
         demand_series_list.append(demand_series_list_item)
         
-        print case_list_dic['START_YEAR'][case_index],case_list_dic['END_YEAR'][case_index]
-        print len(demand_series_list)
-        print np.array(demand_series_list).shape
         # check on each technology one by one
 
         if 'FIXED_COST_SOLAR' in have_keys:
